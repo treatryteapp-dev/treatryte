@@ -106,9 +106,45 @@ class ApiClient {
       if (e.error is ApiException) throw e.error as ApiException;
 
       final data = e.response?.data;
-      final message = data is Map ? (data['message'] ?? 'Something went wrong') : 'Network error';
       final code = data is Map ? data['code'] as String? : null;
-      throw ApiException(statusCode: e.response?.statusCode, message: message.toString(), code: code);
+      final message = _extractErrorMessage(data) ?? _networkErrorMessage(e);
+      throw ApiException(statusCode: e.response?.statusCode, message: message, code: code);
+    }
+  }
+
+  /// Backend validation failures (zod) return a generic top-level message
+  /// ("Invalid request data") plus a `details` array with the actual
+  /// field-level problem - surface that instead so users see e.g. "Email:
+  /// Invalid email address" rather than a meaningless generic string.
+  String? _extractErrorMessage(dynamic data) {
+    if (data is! Map) return null;
+
+    final details = data['details'];
+    if (data['code'] == 'VALIDATION_ERROR' && details is List && details.isNotEmpty) {
+      final fieldMessages = details.map((issue) {
+        final path = issue['path'];
+        final fieldName = (path is List && path.isNotEmpty) ? path.first.toString() : null;
+        final issueMessage = issue['message']?.toString() ?? 'Invalid value';
+        if (fieldName == null) return issueMessage;
+        final label = fieldName[0].toUpperCase() + fieldName.substring(1);
+        return '$label: $issueMessage';
+      });
+      return fieldMessages.join('\n');
+    }
+
+    return data['message']?.toString();
+  }
+
+  String _networkErrorMessage(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'The request timed out. Please check your connection and try again.';
+      case DioExceptionType.connectionError:
+        return 'Could not reach TreatRyte. Please check your internet connection.';
+      default:
+        return 'Something went wrong. Please try again.';
     }
   }
 

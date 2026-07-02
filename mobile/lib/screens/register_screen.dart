@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
+final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -156,7 +158,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(hintText: 'name@email.com'),
                   validator: (value) =>
-                      (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+                      (value == null || !_emailRegex.hasMatch(value.trim())) ? 'Enter a valid email' : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _FieldLabel('PASSWORD'),
