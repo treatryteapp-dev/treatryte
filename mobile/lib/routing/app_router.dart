@@ -10,6 +10,7 @@ import '../screens/main_shell.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/setup_biometrics_screen.dart';
+import '../screens/subscription_plans_screen.dart';
 import '../screens/withdraw_pay_screen.dart';
 
 const _publicPaths = {'/', '/join', '/login', '/register', '/setup-biometrics'};
@@ -66,6 +67,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
         builder: (context, state) => BookTestScreen(
           booking: state.extra as BookTestArgs,
         ),
+      ),
+      GoRoute(
+        path: '/subscription-plans',
+        builder: (context, state) => const SubscriptionPlansScreen(),
       ),
     ],
   );

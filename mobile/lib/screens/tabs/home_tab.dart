@@ -358,7 +358,7 @@ class _InsuranceBanner extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () => context.push('/subscription-plans'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: AppColors.primary,
