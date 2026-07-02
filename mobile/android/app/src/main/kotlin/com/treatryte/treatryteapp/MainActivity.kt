@@ -1,4 +1,4 @@
-package com.treatryte.treatryte
+package com.treatryte.treatryteapp
 
 import io.flutter.embedding.android.FlutterActivity
 
