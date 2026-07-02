@@ -6,11 +6,22 @@ const env = require('./config/env');
 let cachedPrivateKey = null;
 
 function getPrivateKey() {
-  if (!cachedPrivateKey) {
+  if (cachedPrivateKey) return cachedPrivateKey;
+
+  if (env.aws.cloudfrontPrivateKeyBase64) {
+    cachedPrivateKey = Buffer.from(env.aws.cloudfrontPrivateKeyBase64, 'base64').toString('utf8');
+    return cachedPrivateKey;
+  }
+
+  if (env.aws.cloudfrontPrivateKeyPath) {
     const keyPath = path.resolve(process.cwd(), env.aws.cloudfrontPrivateKeyPath);
     cachedPrivateKey = fs.readFileSync(keyPath, 'utf8');
+    return cachedPrivateKey;
   }
-  return cachedPrivateKey;
+
+  throw new Error(
+    'No CloudFront private key configured - set CLOUDFRONT_PRIVATE_KEY_B64 (production) or CLOUDFRONT_PRIVATE_KEY_PATH (local dev)',
+  );
 }
 
 /**

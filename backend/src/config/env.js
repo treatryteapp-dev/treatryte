@@ -24,6 +24,11 @@ module.exports = {
     s3Bucket: process.env.AWS_S3_BUCKET,
     cloudfrontDomain: process.env.CLOUDFRONT_DOMAIN,
     cloudfrontKeyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID,
+    // On a host like Railway there's no local keys/ directory (it's
+    // git-ignored, never deployed), so the key is passed as a base64-encoded
+    // env var instead. CLOUDFRONT_PRIVATE_KEY_PATH remains as a local-dev
+    // fallback for reading the .pem file directly off disk.
+    cloudfrontPrivateKeyBase64: process.env.CLOUDFRONT_PRIVATE_KEY_B64,
     cloudfrontPrivateKeyPath: process.env.CLOUDFRONT_PRIVATE_KEY_PATH,
   },
 
