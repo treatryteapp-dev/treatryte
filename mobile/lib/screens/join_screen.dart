@@ -57,9 +57,8 @@ class _JoinScreenState extends State<JoinScreen> {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Whether you\'re seeking medical attention or providing '
-                'professional healthcare services, we\'ve built a bridge '
-                'for your needs.',
+                'A secure, transparent bridge connecting smart personal '
+                'health tracking with local diagnostic providers.',
                 style: textTheme.bodyMedium,
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -67,8 +66,8 @@ class _JoinScreenState extends State<JoinScreen> {
                 icon: Icons.person_outline,
                 title: 'Become a User',
                 description:
-                    'Access to doctors, manage prescriptions, and secure '
-                    'health insurance.',
+                    'Set free medication alarms, search transparent clinic '
+                    'prices, and securely own your medical records.',
                 selected: _selectedRole == _Role.user,
                 onTap: () => setState(() => _selectedRole = _Role.user),
               ),
@@ -77,8 +76,8 @@ class _JoinScreenState extends State<JoinScreen> {
                 icon: Icons.local_hospital_outlined,
                 title: 'Become a Partner',
                 description:
-                    'Scale your medical facility, digitize patient records, '
-                    'and accept digital payments.',
+                    'Publish your clinical storefront, issue digital '
+                    'records automatically, and manage patient billing.',
                 selected: _selectedRole == _Role.partner,
                 onTap: () => setState(() => _selectedRole = _Role.partner),
               ),
