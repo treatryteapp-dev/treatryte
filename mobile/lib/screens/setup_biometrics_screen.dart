@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/vault_provider.dart';
 import '../theme/app_theme.dart';
 
 class SetupBiometricsScreen extends StatefulWidget {
@@ -11,7 +13,7 @@ class SetupBiometricsScreen extends StatefulWidget {
 }
 
 class _SetupBiometricsScreenState extends State<SetupBiometricsScreen> {
-  bool _enabled = false;
+  bool _enabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +104,10 @@ class _SetupBiometricsScreenState extends State<SetupBiometricsScreen> {
               ),
               const SizedBox(height: AppSpacing.xl),
               ElevatedButton(
-                onPressed: () => context.go('/dashboard'),
+                onPressed: () async {
+                  await context.read<VaultProvider>().setBiometricLock(_enabled);
+                  if (context.mounted) context.go('/dashboard');
+                },
                 child: const Text('Setup FaceID/TouchID'),
               ),
               const SizedBox(height: AppSpacing.sm),

@@ -1,51 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../models/notification_item.dart';
+import '../providers/notification_provider.dart';
 import '../theme/app_theme.dart';
 
-class NotificationsScreen extends StatelessWidget {
+({IconData icon, Color iconColor, Color iconBackground}) _styleForType(String type) {
+  switch (type) {
+    case 'wallet':
+      return (
+        icon: Icons.account_balance_wallet_outlined,
+        iconColor: AppColors.secondary,
+        iconBackground: AppColors.secondaryContainer,
+      );
+    case 'appointment':
+      return (
+        icon: Icons.event_available_outlined,
+        iconColor: AppColors.tertiary,
+        iconBackground: const Color(0xFFDAE2FD),
+      );
+    case 'lab_result':
+      return (
+        icon: Icons.science_outlined,
+        iconColor: AppColors.primary,
+        iconBackground: AppColors.primaryContainer,
+      );
+    case 'medication_reminder':
+      return (
+        icon: Icons.medication_outlined,
+        iconColor: AppColors.error,
+        iconBackground: AppColors.errorContainer,
+      );
+    default:
+      return (
+        icon: Icons.notifications_none,
+        iconColor: AppColors.onSurfaceVariant,
+        iconBackground: AppColors.surfaceContainerHigh,
+      );
+  }
+}
+
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
-  static const _today = [
-    (
-      icon: Icons.medication_outlined,
-      iconColor: AppColors.error,
-      iconBackground: AppColors.errorContainer,
-      title: 'Medication Reminder',
-      body: 'It\'s time to take your Amoxicillin 500mg dose.',
-      time: '2:00 PM',
-    ),
-    (
-      icon: Icons.account_balance_wallet_outlined,
-      iconColor: AppColors.secondary,
-      iconBackground: AppColors.secondaryContainer,
-      title: 'Wallet Funded',
-      body: '₦10,000.00 has been credited to your wallet.',
-      time: '10:15 AM',
-    ),
-  ];
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
 
-  static const _yesterday = [
-    (
-      icon: Icons.science_outlined,
-      iconColor: AppColors.primary,
-      iconBackground: AppColors.primaryContainer,
-      title: 'Lab Results Ready',
-      body: 'Your General Diagnostics results are now in your vault.',
-      time: '4:45 PM',
-    ),
-    (
-      icon: Icons.event_available_outlined,
-      iconColor: AppColors.tertiary,
-      iconBackground: Color(0xFFDAE2FD),
-      title: 'Appointment Confirmed',
-      body: 'Your booking at Care Diagnostics Lab is confirmed for tomorrow.',
-      time: '11:00 AM',
-    ),
-  ];
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationProvider>().refresh();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final notifications = context.watch<NotificationProvider>();
+    final isEmpty =
+        notifications.today.isEmpty && notifications.yesterday.isEmpty && notifications.earlier.isEmpty;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -54,36 +72,38 @@ class NotificationsScreen extends StatelessWidget {
         ),
         title: const Text('Notifications'),
         actions: [
-          TextButton(onPressed: () {}, child: const Text('Clear All')),
+          TextButton(
+            onPressed: () => context.read<NotificationProvider>().markAllRead(),
+            child: const Text('Clear All'),
+          ),
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            _SectionLabel('TODAY'),
-            for (final n in _today)
-              _NotificationTile(
-                icon: n.icon,
-                iconColor: n.iconColor,
-                iconBackground: n.iconBackground,
-                title: n.title,
-                body: n.body,
-                time: n.time,
-              ),
-            const SizedBox(height: AppSpacing.md),
-            _SectionLabel('YESTERDAY'),
-            for (final n in _yesterday)
-              _NotificationTile(
-                icon: n.icon,
-                iconColor: n.iconColor,
-                iconBackground: n.iconBackground,
-                title: n.title,
-                body: n.body,
-                time: n.time,
-              ),
-          ],
-        ),
+        child: notifications.isLoading && isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : isEmpty
+                ? Center(
+                    child: Text('No notifications yet.', style: Theme.of(context).textTheme.bodyMedium),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    children: [
+                      if (notifications.today.isNotEmpty) ...[
+                        const _SectionLabel('TODAY'),
+                        for (final n in notifications.today) _NotificationTile(notification: n),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
+                      if (notifications.yesterday.isNotEmpty) ...[
+                        const _SectionLabel('YESTERDAY'),
+                        for (final n in notifications.yesterday) _NotificationTile(notification: n),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
+                      if (notifications.earlier.isNotEmpty) ...[
+                        const _SectionLabel('EARLIER'),
+                        for (final n in notifications.earlier) _NotificationTile(notification: n),
+                      ],
+                    ],
+                  ),
       ),
     );
   }
@@ -104,64 +124,60 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBackground,
-    required this.title,
-    required this.body,
-    required this.time,
-  });
+  const _NotificationTile({required this.notification});
 
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBackground;
-  final String title;
-  final String body;
-  final String time;
+  final NotificationItem notification;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final style = _styleForType(notification.type);
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(AppRadii.md),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        onTap: () => context.read<NotificationProvider>().markAllRead(),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: style.iconBackground,
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                ),
+                child: Icon(style.icon, size: 20, color: style.iconColor),
               ),
-              child: Icon(icon, size: 20, color: iconColor),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notification.title,
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.w700,
+                            ),
+                          ),
                         ),
-                      ),
-                      Text(time, style: textTheme.bodySmall),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(body, style: textTheme.bodySmall),
-                ],
+                        Text(DateFormat('h:mm a').format(notification.createdAt.toLocal()),
+                            style: textTheme.bodySmall),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(notification.body, style: textTheme.bodySmall),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,56 +1,90 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/activity_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/wallet_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/icon_mapper.dart';
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
 
   @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WalletProvider>().refresh();
+      context.read<ActivityProvider>().refresh();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final wallet = context.watch<WalletProvider>();
+    final activity = context.watch<ActivityProvider>();
+
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.xxl,
-        ),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _DashboardHeader(name: 'Adebayo'),
-          const SizedBox(height: AppSpacing.lg),
-          const _WalletCard(),
-          const SizedBox(height: AppSpacing.xl),
-          Text('Quick Services', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: AppSpacing.md),
-          const _QuickServicesGrid(),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: RefreshIndicator(
+        onRefresh: () => Future.wait([
+          context.read<WalletProvider>().refresh(),
+          context.read<ActivityProvider>().refresh(),
+        ]),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.xxl,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Recent Activity', style: Theme.of(context).textTheme.headlineSmall),
-              TextButton(onPressed: () {}, child: const Text('See All')),
+              const _DashboardHeader(),
+              const SizedBox(height: AppSpacing.lg),
+              _WalletCard(wallet: wallet),
+              const SizedBox(height: AppSpacing.xl),
+              Text('Quick Services', style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: AppSpacing.md),
+              const _QuickServicesGrid(),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Recent Activity', style: Theme.of(context).textTheme.headlineSmall),
+                  TextButton(onPressed: () {}, child: const Text('See All')),
+                ],
+              ),
+              if (activity.isLoading && activity.recent.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (activity.recent.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Text('No recent activity yet.', style: Theme.of(context).textTheme.bodySmall),
+                )
+              else
+                for (final item in activity.recent)
+                  _ActivityTile(
+                    icon: iconForKey(item.iconKey),
+                    iconColor: AppColors.secondary,
+                    iconBackground: AppColors.secondaryContainer,
+                    title: item.title,
+                    subtitle: item.subtitle,
+                  ),
+              const SizedBox(height: AppSpacing.lg),
+              const _InsuranceBanner(),
             ],
           ),
-          const _ActivityTile(
-            icon: Icons.science_outlined,
-            iconColor: AppColors.secondary,
-            iconBackground: AppColors.secondaryContainer,
-            title: 'Lab Results Uploaded',
-            subtitle: 'General Diagnostics • Just now',
-          ),
-          const _ActivityTile(
-            icon: Icons.medication_outlined,
-            iconColor: AppColors.error,
-            iconBackground: AppColors.errorContainer,
-            title: 'Upcoming Medication',
-            subtitle: 'Amoxicillin • 8:00 PM',
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          const _InsuranceBanner(),
-        ],
         ),
       ),
     );
@@ -58,13 +92,12 @@ class HomeTab extends StatelessWidget {
 }
 
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.name});
-
-  final String name;
+  const _DashboardHeader();
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final user = context.watch<AuthProvider>().currentUser;
 
     return Row(
       children: [
@@ -72,7 +105,7 @@ class _DashboardHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hello, $name 👋', style: textTheme.headlineMedium),
+              Text('Hello, ${user?.firstName ?? ''} 👋', style: textTheme.headlineMedium),
               const SizedBox(height: 2),
               Text('How are you feeling today?', style: textTheme.bodySmall),
             ],
@@ -94,7 +127,9 @@ class _DashboardHeader extends StatelessWidget {
 }
 
 class _WalletCard extends StatelessWidget {
-  const _WalletCard();
+  const _WalletCard({required this.wallet});
+
+  final WalletProvider wallet;
 
   @override
   Widget build(BuildContext context) {
@@ -130,14 +165,26 @@ class _WalletCard extends StatelessWidget {
             'Available Balance',
             style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
-          const Text(
-            '₦45,000.00',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          wallet.isLoading
+              ? const SizedBox(
+                  height: 34,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
+                  ),
+                )
+              : Text(
+                  wallet.formattedBalance,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../../models/directory_models.dart';
+import '../../providers/directory_provider.dart';
 import '../../theme/app_theme.dart';
+import '../book_test_screen.dart';
 
 class DirectoryTab extends StatefulWidget {
   const DirectoryTab({super.key});
@@ -14,82 +18,105 @@ class _DirectoryTabState extends State<DirectoryTab> {
   String _filter = 'All';
 
   static const _filters = ['All', 'Laboratories', 'Dental'];
-  static const _trendingTests = ['Malaria + Typhoid', 'Fasting Blood Sugar'];
+  static const _filterToType = {'All': 'all', 'Laboratories': 'laboratory', 'Dental': 'dental'};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DirectoryProvider>().refresh();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final directory = context.watch<DirectoryProvider>();
 
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.xxl,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Directory', style: textTheme.headlineMedium),
-            const SizedBox(height: AppSpacing.md),
-            const TextField(
-              decoration: InputDecoration(
-                hintText: 'Find diagnostic labs & clinics near you',
-                prefixIcon: Icon(Icons.search),
+      child: RefreshIndicator(
+        onRefresh: () => context.read<DirectoryProvider>().refresh(clinicType: _filterToType[_filter]),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.xxl,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Directory', style: textTheme.headlineMedium),
+              const SizedBox(height: AppSpacing.md),
+              const TextField(
+                decoration: InputDecoration(
+                  hintText: 'Find diagnostic labs & clinics near you',
+                  prefixIcon: Icon(Icons.search),
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              height: 36,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _filters.length,
-                separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
-                itemBuilder: (context, index) {
-                  final label = _filters[index];
-                  final selected = label == _filter;
-                  return ChoiceChip(
-                    label: Text(label),
-                    selected: selected,
-                    onSelected: (_) => setState(() => _filter = label),
-                    selectedColor: AppColors.primary,
-                    labelStyle: TextStyle(
-                      color: selected ? Colors.white : AppColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    backgroundColor: AppColors.surfaceContainerLowest,
-                    side: BorderSide(
-                      color: selected ? AppColors.primary : AppColors.outlineVariant,
-                    ),
-                  );
-                },
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _filters.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                  itemBuilder: (context, index) {
+                    final label = _filters[index];
+                    final selected = label == _filter;
+                    return ChoiceChip(
+                      label: Text(label),
+                      selected: selected,
+                      onSelected: (_) {
+                        setState(() => _filter = label);
+                        context.read<DirectoryProvider>().filterClinics(_filterToType[label]!);
+                      },
+                      selectedColor: AppColors.primary,
+                      labelStyle: TextStyle(
+                        color: selected ? Colors.white : AppColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      backgroundColor: AppColors.surfaceContainerLowest,
+                      side: BorderSide(
+                        color: selected ? AppColors.primary : AppColors.outlineVariant,
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const _FeaturedLabCard(),
-            const SizedBox(height: AppSpacing.xl),
-            Text('Trending Tests', style: textTheme.headlineSmall),
-            const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                for (final test in _trendingTests)
-                  Chip(
-                    avatar: const Icon(Icons.trending_up, size: 16, color: AppColors.primary),
-                    label: Text(test),
-                    backgroundColor: AppColors.surfaceContainerLowest,
-                    side: const BorderSide(color: AppColors.outlineVariant),
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            const _ClinicListTile(
-              name: 'Lagos State Eye Clinic',
-              meta: '2.0km • Ikeja Ave • Opens 8:00 AM',
-            ),
-          ],
+              const SizedBox(height: AppSpacing.lg),
+              if (directory.isLoading && directory.featuredLabs.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                for (final lab in directory.featuredLabs) _FeaturedLabCard(lab: lab),
+              const SizedBox(height: AppSpacing.xl),
+              Text('Trending Tests', style: textTheme.headlineSmall),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  for (final test in directory.trendingTests)
+                    Chip(
+                      avatar: const Icon(Icons.trending_up, size: 16, color: AppColors.primary),
+                      label: Text(test.name),
+                      backgroundColor: AppColors.surfaceContainerLowest,
+                      side: const BorderSide(color: AppColors.outlineVariant),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              for (final clinic in directory.clinics)
+                _ClinicListTile(
+                  name: clinic.name,
+                  meta: '${clinic.distanceKm}km • ${clinic.address} • ${clinic.hours}',
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -97,14 +124,19 @@ class _DirectoryTabState extends State<DirectoryTab> {
 }
 
 class _FeaturedLabCard extends StatelessWidget {
-  const _FeaturedLabCard();
+  const _FeaturedLabCard({required this.lab});
+
+  final Lab lab;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final fullStars = lab.rating.floor();
+    final hasHalfStar = lab.rating - fullStars >= 0.5;
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -135,7 +167,7 @@ class _FeaturedLabCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadii.full),
                   ),
                   child: Text(
-                    'Open 24/7',
+                    lab.hours,
                     style: textTheme.labelSmall?.copyWith(
                       color: AppColors.onSecondaryContainer,
                       fontWeight: FontWeight.w700,
@@ -150,34 +182,54 @@ class _FeaturedLabCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Care Diagnostics Lab', style: textTheme.headlineSmall),
+                Text(lab.name, style: textTheme.headlineSmall),
                 const SizedBox(height: 2),
                 Row(
                   children: [
                     const Icon(Icons.location_on, size: 14, color: AppColors.outline),
-                    Text(' 0.2km • Admin Avenue', style: textTheme.bodySmall),
+                    Text(' ${lab.distanceKm}km • ${lab.address}', style: textTheme.bodySmall),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(
-                  children: const [
-                    Icon(Icons.star, size: 14, color: Color(0xFFF5B301)),
-                    Icon(Icons.star, size: 14, color: Color(0xFFF5B301)),
-                    Icon(Icons.star, size: 14, color: Color(0xFFF5B301)),
-                    Icon(Icons.star, size: 14, color: Color(0xFFF5B301)),
-                    Icon(Icons.star_half, size: 14, color: Color(0xFFF5B301)),
-                    SizedBox(width: 4),
-                    Text('(126 Reviews)', style: TextStyle(fontSize: 12, color: AppColors.outline)),
+                  children: [
+                    for (var i = 0; i < 5; i++)
+                      Icon(
+                        i < fullStars
+                            ? Icons.star
+                            : (i == fullStars && hasHalfStar ? Icons.star_half : Icons.star_border),
+                        size: 14,
+                        color: const Color(0xFFF5B301),
+                      ),
+                    const SizedBox(width: 4),
+                    Text('(${lab.reviewCount} Reviews)',
+                        style: const TextStyle(fontSize: 12, color: AppColors.outline)),
                   ],
                 ),
                 const Divider(height: AppSpacing.lg),
-                const _TestRow(name: 'Full Blood Count', duration: 'Same-day', price: '₦7,500'),
-                const _TestRow(name: 'Lipid Profile', duration: 'Fasting Required', price: '₦12,000'),
+                for (final test in lab.tests)
+                  _TestRow(
+                    name: test.name,
+                    duration: test.duration ?? '',
+                    price: test.priceKobo != null ? '₦${(test.priceKobo! / 100).toStringAsFixed(0)}' : '',
+                  ),
                 const SizedBox(height: AppSpacing.md),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => context.push('/book-test'),
+                    onPressed: lab.tests.isEmpty
+                        ? null
+                        : () => context.push(
+                              '/book-test',
+                              extra: BookTestArgs(
+                                labId: lab.id,
+                                labName: lab.name,
+                                labAddress: lab.address,
+                                testId: lab.tests.first.id,
+                                testName: lab.tests.first.name,
+                                priceKobo: lab.tests.first.priceKobo ?? 0,
+                              ),
+                            ),
                     child: const Text('Book & Pay Now'),
                   ),
                 ),

@@ -1,0 +1,163 @@
+const { getDb, getClient } = require('../db');
+
+const COLLECTION = 'transactions';
+
+function collection() {
+  return getDb().collection(COLLECTION);
+}
+
+function walletCollection() {
+  return getDb().collection('wallets');
+}
+
+function list(userId, { page = 1, limit = 20, category } = {}) {
+  const query = { userId };
+  if (category) query.category = category;
+
+  return collection()
+    .find(query)
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .toArray();
+}
+
+function findByNombaOrderReference(nombaOrderReference) {
+  return collection().findOne({ nombaOrderReference });
+}
+
+function findByNombaTransferRef(nombaTransferRef) {
+  return collection().findOne({ nombaTransferRef });
+}
+
+/**
+ * Inserts a transaction row without touching the wallet balance.
+ * Used for funding orders that only become real money once Nomba confirms
+ * payment via webhook.
+ */
+async function recordPending({ userId, walletId, type, category, amount, description, metadata, refs }) {
+  const now = new Date();
+  const doc = {
+    userId,
+    walletId,
+    type,
+    category,
+    amount,
+    balanceAfter: null,
+    status: 'pending',
+    description,
+    metadata: metadata || {},
+    ...refs,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const result = await collection().insertOne(doc);
+  return { ...doc, _id: result.insertedId };
+}
+
+/**
+ * Atomically applies a balance delta and inserts the corresponding ledger
+ * row in the same transaction, so `wallets.balance` and the `transactions`
+ * collection can never drift.
+ */
+async function applyImmediate({ userId, walletId, type, category, amount, description, metadata, refs }) {
+  const client = getClient();
+  const session = client.startSession();
+  const delta = type === 'credit' ? amount : -amount;
+
+  try {
+    let transactionDoc;
+    await session.withTransaction(async () => {
+      const wallet = await walletCollection().findOneAndUpdate(
+        { _id: walletId },
+        { $inc: { balance: delta }, $set: { updatedAt: new Date() } },
+        { returnDocument: 'after', session },
+      );
+
+      const now = new Date();
+      transactionDoc = {
+        userId,
+        walletId,
+        type,
+        category,
+        amount,
+        balanceAfter: wallet.balance,
+        status: 'success',
+        description,
+        metadata: metadata || {},
+        ...refs,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const result = await collection().insertOne(transactionDoc, { session });
+      transactionDoc._id = result.insertedId;
+    });
+    return transactionDoc;
+  } finally {
+    await session.endSession();
+  }
+}
+
+/**
+ * Marks a previously-pending transaction as settled and (for credits only)
+ * applies the balance delta atomically. Idempotent: if a transaction with
+ * the same nombaTransactionId already exists (unique index), the duplicate
+ * insert/update is a no-op.
+ */
+async function finalizePendingCredit(transactionId, nombaTransactionId) {
+  const client = getClient();
+  const session = client.startSession();
+
+  try {
+    let result = null;
+    await session.withTransaction(async () => {
+      const pending = await collection().findOne(
+        { _id: transactionId, status: 'pending' },
+        { session },
+      );
+      if (!pending) return; // already finalized or unknown - idempotent no-op
+
+      const wallet = await walletCollection().findOneAndUpdate(
+        { _id: pending.walletId },
+        { $inc: { balance: pending.amount }, $set: { updatedAt: new Date() } },
+        { returnDocument: 'after', session },
+      );
+
+      await collection().updateOne(
+        { _id: pending._id },
+        {
+          $set: {
+            status: 'success',
+            balanceAfter: wallet.balance,
+            nombaTransactionId,
+            updatedAt: new Date(),
+          },
+        },
+        { session },
+      );
+      result = { ...pending, status: 'success', balanceAfter: wallet.balance };
+    });
+    return result;
+  } finally {
+    await session.endSession();
+  }
+}
+
+async function markFailed(transactionId) {
+  await collection().updateOne(
+    { _id: transactionId, status: 'pending' },
+    { $set: { status: 'failed', updatedAt: new Date() } },
+  );
+}
+
+module.exports = {
+  COLLECTION,
+  collection,
+  list,
+  findByNombaOrderReference,
+  findByNombaTransferRef,
+  recordPending,
+  applyImmediate,
+  finalizePendingCredit,
+  markFailed,
+};

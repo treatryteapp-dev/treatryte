@@ -1,10 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/appointment_provider.dart';
+import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
 
+class BookTestArgs {
+  const BookTestArgs({
+    required this.labId,
+    required this.labName,
+    required this.labAddress,
+    required this.testId,
+    required this.testName,
+    required this.priceKobo,
+  });
+
+  final String labId;
+  final String labName;
+  final String labAddress;
+  final String testId;
+  final String testName;
+  final int priceKobo;
+}
+
+const _estimatedServiceFeeKobo = 100000; // ₦1,000 - mirrors the backend's fixed fee, confirmed at payment time
+
 class BookTestScreen extends StatefulWidget {
-  const BookTestScreen({super.key});
+  const BookTestScreen({super.key, required this.booking});
+
+  final BookTestArgs booking;
 
   @override
   State<BookTestScreen> createState() => _BookTestScreenState();
@@ -12,33 +38,56 @@ class BookTestScreen extends StatefulWidget {
 
 class _BookTestScreenState extends State<BookTestScreen> {
   int _selectedDay = 0;
-  int _selectedTime = 2;
+  int _selectedTime = 0;
+  bool _paying = false;
 
-  static const _days = [
-    (label: 'Mon', date: '24', month: 'MAY'),
-    (label: 'Tue', date: '25', month: 'MAY'),
-    (label: 'Wed', date: '26', month: 'MAY'),
-    (label: 'Thu', date: '27', month: 'MAY'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppointmentProvider>().loadAvailability(widget.booking.labId);
+      context.read<WalletProvider>().refresh();
+    });
+  }
 
-  static const _times = [
-    '09:00 AM',
-    '10:30 AM',
-    '11:00 AM',
-    '01:30 PM',
-    '03:00 PM',
-    '04:30 PM',
-  ];
+  String _formatNaira(int kobo) => '₦${(kobo / 100).toStringAsFixed(kobo % 100 == 0 ? 0 : 2)}';
 
-  static const _subtotal = 7500;
-  static const _serviceFee = 1000;
-  static const _walletBalance = 45000;
+  Future<void> _payViaWallet() async {
+    final appointments = context.read<AppointmentProvider>();
+    if (appointments.availability.isEmpty) return;
 
-  int get _total => _subtotal + _serviceFee;
+    final day = appointments.availability[_selectedDay];
+    final time = day.slots[_selectedTime];
+
+    setState(() => _paying = true);
+    final success = await appointments.bookAndPay(
+      labId: widget.booking.labId,
+      testId: widget.booking.testId,
+      scheduledDate: DateFormat('yyyy-MM-dd').format(day.date),
+      scheduledTimeSlot: time.time,
+    );
+    if (!mounted) return;
+    setState(() => _paying = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Appointment booked and paid successfully.')),
+      );
+      context.pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(appointments.errorMessage ?? 'Booking failed')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final appointments = context.watch<AppointmentProvider>();
+    final wallet = context.watch<WalletProvider>();
+    final subtotal = widget.booking.priceKobo;
+    final total = subtotal + _estimatedServiceFeeKobo;
 
     return Scaffold(
       appBar: AppBar(
@@ -66,12 +115,13 @@ class _BookTestScreenState extends State<BookTestScreen> {
                   children: [
                     Text('SELECTED SERVICE', style: textTheme.labelSmall),
                     const SizedBox(height: AppSpacing.xs),
-                    Text('Full Blood Count', style: textTheme.headlineSmall),
+                    Text(widget.booking.testName, style: textTheme.headlineSmall),
                     const SizedBox(height: 2),
                     Row(
                       children: [
                         const Icon(Icons.location_on, size: 14, color: AppColors.outline),
-                        Text(' Care Diagnostics, Victoria Island', style: textTheme.bodySmall),
+                        Text(' ${widget.booking.labName}, ${widget.booking.labAddress}',
+                            style: textTheme.bodySmall),
                       ],
                     ),
                   ],
@@ -80,92 +130,106 @@ class _BookTestScreenState extends State<BookTestScreen> {
               const SizedBox(height: AppSpacing.xl),
               Text('Schedule Appointment', style: textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.md),
-              SizedBox(
-                height: 80,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _days.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
-                  itemBuilder: (context, index) {
-                    final day = _days[index];
-                    final selected = index == _selectedDay;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedDay = index),
-                      child: Container(
-                        width: 64,
-                        decoration: BoxDecoration(
-                          color: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
-                          borderRadius: BorderRadius.circular(AppRadii.md),
-                          border: Border.all(
-                            color: selected ? AppColors.primary : AppColors.outlineVariant,
+              if (appointments.isLoading && appointments.availability.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else ...[
+                SizedBox(
+                  height: 80,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: appointments.availability.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      final day = appointments.availability[index];
+                      final selected = index == _selectedDay;
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          _selectedDay = index;
+                          _selectedTime = 0;
+                        }),
+                        child: Container(
+                          width: 64,
+                          decoration: BoxDecoration(
+                            color: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(AppRadii.md),
+                            border: Border.all(
+                              color: selected ? AppColors.primary : AppColors.outlineVariant,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                DateFormat('EEE').format(day.date),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: selected ? Colors.white70 : AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                DateFormat('d').format(day.date),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: selected ? Colors.white : AppColors.onSurface,
+                                ),
+                              ),
+                              Text(
+                                DateFormat('MMM').format(day.date).toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: selected ? Colors.white70 : AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              day.label,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: selected ? Colors.white70 : AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              day.date,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: selected ? Colors.white : AppColors.onSurface,
-                              ),
-                            ),
-                            Text(
-                              day.month,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: selected ? Colors.white70 : AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: AppSpacing.sm,
-                crossAxisSpacing: AppSpacing.sm,
-                childAspectRatio: 2.4,
-                children: [
-                  for (var i = 0; i < _times.length; i++)
-                    OutlinedButton(
-                      onPressed: () => setState(() => _selectedTime = i),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: i == _selectedTime
-                            ? AppColors.primary
-                            : AppColors.surfaceContainerLowest,
-                        foregroundColor: i == _selectedTime ? Colors.white : AppColors.onSurface,
-                        side: BorderSide(
-                          color: i == _selectedTime ? AppColors.primary : AppColors.outlineVariant,
-                        ),
-                      ),
-                      child: Text(_times[i], style: const TextStyle(fontSize: 12)),
-                    ),
-                ],
-              ),
+                const SizedBox(height: AppSpacing.md),
+                if (appointments.availability.isNotEmpty)
+                  GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: AppSpacing.sm,
+                    crossAxisSpacing: AppSpacing.sm,
+                    childAspectRatio: 2.4,
+                    children: [
+                      for (var i = 0; i < appointments.availability[_selectedDay].slots.length; i++)
+                        Builder(builder: (context) {
+                          final slot = appointments.availability[_selectedDay].slots[i];
+                          final selected = i == _selectedTime;
+                          return OutlinedButton(
+                            onPressed: slot.available ? () => setState(() => _selectedTime = i) : null,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
+                              foregroundColor: selected ? Colors.white : AppColors.onSurface,
+                              disabledBackgroundColor: AppColors.surfaceContainerHigh,
+                              side: BorderSide(
+                                color: selected ? AppColors.primary : AppColors.outlineVariant,
+                              ),
+                            ),
+                            child: Text(slot.time, style: const TextStyle(fontSize: 12)),
+                          );
+                        }),
+                    ],
+                  ),
+              ],
               const SizedBox(height: AppSpacing.xl),
               Text('Payment Summary', style: textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.sm),
-              const _SummaryRow(label: 'Subtotal', value: '₦$_subtotal'),
-              const _SummaryRow(label: 'Service Fee', value: '₦$_serviceFee'),
+              _SummaryRow(label: 'Subtotal', value: _formatNaira(subtotal)),
+              _SummaryRow(label: 'Service Fee', value: _formatNaira(_estimatedServiceFeeKobo)),
               const Divider(height: AppSpacing.lg),
               _SummaryRow(
                 label: 'Total',
-                value: '₦$_total',
+                value: _formatNaira(total),
                 emphasize: true,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -181,11 +245,14 @@ class _BookTestScreenState extends State<BookTestScreen> {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        'Wallet Balance: ₦$_walletBalance.00',
+                        'Wallet Balance: ${wallet.formattedBalance}',
                         style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
-                    TextButton(onPressed: () {}, child: const Text('Top up')),
+                    TextButton(
+                      onPressed: () => context.push('/fund-wallet'),
+                      child: const Text('Top up'),
+                    ),
                   ],
                 ),
               ),
@@ -208,15 +275,21 @@ class _BookTestScreenState extends State<BookTestScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.pop(),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Pay via Wallet'),
-                      SizedBox(width: AppSpacing.sm),
-                      Icon(Icons.arrow_forward, size: 18),
-                    ],
-                  ),
+                  onPressed: (_paying || appointments.availability.isEmpty) ? null : _payViaWallet,
+                  child: _paying
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Pay via Wallet'),
+                            SizedBox(width: AppSpacing.sm),
+                            Icon(Icons.arrow_forward, size: 18),
+                          ],
+                        ),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),

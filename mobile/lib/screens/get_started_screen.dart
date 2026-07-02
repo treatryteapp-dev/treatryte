@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../theme/app_theme.dart';
-import '../widgets/trust_badge.dart';
 
 class GetStartedScreen extends StatelessWidget {
   const GetStartedScreen({super.key});
@@ -92,16 +91,6 @@ class GetStartedScreen extends StatelessWidget {
                   onPressed: () => context.push('/login'),
                   child: const Text('Log In'),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              const Wrap(
-                spacing: AppSpacing.md,
-                alignment: WrapAlignment.center,
-                children: [
-                  TrustBadge(icon: Icons.verified_user, label: 'CBN Licensed'),
-                  TrustBadge(icon: Icons.shield, label: 'NDPR Accredited'),
-                  TrustBadge(icon: Icons.lock, label: 'Bank-Grade Security'),
-                ],
               ),
               const SizedBox(height: AppSpacing.lg),
             ],

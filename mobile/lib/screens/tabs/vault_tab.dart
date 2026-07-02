@@ -1,86 +1,197 @@
-import 'package:flutter/material.dart';
+import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/vault_models.dart';
+import '../../providers/vault_provider.dart';
 import '../../theme/app_theme.dart';
 
-class VaultTab extends StatelessWidget {
+const _categoryOptions = ['cardiology', 'diagnostics', 'prescriptions', 'eye_clinic', 'other'];
+
+const _categoryIcons = {
+  'cardiology': Icons.favorite_border,
+  'diagnostics': Icons.science_outlined,
+  'prescriptions': Icons.medication_outlined,
+  'eye_clinic': Icons.remove_red_eye_outlined,
+};
+
+String _categoryLabel(String category) {
+  return category
+      .split('_')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+}
+
+class VaultTab extends StatefulWidget {
   const VaultTab({super.key});
 
-  static const _directories = [
-    (icon: Icons.favorite_border, label: 'Cardiology', color: AppColors.errorContainer, onColor: AppColors.error, count: '12 Files'),
-    (icon: Icons.science_outlined, label: 'General Diagnostics', color: AppColors.secondaryContainer, onColor: AppColors.onSecondaryContainer, count: '28 Files'),
-    (icon: Icons.medication_outlined, label: 'Prescriptions', color: Color(0xFFDAE2FD), onColor: AppColors.tertiary, count: '19 Files'),
-    (icon: Icons.remove_red_eye_outlined, label: 'Eye Clinic', color: Color(0xFFE0E3E5), onColor: AppColors.onSurfaceVariant, count: '5 Files'),
-  ];
+  @override
+  State<VaultTab> createState() => _VaultTabState();
+}
+
+class _VaultTabState extends State<VaultTab> {
+  bool _uploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<VaultProvider>().refresh();
+    });
+  }
+
+  Future<void> _pickAndUpload() async {
+    final category = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(AppSpacing.md),
+              child: Text('Select a category'),
+            ),
+            for (final option in _categoryOptions)
+              ListTile(
+                title: Text(_categoryLabel(option)),
+                onTap: () => Navigator.of(context).pop(option),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (category == null) return;
+
+    final result = await FilePicker.platform.pickFiles(withData: true);
+    final file = result?.files.single;
+    if (file?.bytes == null) return;
+
+    setState(() => _uploading = true);
+    final success = await context.read<VaultProvider>().uploadFile(
+          fileName: file!.name,
+          mimeType: _guessMimeType(file.extension),
+          bytes: file.bytes as Uint8List,
+          category: category,
+        );
+    if (!mounted) return;
+    setState(() => _uploading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(success ? 'Document uploaded successfully.' : 'Upload failed.')),
+    );
+  }
+
+  String _guessMimeType(String? extension) {
+    switch (extension?.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      default:
+        return 'application/octet-stream';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final vault = context.watch<VaultProvider>();
 
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.xxl,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Medical Vault', style: textTheme.headlineMedium),
-            const SizedBox(height: AppSpacing.md),
-            const TextField(
-              decoration: InputDecoration(
-                hintText: 'Search medical records, diagnosis...',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const _StorageBanner(),
-            const SizedBox(height: AppSpacing.xl),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Directories', style: textTheme.headlineSmall),
-                TextButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.swap_vert, size: 18),
-                  label: const Text('Sort by'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            for (final directory in _directories)
-              Card(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.xs,
-                  ),
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: directory.color,
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                    ),
-                    child: Icon(directory.icon, size: 20, color: directory.onColor),
-                  ),
-                  title: Text(
-                    directory.label,
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                  subtitle: Text(directory.count, style: textTheme.bodySmall),
-                  trailing: const Icon(Icons.chevron_right, color: AppColors.outline),
+      child: RefreshIndicator(
+        onRefresh: () => context.read<VaultProvider>().refresh(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.xxl,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Medical Vault', style: textTheme.headlineMedium),
+              const SizedBox(height: AppSpacing.md),
+              const TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search medical records, diagnosis...',
+                  prefixIcon: Icon(Icons.search),
                 ),
               ),
-            const SizedBox(height: AppSpacing.lg),
-            const _BiometricLockBanner(),
-          ],
+              const SizedBox(height: AppSpacing.lg),
+              _StorageBanner(stats: vault.stats),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Directories', style: textTheme.headlineSmall),
+                  TextButton.icon(
+                    onPressed: _uploading ? null : _pickAndUpload,
+                    icon: _uploading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.upload_file, size: 18),
+                    label: Text(_uploading ? 'Uploading…' : 'Scan / Upload'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              if (vault.isLoading && vault.categories.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (vault.categories.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Text('No documents yet — upload your first file.', style: textTheme.bodySmall),
+                )
+              else
+                for (final directory in vault.categories)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryContainer,
+                          borderRadius: BorderRadius.circular(AppRadii.md),
+                        ),
+                        child: Icon(
+                          _categoryIcons[directory.category] ?? Icons.folder_outlined,
+                          size: 20,
+                          color: AppColors.onSecondaryContainer,
+                        ),
+                      ),
+                      title: Text(
+                        _categoryLabel(directory.category),
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      subtitle: Text('${directory.count} Files', style: textTheme.bodySmall),
+                      trailing: const Icon(Icons.chevron_right, color: AppColors.outline),
+                    ),
+                  ),
+              const SizedBox(height: AppSpacing.lg),
+              const _BiometricLockBanner(),
+            ],
+          ),
         ),
       ),
     );
@@ -88,10 +199,18 @@ class VaultTab extends StatelessWidget {
 }
 
 class _StorageBanner extends StatelessWidget {
-  const _StorageBanner();
+  const _StorageBanner({required this.stats});
+
+  final VaultStats? stats;
 
   @override
   Widget build(BuildContext context) {
+    final usedBytes = stats?.usedBytes ?? 0;
+    final quotaBytes = stats?.quotaBytes ?? 1;
+    final fraction = (usedBytes / quotaBytes).clamp(0.0, 1.0);
+    final usedGb = (usedBytes / (1024 * 1024 * 1024)).toStringAsFixed(1);
+    final quotaGb = (quotaBytes / (1024 * 1024 * 1024)).toStringAsFixed(0);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -128,17 +247,17 @@ class _StorageBanner extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadii.full),
-            child: const LinearProgressIndicator(
-              value: 0.15,
+            child: LinearProgressIndicator(
+              value: fraction,
               minHeight: 6,
               backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation(Colors.white),
+              valueColor: const AlwaysStoppedAnimation(Colors.white),
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          const Text(
-            '1.2 GB / 8 GB • 64 Files',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
+          Text(
+            '$usedGb GB / $quotaGb GB • ${stats?.fileCount ?? 0} Files',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
@@ -146,8 +265,15 @@ class _StorageBanner extends StatelessWidget {
   }
 }
 
-class _BiometricLockBanner extends StatelessWidget {
+class _BiometricLockBanner extends StatefulWidget {
   const _BiometricLockBanner();
+
+  @override
+  State<_BiometricLockBanner> createState() => _BiometricLockBannerState();
+}
+
+class _BiometricLockBannerState extends State<_BiometricLockBanner> {
+  bool _enabled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +308,14 @@ class _BiometricLockBanner extends StatelessWidget {
                 ],
               ),
             ),
-            Switch(value: false, onChanged: (_) {}, activeThumbColor: AppColors.primary),
+            Switch(
+              value: _enabled,
+              activeThumbColor: AppColors.primary,
+              onChanged: (value) async {
+                setState(() => _enabled = value);
+                await context.read<VaultProvider>().setBiometricLock(value);
+              },
+            ),
           ],
         ),
       ),

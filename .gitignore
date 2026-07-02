@@ -1,5 +1,6 @@
 .DS_Store
 .mcp.json
+.claude/
 
 # Environment / secrets
 .env

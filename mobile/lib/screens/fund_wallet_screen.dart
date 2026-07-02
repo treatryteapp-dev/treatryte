@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
+import 'checkout_webview_screen.dart';
 
-enum _PaymentMethod { bankTransfer, debitCard, ussd }
+enum _PaymentMethod { bankTransfer, debitCard }
 
 class FundWalletScreen extends StatefulWidget {
   const FundWalletScreen({super.key});
@@ -15,6 +18,7 @@ class FundWalletScreen extends StatefulWidget {
 class _FundWalletScreenState extends State<FundWalletScreen> {
   final _amountController = TextEditingController();
   _PaymentMethod _method = _PaymentMethod.debitCard;
+  bool _submitting = false;
 
   static const _quickAmounts = ['₦5,000', '₦10,000', '₦20,000'];
 
@@ -22,6 +26,39 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
   void dispose() {
     _amountController.dispose();
     super.dispose();
+  }
+
+  Future<void> _proceed() async {
+    final naira = double.tryParse(_amountController.text.replaceAll(',', ''));
+    if (naira == null || naira <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid amount.')),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+    final wallet = context.read<WalletProvider>();
+    final checkoutLink = await wallet.fund(
+      (naira * 100).round(),
+      method: _method == _PaymentMethod.bankTransfer ? 'bank_transfer' : 'card',
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+
+    if (checkoutLink == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(wallet.errorMessage ?? 'Could not start payment')),
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => CheckoutWebViewScreen(checkoutUrl: checkoutLink)),
+    );
+    if (!mounted) return;
+    await context.read<WalletProvider>().refresh();
+    if (mounted) context.pop();
   }
 
   @override
@@ -86,31 +123,29 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
               _PaymentOption(
                 icon: Icons.credit_card,
                 title: 'Debit Card',
-                subtitle: 'Paystack / Flutterwave',
+                subtitle: 'Pay with Nomba Checkout',
                 selected: _method == _PaymentMethod.debitCard,
                 onTap: () => setState(() => _method = _PaymentMethod.debitCard),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _PaymentOption(
-                icon: Icons.dialpad,
-                title: 'USSD',
-                subtitle: 'Pay using bank USSD code',
-                selected: _method == _PaymentMethod.ussd,
-                onTap: () => setState(() => _method = _PaymentMethod.ussd),
               ),
               const SizedBox(height: AppSpacing.xl),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.pop(),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Proceed to Payment'),
-                      SizedBox(width: AppSpacing.sm),
-                      Icon(Icons.arrow_forward, size: 18),
-                    ],
-                  ),
+                  onPressed: _submitting ? null : _proceed,
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Proceed to Payment'),
+                            SizedBox(width: AppSpacing.sm),
+                            Icon(Icons.arrow_forward, size: 18),
+                          ],
+                        ),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
