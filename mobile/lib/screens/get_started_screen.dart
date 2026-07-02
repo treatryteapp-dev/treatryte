@@ -12,23 +12,19 @@ class GetStartedScreen extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: AppSpacing.xxl),
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                ),
-                child: const Icon(
-                  Icons.favorite,
-                  color: AppColors.onPrimary,
-                  size: 32,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                child: Image.asset(
+                  'asset/logo.jpeg',
+                  width: 64,
+                  height: 64,
+                  fit: BoxFit.cover,
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -40,39 +36,17 @@ class GetStartedScreen extends StatelessWidget {
                 style: textTheme.bodyMedium,
               ),
               const SizedBox(height: AppSpacing.xl),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                  child: Container(
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                child: AspectRatio(
+                  // Matches asset/splash_screen.png's native ratio so the
+                  // full image (including the stat card baked into it)
+                  // shows without cropping or distortion.
+                  aspectRatio: 766 / 425,
+                  child: Image.asset(
+                    'asset/splash_screen.png',
                     width: double.infinity,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.primaryContainer, AppColors.primary],
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _StatChip(
-                              title: 'Active Protection',
-                              value: 'Comprehensive Cover',
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: _StatChip(
-                              title: 'Trust Score',
-                              value: '99.8% Reliable',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
@@ -97,35 +71,6 @@ class GetStartedScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  const _StatChip({required this.title, required this.value});
-
-  final String title;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }

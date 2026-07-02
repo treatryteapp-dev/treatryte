@@ -3,6 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:treatryte/main.dart';
 
+Future<void> _tapGetStarted(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.text('Get Started'),
+    100,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(find.text('Get Started'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   // Registration/login now call the real backend API, so only pure
   // client-side navigation is covered here. Login-gated flows (dashboard,
@@ -14,13 +24,13 @@ void main() {
     await tester.pumpWidget(const TreatRyteApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Get Started'));
-    await tester.pumpAndSettle();
+    await _tapGetStarted(tester);
     expect(find.text('Continue Registration'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('Already have an account? Log in'),
       100,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(find.text('Already have an account? Log in'));
     await tester.pumpAndSettle();
@@ -40,8 +50,7 @@ void main() {
     await tester.pumpWidget(const TreatRyteApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Get Started'));
-    await tester.pumpAndSettle();
+    await _tapGetStarted(tester);
 
     await tester.tap(find.text('Become a User'));
     await tester.pumpAndSettle();
@@ -55,8 +64,7 @@ void main() {
     await tester.pumpWidget(const TreatRyteApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Get Started'));
-    await tester.pumpAndSettle();
+    await _tapGetStarted(tester);
     await tester.tap(find.text('Become a User'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue Registration'));
