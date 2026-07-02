@@ -1,0 +1,7 @@
+.DS_Store
+.mcp.json
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
