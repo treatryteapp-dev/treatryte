@@ -42,13 +42,22 @@ app.use('/api/provider', providerRoutes);
 app.use('/api/admin', adminRoutes);
 
 const path = require('path');
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../../admin/dist')));
-  app.get('*', (req, res, next) => {
+const fs = require('fs');
+const adminDistPath = path.join(__dirname, '../../admin/dist');
+const adminIndexPath = path.join(adminDistPath, 'index.html');
+
+// admin/dist is a separate Vite build output and is git-ignored, so it only
+// exists here if something built it into this exact filesystem (Railway
+// doesn't build it from source) - guard against it being absent instead of
+// unconditionally trying to serve it, which would 500 on every request.
+if (process.env.NODE_ENV === 'production' && fs.existsSync(adminIndexPath)) {
+  app.use(express.static(adminDistPath));
+  // Express 5 requires a named wildcard - a bare '*' throws at startup.
+  app.get('/{*splat}', (req, res, next) => {
     if (req.path.startsWith('/api')) {
       return next();
     }
-    res.sendFile(path.join(__dirname, '../../admin/dist/index.html'));
+    res.sendFile(adminIndexPath);
   });
 }
 
