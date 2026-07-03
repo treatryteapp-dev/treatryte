@@ -6,6 +6,7 @@ const env = require('../config/env');
 const userModel = require('../models/user.model');
 const walletModel = require('../models/wallet.model');
 const refreshTokenModel = require('../models/refreshToken.model');
+const labModel = require('../models/lab.model');
 const { ApiError } = require('../middleware/errorHandler');
 
 const ACCESS_TOKEN_TTL = '15m';
@@ -28,7 +29,20 @@ async function issueTokenPair(userId) {
   };
 }
 
-async function register({ fullName, dateOfBirth, gender, address, email, password, role }) {
+async function register({
+  fullName,
+  dateOfBirth,
+  gender,
+  address,
+  email,
+  password,
+  role,
+  facilityName,
+  licenseNumber,
+  services,
+  bankName,
+  accountNumber,
+}) {
   const existing = await userModel.findByEmail(email);
   if (existing) {
     throw new ApiError(409, 'An account with this email already exists', 'EMAIL_TAKEN');
@@ -45,6 +59,20 @@ async function register({ fullName, dateOfBirth, gender, address, email, passwor
     role,
   });
   await walletModel.createForUser(user._id);
+
+  if (role === 'provider') {
+    await labModel.create({
+      userId: user._id,
+      name: facilityName || fullName,
+      licenseNumber: licenseNumber || '',
+      address: address,
+      services: services || [],
+      bankDetails: {
+        bankName: bankName || 'GTBank',
+        accountNumber: accountNumber || '',
+      },
+    });
+  }
 
   const tokens = await issueTokenPair(user._id);
   return { user: userModel.toPublic(user), ...tokens };

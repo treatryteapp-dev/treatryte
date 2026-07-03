@@ -50,4 +50,25 @@ function list(userId) {
   return collection().find({ userId }).sort({ createdAt: -1 }).toArray();
 }
 
-module.exports = { COLLECTION, collection, countBooked, create, findById, markConfirmed, list };
+function listByLabId(labId) {
+  return collection().find({ labId }).sort({ createdAt: -1 }).toArray();
+}
+
+function updateStatus(appointmentId, status) {
+  return collection().updateOne(
+    { _id: appointmentId },
+    { $set: { status, updatedAt: new Date() } }
+  );
+}
+
+module.exports = {
+  COLLECTION,
+  collection,
+  countBooked,
+  create,
+  findById,
+  markConfirmed,
+  list,
+  listByLabId,
+  updateStatus,
+};

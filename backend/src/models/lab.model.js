@@ -20,4 +20,42 @@ function search(query) {
     .toArray();
 }
 
-module.exports = { COLLECTION, collection, findFeatured, findById, search };
+async function create({ userId, name, licenseNumber, address, services, bankDetails }) {
+  const now = new Date();
+  const doc = {
+    userId,
+    name,
+    licenseNumber,
+    address,
+    services: services || [],
+    bankDetails: bankDetails || {},
+    isFeatured: false,
+    rating: 4.8,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const result = await collection().insertOne(doc);
+  return { ...doc, _id: result.insertedId };
+}
+
+function findByUserId(userId) {
+  return collection().findOne({ userId });
+}
+
+function update(labId, updates) {
+  return collection().updateOne(
+    { _id: labId },
+    { $set: { ...updates, updatedAt: new Date() } }
+  );
+}
+
+module.exports = {
+  COLLECTION,
+  collection,
+  findFeatured,
+  findById,
+  search,
+  create,
+  findByUserId,
+  update,
+};
