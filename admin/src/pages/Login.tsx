@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, User, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, Fingerprint, QrCode } from 'lucide-react';
+import { ShieldAlert, User, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 import logo from '../assets/logo.jpeg';
 
@@ -57,27 +57,6 @@ export const Login: React.FC = () => {
         zIndex: 50
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: '#6d7a77',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f2f4f6'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            aria-label="Go back"
-          >
-            <ArrowLeft size={20} />
-          </button>
           <img src={logo} alt="TreatRyte Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
           <span style={{ fontSize: '20px', fontWeight: '700', color: '#00685f' }}>TreatRyte</span>
         </div>
@@ -283,68 +262,7 @@ export const Login: React.FC = () => {
                   <ArrowRight size={20} />
                 </button>
 
-                {/* OR continue with */}
-                <div style={{ position: 'relative', margin: '8px 0', textAlign: 'center' }}>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center' }}>
-                    <div style={{ width: '100%', borderTop: '1px solid rgba(188, 201, 198, 0.3)' }}></div>
-                  </div>
-                  <span style={{ position: 'relative', backgroundColor: '#ffffff', padding: '0 8px', fontSize: '12px', fontWeight: '600', color: '#bcc9c6' }}>
-                    OR CONTINUE WITH
-                  </span>
-                </div>
-
-                {/* Biometrics / QR Code */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <button
-                    type="button"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      height: '48px',
-                      border: '1px solid #bcc9c6',
-                      borderRadius: '12px',
-                      backgroundColor: 'transparent',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      color: '#3d4947',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <Fingerprint size={20} />
-                    Biometrics
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      height: '48px',
-                      border: '1px solid #bcc9c6',
-                      borderRadius: '12px',
-                      backgroundColor: 'transparent',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      color: '#3d4947',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <QrCode size={20} />
-                    QR Code
-                  </button>
-                </div>
               </form>
-
-              {/* Footer text */}
-              <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid rgba(61, 73, 71, 0.1)', textAlign: 'center' }}>
-                <p style={{ fontSize: '14px', color: '#3d4947' }}>
-                  New to TreatRyte?{' '}
-                  <a href="#" style={{ color: '#00685f', fontWeight: '600', textDecoration: 'none' }}>Create an account</a>
-                </p>
-              </div>
 
             </div>
           </div>
