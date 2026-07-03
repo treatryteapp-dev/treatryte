@@ -1,12 +1,29 @@
 import React, { useState } from 'react';
-import { Save, KeyRound, Webhook, Brush } from 'lucide-react';
+import { Save, KeyRound, Webhook, Brush, Check } from 'lucide-react';
 
 export const Settings: React.FC = () => {
-  const [portalName, setPortalName] = useState('TreatRyte Admin Portal');
-  const [adminEmail, setAdminEmail] = useState('admin@treatryte.com');
-  const [primaryColor, setPrimaryColor] = useState('#004E47');
-  const [sessionTimeout, setSessionTimeout] = useState('15');
-  const [mfaEnabled, setMfaEnabled] = useState(true);
+  const [portalName, setPortalName] = useState(() => localStorage.getItem('adminPortalName') || 'TreatRyte Admin Portal');
+  const [adminEmail, setAdminEmail] = useState(() => localStorage.getItem('adminEmail') || 'admin@treatryte.com');
+  const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem('adminPrimaryColor') || '#004E47');
+  const [sessionTimeout, setSessionTimeout] = useState(() => localStorage.getItem('adminSessionTimeout') || '15');
+  const [mfaEnabled, setMfaEnabled] = useState(() => localStorage.getItem('adminMfaEnabled') !== 'false');
+  const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('adminWebhookUrl') || 'https://api.treatryte.com/v1/webhooks/partners');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleSave = () => {
+    localStorage.setItem('adminPortalName', portalName);
+    localStorage.setItem('adminEmail', adminEmail);
+    localStorage.setItem('adminPrimaryColor', primaryColor);
+    localStorage.setItem('adminSessionTimeout', sessionTimeout);
+    localStorage.setItem('adminMfaEnabled', String(mfaEnabled));
+    localStorage.setItem('adminWebhookUrl', webhookUrl);
+
+    // Dispatch event to synchronize Sidebar/Header layouts
+    window.dispatchEvent(new Event('adminSettingsUpdated'));
+
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px' }}>
@@ -16,6 +33,25 @@ export const Settings: React.FC = () => {
         <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#0b1c30' }}>Platform Settings</h2>
         <p style={{ fontSize: '14px', color: '#545f73', marginTop: '4px' }}>Configure global security parameters, API keys, webhook triggers, and brand appearance presets.</p>
       </div>
+
+      {/* Success Notification */}
+      {saveSuccess && (
+        <div style={{
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          color: '#10B981',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: '700',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <Check size={16} />
+          <span>Platform configurations saved and synchronized successfully!</span>
+        </div>
+      )}
 
       {/* Settings Grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -109,7 +145,8 @@ export const Settings: React.FC = () => {
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#545f73', marginBottom: '8px' }}>PARTNER STATUS CHANGE WEBHOOK</label>
               <input
                 type="text"
-                defaultValue="https://api.treatryte.com/v1/webhooks/partners"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
                 style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px', fontFamily: 'monospace' }}
               />
             </div>
@@ -118,7 +155,11 @@ export const Settings: React.FC = () => {
 
         {/* Action buttons */}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#004e47' }}>
+          <button
+            onClick={handleSave}
+            className="btn btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#004e47' }}
+          >
             <Save size={16} />
             Save Changes
           </button>

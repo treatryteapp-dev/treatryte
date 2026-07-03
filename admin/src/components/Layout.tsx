@@ -14,6 +14,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [adminUser, setAdminUser] = useState<any>(null);
   const [timeStr, setTimeStr] = useState('');
 
+  const [portalTitle, setPortalTitle] = useState(() => {
+    const stored = localStorage.getItem('adminPortalName');
+    return stored ? stored.split(' ')[0] : 'TreatRyte';
+  });
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem('adminUser');
@@ -30,7 +35,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+
+    const handleSettingsUpdate = () => {
+      const stored = localStorage.getItem('adminPortalName');
+      setPortalTitle(stored ? stored.split(' ')[0] : 'TreatRyte');
+    };
+    window.addEventListener('adminSettingsUpdated', handleSettingsUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('adminSettingsUpdated', handleSettingsUpdate);
+    };
   }, []);
 
   const menuItems = [
@@ -72,7 +87,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         }}>
           <img src={logo} alt="TreatRyte Logo" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#004e47', letterSpacing: '-0.5px' }}>TreatRyte</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#004e47', letterSpacing: '-0.5px' }}>{portalTitle}</h2>
           </div>
         </div>
 
