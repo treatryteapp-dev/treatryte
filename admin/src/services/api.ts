@@ -129,11 +129,12 @@ export const api = {
   },
 
   async fetchPlans(): Promise<Plan[]> {
-    const res = await fetch(`${API_BASE}/api/admin/plans`, { headers: getHeaders() });
+    const res = await fetch(`${API_BASE}/api/plans`);
     if (!res.ok) throw new Error('Failed to fetch plans');
     const data = await res.json();
     return data.plans;
   },
+
 
   async createPlan(plan: Omit<Plan, '_id' | 'status' | 'createdAt'>): Promise<Plan> {
     const res = await fetch(`${API_BASE}/api/admin/plans`, {
