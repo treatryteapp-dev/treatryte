@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, ShieldCheck, Settings, LogOut, HelpCircle, Activity } from 'lucide-react';
+import { LayoutDashboard, CreditCard, ShieldCheck, Settings, LogOut, HelpCircle } from 'lucide-react';
 import { api } from '../services/api';
+import logo from '../assets/logo.jpeg';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -47,17 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           marginBottom: '40px',
           paddingLeft: '8px'
         }}>
-          <div style={{
-            backgroundColor: '#e6f4f2',
-            color: '#004e47',
-            padding: '8px',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Activity size={24} />
-          </div>
+          <img src={logo} alt="TreatRyte Logo" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#004e47', letterSpacing: '-0.5px' }}>TreatRyte</h2>
           </div>

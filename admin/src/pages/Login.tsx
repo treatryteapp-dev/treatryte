@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { api } from '../services/api';
+import logo from '../assets/logo.jpeg';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -50,15 +51,7 @@ export const Login: React.FC = () => {
       }}>
         {/* Brand */}
         <div className="flex-center" style={{ gap: '12px', marginBottom: '32px' }}>
-          <div style={{
-            backgroundColor: 'var(--color-primary-container)',
-            color: 'var(--color-primary)',
-            padding: '10px',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex'
-          }}>
-            <Activity size={28} />
-          </div>
+          <img src={logo} alt="TreatRyte Logo" style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }} />
           <div>
             <h2 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--color-primary)', lineHeight: '1' }}>treatRyte</h2>
             <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--color-text-muted)', letterSpacing: '1px' }}>ADMIN CONSOLE</span>
