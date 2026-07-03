@@ -19,10 +19,14 @@ export interface DashboardStats {
   totalAppointments: number;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 
+let API_BASE = import.meta.env.VITE_API_URL || 
   (typeof window !== 'undefined' && window.location.hostname.includes('railway')
     ? 'https://treatryte-backend.up.railway.app'
     : 'http://localhost:4000');
+
+if (API_BASE && !API_BASE.startsWith('http://') && !API_BASE.startsWith('https://')) {
+  API_BASE = `https://${API_BASE}`;
+}
 
 const getHeaders = () => {
   const token = localStorage.getItem('accessToken');
