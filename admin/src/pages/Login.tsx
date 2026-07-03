@@ -60,10 +60,6 @@ export const Login: React.FC = () => {
           <img src={logo} alt="TreatRyte Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
           <span style={{ fontSize: '20px', fontWeight: '700', color: '#00685f' }}>TreatRyte</span>
         </div>
-        <div style={{ display: 'flex', gap: '24px' }}>
-          <a href="#" style={{ fontSize: '14px', fontWeight: '600', color: '#6d7a77', textDecoration: 'none' }}>Privacy Policy</a>
-          <a href="#" style={{ fontSize: '14px', fontWeight: '600', color: '#6d7a77', textDecoration: 'none' }}>Support</a>
-        </div>
       </header>
 
       {/* Main Container */}
