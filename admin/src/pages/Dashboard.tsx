@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CreditCard, HeartPulse, ClipboardCheck, Activity, TrendingUp, AlertCircle, Eye, Calendar } from 'lucide-react';
+import { CreditCard, HeartPulse, ClipboardCheck, Activity, AlertCircle, Eye, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api, type DashboardStats, type LabProfile } from '../services/api';
 
@@ -87,11 +87,13 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>
-            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.totalRevenue ? '$' + stats.totalRevenue.toLocaleString() : '$1,284,500'}</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>
+              {stats?.totalRevenue !== undefined ? '₦' + stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₦0.00'}
+            </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-              <TrendingUp size={14} style={{ color: '#10B981' }} />
-              <span style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>+12.5%</span>
-              <span style={{ color: 'rgba(84, 95, 115, 0.5)', fontSize: '12px' }}>vs last month</span>
+              <Activity size={14} style={{ color: '#10B981' }} />
+              <span style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>Live Ledger</span>
+              <span style={{ color: 'rgba(84, 95, 115, 0.5)', fontSize: '12px' }}>audit sync</span>
             </div>
           </div>
         </div>
@@ -105,11 +107,11 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>
-            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.totalProviders ? stats.totalProviders + 838 : 842}</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.totalProviders ?? 0}</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-              <TrendingUp size={14} style={{ color: '#10B981' }} />
-              <span style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>+24 new</span>
-              <span style={{ color: 'rgba(84, 95, 115, 0.5)', fontSize: '12px' }}>this week</span>
+              <HeartPulse size={14} style={{ color: '#10B981' }} />
+              <span style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>Live clinical</span>
+              <span style={{ color: 'rgba(84, 95, 115, 0.5)', fontSize: '12px' }}>storefronts</span>
             </div>
           </div>
         </div>
@@ -123,11 +125,11 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>
-            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.pendingApprovals ?? 18}</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.pendingApprovals ?? 0}</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
               <AlertCircle size={14} style={{ color: '#F59E0B' }} />
               <span style={{ color: '#F59E0B', fontSize: '12px', fontWeight: '600' }}>
-                {pendingLabs.length} Active Vetting
+                {stats?.pendingApprovals ?? 0} Active Vetting
               </span>
               <span style={{ color: 'rgba(84, 95, 115, 0.5)', fontSize: '12px' }}>requires action</span>
             </div>
@@ -143,7 +145,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div style={{ marginTop: '16px', zIndex: 10 }}>
-            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.systemHealth ? stats.systemHealth.toFixed(2) + '%' : '99.98%'}</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.systemHealth ? stats.systemHealth.toFixed(2) + '%' : '100%'}</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 2s infinite' }}></div>
               <span style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>All Systems Operational</span>

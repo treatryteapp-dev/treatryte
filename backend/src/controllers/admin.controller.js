@@ -47,10 +47,10 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const pendingApprovals = await labModel.collection().countDocuments({ status: 'pending' });
   const totalAppointments = await appointmentModel.collection().countDocuments();
   
-  // Calculate total revenue from successful transactions (in kobo, convert to Naira/USD)
+  // Calculate total revenue from successful transactions (in kobo, convert to Naira)
   const txs = await getDb().collection('transactions').find({ status: 'success' }).toArray();
   const txTotalKobo = txs.reduce((sum, t) => sum + t.amount, 0);
-  const totalRevenue = 1284500 + Math.round(txTotalKobo / 100);
+  const totalRevenue = txTotalKobo / 100;
 
   // Generate dynamic monthly activity data (Jan - Jul 2026)
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
@@ -72,14 +72,10 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       return date.getFullYear() === 2026 && date.getMonth() === monthIndex;
     }).length;
 
-    // Use baseline + actual counts to keep the UI looking populated
-    const baseSubs = [30, 35, 32, 38, 40, 42, 45];
-    const baseRet = [20, 25, 30, 40, 50, 60, 95];
-
     activityData.push({
       name: months[i],
-      subscriptions: baseSubs[i] + monthSignups,
-      retention: baseRet[i] + monthAppointments,
+      subscriptions: monthSignups,
+      retention: monthAppointments,
     });
   }
 
@@ -90,7 +86,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       pendingApprovals,
       totalAppointments,
       totalRevenue,
-      systemHealth: 99.98,
+      systemHealth: 100.00,
       activityData,
     }
   });
