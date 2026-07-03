@@ -1,14 +1,85 @@
-import React from 'react';
-import { CheckCircle, PauseCircle, Ban, PlayCircle, Eye, ArrowRight } from 'lucide-react';
-
-const mockSubscribers = [
-  { id: 'VA-98231-P', name: 'Nexus Health Systems', initial: 'NH', type: 'Partner', tier: 'Enterprise Core', mrr: 12450.00, status: 'active' },
-  { id: 'VA-11044-U', name: 'Sarah Al-Mansour', initial: 'SA', type: 'Individual', tier: 'Professional', mrr: 299.00, status: 'paused' },
-  { id: 'VA-00512-P', name: 'BlueLine Diagnostics', initial: 'BL', type: 'Partner', tier: 'Standard Bundle', mrr: 4800.00, status: 'suspended' },
-  { id: 'VA-77291-P', name: 'Oak Medical Group', initial: 'OM', type: 'Partner', tier: 'Enterprise Premium', mrr: 25600.00, status: 'active' },
-];
+import React, { useEffect, useState } from 'react';
+import { CheckCircle, PauseCircle, Ban, PlayCircle, ArrowRight } from 'lucide-react';
+import { api, type Subscription } from '../services/api';
 
 export const Subscriptions: React.FC = () => {
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Filters
+  const [typeFilter, setTypeFilter] = useState<'All' | 'Partners' | 'Individuals'>('All');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [tierFilter, setTierFilter] = useState<string>('All');
+
+  const loadSubscriptions = () => {
+    setLoading(true);
+    api.fetchSubscriptions()
+      .then((data) => {
+        setSubscriptions(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    loadSubscriptions();
+  }, []);
+
+  const handleStatusChange = async (id: string, newStatus: 'active' | 'paused' | 'suspended') => {
+    setLoading(true);
+    const success = await api.updateSubscriptionStatus(id, newStatus);
+    if (success) {
+      loadSubscriptions();
+    } else {
+      setLoading(false);
+    }
+  };
+
+  // Calculations for KPI Cards
+  const activeCount = subscriptions.filter(s => s.status === 'active').length;
+  const pausedCount = subscriptions.filter(s => s.status === 'paused').length;
+  const suspendedCount = subscriptions.filter(s => s.status === 'suspended').length;
+  const totalCount = subscriptions.length;
+
+  // Calculate MRR at Risk (MRR of suspended & paused accounts)
+  const revenueAtRisk = subscriptions
+    .filter(s => s.status === 'suspended' || s.status === 'paused')
+    .reduce((sum, s) => sum + s.mrr, 0);
+
+  // Calculate total MRR percentage at risk
+  const totalMRR = subscriptions.reduce((sum, s) => sum + s.mrr, 0) || 1;
+  const atRiskPercentage = ((revenueAtRisk / totalMRR) * 100).toFixed(1);
+
+  // Filtered subscribers
+  const filteredSubscribers = subscriptions.filter(item => {
+    // Type Filter
+    if (typeFilter === 'Partners' && item.type !== 'Partner') return false;
+    if (typeFilter === 'Individuals' && item.type !== 'Individual') return false;
+
+    // Status Filter
+    if (statusFilter !== 'All' && item.status.toLowerCase() !== statusFilter.toLowerCase()) return false;
+
+    // Tier Filter
+    if (tierFilter !== 'All') {
+      if (tierFilter === 'Enterprise' && !item.tier.includes('Enterprise')) return false;
+      if (tierFilter === 'Standard' && !item.tier.includes('Standard')) return false;
+    }
+
+    return true;
+  });
+
+  if (loading && subscriptions.length === 0) {
+    return (
+      <div className="flex-center" style={{ minHeight: '300px', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#004e47', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+        <p>Loading subscription contracts...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -37,16 +108,18 @@ export const Subscriptions: React.FC = () => {
             <p style={{ fontSize: '11px', fontWeight: '700', color: '#545f73', textTransform: 'uppercase', letterSpacing: '1px' }}>
               Revenue At Risk
             </p>
-            <h2 style={{ fontSize: '36px', fontWeight: '800', color: '#EF4444', marginTop: '8px' }}>$42,850.00</h2>
+            <h2 style={{ fontSize: '36px', fontWeight: '800', color: revenueAtRisk > 0 ? '#EF4444' : '#10B981', marginTop: '8px' }}>
+              ${revenueAtRisk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </h2>
             <p style={{ fontSize: '13px', color: '#545f73', marginTop: '4px' }}>
-              Impact from <span style={{ fontWeight: '700' }}>124</span> suspended accounts
+              Impact from <span style={{ fontWeight: '700' }}>{pausedCount + suspendedCount}</span> inactive accounts
             </p>
           </div>
           <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ height: '8px', flexGrow: 1, backgroundColor: '#eceef0', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', backgroundColor: '#EF4444', width: '18%' }}></div>
+              <div style={{ height: '100%', backgroundColor: revenueAtRisk > 0 ? '#EF4444' : '#10B981', width: `${Math.min(parseFloat(atRiskPercentage) || 0, 100)}%` }}></div>
             </div>
-            <span style={{ fontSize: '11px', fontWeight: '700', color: '#EF4444' }}>18.2% Total</span>
+            <span style={{ fontSize: '11px', fontWeight: '700', color: revenueAtRisk > 0 ? '#EF4444' : '#10B981' }}>{atRiskPercentage}% Total</span>
           </div>
         </div>
 
@@ -59,9 +132,9 @@ export const Subscriptions: React.FC = () => {
               <CheckCircle size={22} />
             </div>
             <p style={{ fontSize: '12px', color: '#545f73' }}>Active Subscriptions</p>
-            <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#0b1c30', marginTop: '4px' }}>2,482</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#0b1c30', marginTop: '4px' }}>{activeCount}</h3>
             <p style={{ fontSize: '11px', color: '#10B981', marginTop: '8px', fontWeight: '600' }}>
-              +4.2% MoM
+              {((activeCount / (totalCount || 1)) * 100).toFixed(1)}% of total
             </p>
           </div>
 
@@ -71,7 +144,7 @@ export const Subscriptions: React.FC = () => {
               <PauseCircle size={22} />
             </div>
             <p style={{ fontSize: '12px', color: '#545f73' }}>Paused Accounts</p>
-            <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#0b1c30', marginTop: '4px' }}>86</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#0b1c30', marginTop: '4px' }}>{pausedCount}</h3>
             <p style={{ fontSize: '11px', color: '#545f73', marginTop: '8px' }}>
               Awaiting billing resolution
             </p>
@@ -83,9 +156,9 @@ export const Subscriptions: React.FC = () => {
               <Ban size={22} />
             </div>
             <p style={{ fontSize: '12px', color: '#545f73' }}>Suspended</p>
-            <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#0b1c30', marginTop: '4px' }}>38</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#0b1c30', marginTop: '4px' }}>{suspendedCount}</h3>
             <p style={{ fontSize: '11px', color: '#EF4444', marginTop: '8px', fontWeight: '700' }}>
-              Policy violations
+              Policy/Audit violations
             </p>
           </div>
 
@@ -96,21 +169,64 @@ export const Subscriptions: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ display: 'flex', backgroundColor: '#ffffff', padding: '4px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-            <button className="btn" style={{ padding: '6px 16px', fontSize: '12px', backgroundColor: '#e6f4f2', color: '#004e47', fontWeight: '700' }}>All</button>
-            <button className="btn" style={{ padding: '6px 16px', fontSize: '12px', backgroundColor: 'transparent', color: '#545f73' }}>Partners</button>
-            <button className="btn" style={{ padding: '6px 16px', fontSize: '12px', backgroundColor: 'transparent', color: '#545f73' }}>Individual Users</button>
+            <button
+              className="btn"
+              onClick={() => setTypeFilter('All')}
+              style={{
+                padding: '6px 16px',
+                fontSize: '12px',
+                backgroundColor: typeFilter === 'All' ? '#e6f4f2' : 'transparent',
+                color: typeFilter === 'All' ? '#004e47' : '#545f73',
+                fontWeight: typeFilter === 'All' ? '700' : '400'
+              }}
+            >
+              All
+            </button>
+            <button
+              className="btn"
+              onClick={() => setTypeFilter('Partners')}
+              style={{
+                padding: '6px 16px',
+                fontSize: '12px',
+                backgroundColor: typeFilter === 'Partners' ? '#e6f4f2' : 'transparent',
+                color: typeFilter === 'Partners' ? '#004e47' : '#545f73',
+                fontWeight: typeFilter === 'Partners' ? '700' : '400'
+              }}
+            >
+              Partners
+            </button>
+            <button
+              className="btn"
+              onClick={() => setTypeFilter('Individuals')}
+              style={{
+                padding: '6px 16px',
+                fontSize: '12px',
+                backgroundColor: typeFilter === 'Individuals' ? '#e6f4f2' : 'transparent',
+                color: typeFilter === 'Individuals' ? '#004e47' : '#545f73',
+                fontWeight: typeFilter === 'Individuals' ? '700' : '400'
+              }}
+            >
+              Individual Users
+            </button>
           </div>
-          <select style={{ backgroundColor: 'white', border: '1px solid #E2E8F0', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', color: '#191c1e' }}>
-            <option>All Tiers</option>
-            <option>Enterprise</option>
-            <option>Professional</option>
-            <option>Standard</option>
+          <select
+            value={tierFilter}
+            onChange={(e) => setTierFilter(e.target.value)}
+            style={{ backgroundColor: 'white', border: '1px solid #E2E8F0', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', color: '#191c1e' }}
+          >
+            <option value="All">All Tiers</option>
+            <option value="Enterprise">Enterprise</option>
+            <option value="Standard">Standard</option>
           </select>
-          <select style={{ backgroundColor: 'white', border: '1px solid #E2E8F0', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', color: '#191c1e' }}>
-            <option>Status: All</option>
-            <option>Active</option>
-            <option>Paused</option>
-            <option>Suspended</option>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ backgroundColor: 'white', border: '1px solid #E2E8F0', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', color: '#191c1e' }}
+          >
+            <option value="All">Status: All</option>
+            <option value="Active">Active</option>
+            <option value="Paused">Paused</option>
+            <option value="Suspended">Suspended</option>
           </select>
         </div>
       </div>
@@ -135,7 +251,7 @@ export const Subscriptions: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {mockSubscribers.map((item) => (
+            {filteredSubscribers.map((item) => (
               <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
                 <td style={{ padding: '20px 24px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -189,15 +305,47 @@ export const Subscriptions: React.FC = () => {
                 </td>
                 <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    {item.status === 'paused' && (
-                      <button className="btn btn-outline" style={{ padding: '6px', backgroundColor: 'white' }}><PlayCircle size={16} /></button>
+                    {item.status !== 'active' && (
+                      <button
+                        className="btn btn-outline"
+                        title="Activate"
+                        onClick={() => handleStatusChange(item.id, 'active')}
+                        style={{ padding: '6px', backgroundColor: 'white', color: '#10B981', border: '1px solid #10B981' }}
+                      >
+                        <PlayCircle size={16} />
+                      </button>
                     )}
-                    <button className="btn btn-outline" style={{ padding: '6px', backgroundColor: 'white' }}><Ban size={16} /></button>
-                    <button className="btn btn-outline" style={{ padding: '6px', backgroundColor: 'white' }}><Eye size={16} /></button>
+                    {item.status === 'active' && (
+                      <button
+                        className="btn btn-outline"
+                        title="Pause Billing"
+                        onClick={() => handleStatusChange(item.id, 'paused')}
+                        style={{ padding: '6px', backgroundColor: 'white', color: '#F59E0B', border: '1px solid #F59E0B' }}
+                      >
+                        <PauseCircle size={16} />
+                      </button>
+                    )}
+                    {item.status !== 'suspended' && (
+                      <button
+                        className="btn btn-outline"
+                        title="Suspend Profile"
+                        onClick={() => handleStatusChange(item.id, 'suspended')}
+                        style={{ padding: '6px', backgroundColor: 'white', color: '#EF4444', border: '1px solid #EF4444' }}
+                      >
+                        <Ban size={16} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
             ))}
+            {filteredSubscribers.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#545f73' }}>
+                  No subscribers match the current filter criteria.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -235,19 +383,25 @@ export const Subscriptions: React.FC = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                 <span style={{ color: '#545f73' }}>Partner Institutions</span>
-                <span style={{ fontWeight: '700' }}>642 (24.6%)</span>
+                <span style={{ fontWeight: '700' }}>
+                  {subscriptions.filter(s => s.type === 'Partner').length} (
+                  {((subscriptions.filter(s => s.type === 'Partner').length / (totalCount || 1)) * 100).toFixed(1)}%)
+                </span>
               </div>
               <div style={{ height: '8px', backgroundColor: '#eceef0', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', backgroundColor: '#004e47', width: '24.6%' }}></div>
+                <div style={{ height: '100%', backgroundColor: '#004e47', width: `${(subscriptions.filter(s => s.type === 'Partner').length / (totalCount || 1)) * 100}%` }}></div>
               </div>
             </div>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                 <span style={{ color: '#545f73' }}>Individual Healthcare Users</span>
-                <span style={{ fontWeight: '700' }}>1,964 (75.4%)</span>
+                <span style={{ fontWeight: '700' }}>
+                  {subscriptions.filter(s => s.type === 'Individual').length} (
+                  {((subscriptions.filter(s => s.type === 'Individual').length / (totalCount || 1)) * 100).toFixed(1)}%)
+                </span>
               </div>
               <div style={{ height: '8px', backgroundColor: '#eceef0', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', backgroundColor: '#bcc7de', width: '75.4%' }}></div>
+                <div style={{ height: '100%', backgroundColor: '#bcc7de', width: `${(subscriptions.filter(s => s.type === 'Individual').length / (totalCount || 1)) * 100}%` }}></div>
               </div>
             </div>
           </div>

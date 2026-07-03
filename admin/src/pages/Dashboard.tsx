@@ -87,7 +87,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>
-            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>$1,284,500</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.totalRevenue ? '$' + stats.totalRevenue.toLocaleString() : '$1,284,500'}</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
               <TrendingUp size={14} style={{ color: '#10B981' }} />
               <span style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>+12.5%</span>
@@ -143,7 +143,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div style={{ marginTop: '16px', zIndex: 10 }}>
-            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>99.98%</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.systemHealth ? stats.systemHealth.toFixed(2) + '%' : '99.98%'}</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 2s infinite' }}></div>
               <span style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>All Systems Operational</span>
@@ -172,7 +172,7 @@ export const Dashboard: React.FC = () => {
 
           <div style={{ width: '100%', height: '280px' }}>
             <ResponsiveContainer>
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={stats?.activityData || chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                 <XAxis dataKey="name" stroke="#545f73" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#545f73" fontSize={11} tickLine={false} axisLine={false} />

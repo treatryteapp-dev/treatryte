@@ -17,6 +17,20 @@ export interface DashboardStats {
   totalProviders: number;
   pendingApprovals: number;
   totalAppointments: number;
+  totalRevenue: number;
+  systemHealth: number;
+  activityData: Array<{ name: string; subscriptions: number; retention: number }>;
+}
+
+export interface Subscription {
+  id: string;
+  name: string;
+  email: string;
+  initial: string;
+  type: 'Partner' | 'Individual';
+  tier: string;
+  mrr: number;
+  status: 'active' | 'paused' | 'suspended';
 }
 
 let API_BASE = import.meta.env.VITE_API_URL || 
@@ -63,6 +77,22 @@ export const api = {
     const res = await fetch(`${API_BASE}/api/admin/labs/${id}/reject`, {
       method: 'POST',
       headers: getHeaders(),
+    });
+    return res.ok;
+  },
+
+  async fetchSubscriptions(): Promise<Subscription[]> {
+    const res = await fetch(`${API_BASE}/api/admin/subscriptions`, { headers: getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch subscriptions');
+    const data = await res.json();
+    return data.subscriptions;
+  },
+
+  async updateSubscriptionStatus(id: string, status: 'active' | 'paused' | 'suspended'): Promise<boolean> {
+    const res = await fetch(`${API_BASE}/api/admin/subscriptions/${id}/status`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ status }),
     });
     return res.ok;
   },
