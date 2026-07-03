@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, ShieldCheck, Settings, LogOut, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, CreditCard, ShieldCheck, Settings, LogOut } from 'lucide-react';
 import { api } from '../services/api';
 import logo from '../assets/logo.jpeg';
 
@@ -132,21 +132,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Footer/Logout */}
         <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button
-            className="btn btn-outline"
-            style={{
-              justifyContent: 'flex-start',
-              width: '100%',
-              padding: '12px 16px',
-              color: '#545f73',
-              borderColor: 'transparent',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            <HelpCircle size={18} />
-            Help Center
-          </button>
           <button
             onClick={handleLogout}
             className="btn btn-outline"

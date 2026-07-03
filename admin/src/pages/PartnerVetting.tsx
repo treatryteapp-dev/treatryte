@@ -5,6 +5,7 @@ import { api, type LabProfile } from '../services/api';
 export const PartnerVetting: React.FC = () => {
   const [labs, setLabs] = useState<LabProfile[]>([]);
   const [selectedLab, setSelectedLab] = useState<LabProfile | null>(null);
+  const [activeTab, setActiveTab] = useState<'new' | 'review'>('new');
   const [loading, setLoading] = useState(true);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
@@ -15,11 +16,9 @@ export const PartnerVetting: React.FC = () => {
     api.fetchLabs()
       .then((data) => {
         setLabs(data);
-        const pending = data.filter(l => l.status === 'pending');
-        if (pending.length > 0) {
-          setSelectedLab(pending[0]);
-        } else if (data.length > 0) {
-          setSelectedLab(data[0]);
+        const filtered = data.filter(l => activeTab === 'new' ? l.status === 'pending' : l.status === 'rejected');
+        if (filtered.length > 0) {
+          setSelectedLab(filtered[0]);
         } else {
           setSelectedLab(null);
         }
@@ -31,9 +30,19 @@ export const PartnerVetting: React.FC = () => {
       });
   };
 
+  const handleTabChange = (tab: 'new' | 'review') => {
+    setActiveTab(tab);
+    const filtered = labs.filter(l => tab === 'new' ? l.status === 'pending' : l.status === 'rejected');
+    if (filtered.length > 0) {
+      setSelectedLab(filtered[0]);
+    } else {
+      setSelectedLab(null);
+    }
+  };
+
   useEffect(() => {
     loadLabs();
-  }, []);
+  }, [activeTab]);
 
   const handleApprove = async () => {
     if (!selectedLab) return;
@@ -72,6 +81,7 @@ export const PartnerVetting: React.FC = () => {
 
   const pendingCount = labs.filter(l => l.status === 'pending').length;
   const underReviewCount = labs.filter(l => l.status === 'rejected').length;
+  const displayedLabs = labs.filter(l => activeTab === 'new' ? l.status === 'pending' : l.status === 'rejected');
 
   return (
     <div style={{ margin: '-32px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
@@ -87,50 +97,103 @@ export const PartnerVetting: React.FC = () => {
         flexShrink: 0
       }}>
         <div style={{ display: 'flex', gap: '32px', height: '100%' }}>
-          <button style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '0 4px',
-            border: 'none',
-            background: 'none',
-            color: '#004e47',
-            fontWeight: '700',
-            borderBottom: '2px solid #004e47',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}>
+          <button
+            onClick={() => handleTabChange('new')}
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0 4px',
+              border: 'none',
+              background: 'none',
+              color: activeTab === 'new' ? '#004e47' : '#545f73',
+              fontWeight: activeTab === 'new' ? '700' : '500',
+              borderBottom: activeTab === 'new' ? '2px solid #004e47' : 'none',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
             New Requests
-            <span style={{ backgroundColor: '#00685f', color: '#93e4d8', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>
+            <span style={{
+              backgroundColor: activeTab === 'new' ? '#00685f' : '#e1e2e5',
+              color: activeTab === 'new' ? '#93e4d8' : '#191c1e',
+              padding: '2px 8px',
+              borderRadius: '10px',
+              fontSize: '11px'
+            }}>
               {pendingCount}
             </span>
           </button>
-          <button style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '0 4px',
-            border: 'none',
-            background: 'none',
-            color: '#545f73',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}>
+          <button
+            onClick={() => handleTabChange('review')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0 4px',
+              border: 'none',
+              background: 'none',
+              color: activeTab === 'review' ? '#004e47' : '#545f73',
+              fontWeight: activeTab === 'review' ? '700' : '500',
+              borderBottom: activeTab === 'review' ? '2px solid #004e47' : 'none',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
             Under Review
-            <span style={{ backgroundColor: '#e1e2e5', color: '#191c1e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>
+            <span style={{
+              backgroundColor: activeTab === 'review' ? '#00685f' : '#e1e2e5',
+              color: activeTab === 'review' ? '#93e4d8' : '#191c1e',
+              padding: '2px 8px',
+              borderRadius: '10px',
+              fontSize: '11px'
+            }}>
               {underReviewCount}
             </span>
           </button>
         </div>
+
+        {/* Dropdown to select lab */}
+        {displayedLabs.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#545f73', fontWeight: '600' }}>Active File:</span>
+            <select
+              value={selectedLab?._id || ''}
+              onChange={(e) => {
+                const lab = displayedLabs.find(l => l._id === e.target.value);
+                if (lab) setSelectedLab(lab);
+              }}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid #E2E8F0',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#0b1c30',
+                backgroundColor: 'white',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {displayedLabs.map(l => (
+                <option key={l._id} value={l._id}>{l.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </section>
 
       {/* Main split canvas */}
-      {selectedLab === null ? (
+      {displayedLabs.length === 0 || selectedLab === null ? (
         <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '48px', backgroundColor: '#F8FAFC' }}>
           <ShieldCheck size={64} style={{ color: '#006c4a', marginBottom: '24px' }} />
-          <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0b1c30' }}>No pending applications</h3>
-          <p style={{ color: '#545f73', marginTop: '8px' }}>All clinical providers have been cleared and verified.</p>
+          <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0b1c30' }}>
+            {activeTab === 'new' ? 'No pending applications' : 'No applications under review'}
+          </h3>
+          <p style={{ color: '#545f73', marginTop: '8px' }}>
+            {activeTab === 'new' ? 'All clinical providers have been cleared and verified.' : 'No partner applications are currently rejected or under review.'}
+          </p>
         </div>
       ) : (
         <div style={{ flexGrow: 1, display: 'flex', overflow: 'hidden' }}>
