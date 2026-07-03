@@ -30,6 +30,15 @@ app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
+app.get('/api/plans', async (req, res, next) => {
+  try {
+    const plans = await require('./models/plan.model').findActive();
+    res.json({ plans });
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/vault', vaultRoutes);

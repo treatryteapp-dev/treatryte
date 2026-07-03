@@ -1,6 +1,7 @@
 const { ObjectId } = require('mongodb');
 const labModel = require('../models/lab.model');
 const userModel = require('../models/user.model');
+const planModel = require('../models/plan.model');
 const appointmentModel = require('../models/appointment.model');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
@@ -94,18 +95,23 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 
 const listSubscriptions = asyncHandler(async (req, res) => {
   const users = await userModel.collection().find().toArray();
+  const plans = await planModel.findAll();
   
   // Format users into subscription schema
   const subscriptions = users.map(user => {
     const isProvider = user.role === 'provider';
+    const userPlan = (user.planId && plans.find(p => p._id.toString() === user.planId.toString()))
+      || plans.find(p => p.type === (isProvider ? 'Partner' : 'Individual'))
+      || { name: isProvider ? 'Enterprise Core' : 'Standard Bundle', price: isProvider ? 12450.00 : 299.00 };
+
     return {
       id: user._id.toString(),
       name: user.fullName,
       email: user.email,
       initial: user.fullName ? user.fullName.substring(0, 2).toUpperCase() : 'TR',
       type: isProvider ? 'Partner' : 'Individual',
-      tier: isProvider ? 'Enterprise Core' : 'Standard Bundle',
-      mrr: isProvider ? 12450.00 : 299.00,
+      tier: userPlan.name,
+      mrr: userPlan.price,
       status: user.billingStatus || 'active',
     };
   });
@@ -157,6 +163,20 @@ const listTransactions = asyncHandler(async (req, res) => {
   res.json({ transactions: populated });
 });
 
+const listPlans = asyncHandler(async (req, res) => {
+  const plans = await planModel.findAll();
+  res.json({ plans });
+});
+
+const createPlan = asyncHandler(async (req, res) => {
+  const { name, price, interval, type, features } = req.body;
+  if (!name || !price) {
+    throw new ApiError(400, 'Name and price are required', 'BAD_REQUEST');
+  }
+  const plan = await planModel.create({ name, price, interval, type, features });
+  res.status(201).json({ plan });
+});
+
 const { getDb } = require('../db');
 
 module.exports = {
@@ -167,4 +187,6 @@ module.exports = {
   listSubscriptions,
   updateSubscriptionStatus,
   listTransactions,
+  listPlans,
+  createPlan,
 };

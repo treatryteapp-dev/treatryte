@@ -33,6 +33,17 @@ export interface Subscription {
   status: 'active' | 'paused' | 'suspended';
 }
 
+export interface Plan {
+  _id: string;
+  name: string;
+  price: number;
+  interval: 'monthly' | 'yearly';
+  type: 'Partner' | 'Individual';
+  features: string[];
+  status: 'active' | 'inactive';
+  createdAt: string;
+}
+
 export interface PlatformTransaction {
   id: string;
   transactionId: string;
@@ -112,6 +123,24 @@ export const api = {
     if (!res.ok) throw new Error('Failed to fetch transactions');
     const data = await res.json();
     return data.transactions;
+  },
+
+  async fetchPlans(): Promise<Plan[]> {
+    const res = await fetch(`${API_BASE}/api/admin/plans`, { headers: getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch plans');
+    const data = await res.json();
+    return data.plans;
+  },
+
+  async createPlan(plan: Omit<Plan, '_id' | 'status' | 'createdAt'>): Promise<Plan> {
+    const res = await fetch(`${API_BASE}/api/admin/plans`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(plan),
+    });
+    if (!res.ok) throw new Error('Failed to create plan');
+    const data = await res.json();
+    return data.plan;
   },
 
   setToken(token: string) {

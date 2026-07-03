@@ -14,5 +14,7 @@ router.post('/labs/:id/reject', controller.rejectLab);
 router.get('/subscriptions', controller.listSubscriptions);
 router.post('/subscriptions/:id/status', controller.updateSubscriptionStatus);
 router.get('/transactions', controller.listTransactions);
+router.get('/plans', controller.listPlans);
+router.post('/plans', controller.createPlan);
 
 module.exports = router;
