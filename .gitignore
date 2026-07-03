@@ -6,3 +6,6 @@
 .env
 .env.*
 !.env.example
+
+# Admin build output - built by Railway on deploy
+admin/dist/
