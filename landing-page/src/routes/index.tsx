@@ -129,9 +129,7 @@ function Hero() {
             <span className="text-primary">In one place.</span>
           </h1>
           <p className="text-balance mt-4 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-            TreatRyte is the fintech-enabled health companion that keeps your
-            meds on schedule, your records in your pocket, and lab pricing
-            finally transparent.
+            TreatRyte is a patient-centric healthcare mobile application that empowers users to manage medication schedules, compare transparent diagnostic pricing, and securely own their personal medical records.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <a
@@ -659,8 +657,8 @@ function FAQ() {
           </h2>
           <p className="mt-4 max-w-md text-muted-foreground">
             Still curious? Reach us at{" "}
-            <a href="mailto:hello@treatryte.com" className="text-primary underline-offset-4 hover:underline">
-              hello@treatryte.com
+            <a href="mailto:alexegbuchulamginika@gmail.com" className="text-primary underline-offset-4 hover:underline">
+              alexegbuchulamginika@gmail.com
             </a>
             .
           </p>
