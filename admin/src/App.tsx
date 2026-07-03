@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { PartnerVetting } from './pages/PartnerVetting';
-import { Settlements } from './pages/Settlements';
+import { Subscriptions } from './pages/Subscriptions';
+import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { api } from './services/api';
 
@@ -33,6 +34,17 @@ function App() {
         />
         
         <Route
+          path="/subscriptions"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Subscriptions />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
           path="/vetting"
           element={
             <ProtectedRoute>
@@ -42,13 +54,13 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         <Route
-          path="/settlements"
+          path="/settings"
           element={
             <ProtectedRoute>
               <Layout>
-                <Settlements />
+                <Settings />
               </Layout>
             </ProtectedRoute>
           }
