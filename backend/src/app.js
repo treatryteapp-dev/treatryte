@@ -14,6 +14,7 @@ const medicationRoutes = require('./routes/medications.routes');
 const notificationRoutes = require('./routes/notifications.routes');
 const activityRoutes = require('./routes/activities.routes');
 const providerRoutes = require('./routes/provider.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use('/api/medications', medicationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/provider', providerRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

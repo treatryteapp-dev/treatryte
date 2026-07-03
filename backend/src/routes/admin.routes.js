@@ -1,0 +1,15 @@
+const express = require('express');
+const controller = require('../controllers/admin.controller');
+const { requireAuth } = require('../middleware/requireAuth');
+
+const router = express.Router();
+
+// Protected admin routes
+router.use(requireAuth);
+
+router.get('/stats', controller.getDashboardStats);
+router.get('/labs', controller.listLabs);
+router.post('/labs/:id/approve', controller.approveLab);
+router.post('/labs/:id/reject', controller.rejectLab);
+
+module.exports = router;

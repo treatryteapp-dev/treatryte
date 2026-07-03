@@ -1,0 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* HSL tailored color palette based on Vital Assurance guide */
+  --primary-hue: 175;
+  --secondary-hue: 161;
+  --error-hue: 0;
+
+  --color-primary: hsl(var(--primary-hue), 100%, 20%);
+  --color-primary-light: hsl(var(--primary-hue), 100%, 28%);
+  --color-primary-container: hsl(var(--primary-hue), 100%, 94%);
+  --color-on-primary-container: hsl(var(--primary-hue), 100%, 10%);
+  
+  --color-secondary: hsl(var(--secondary-hue), 100%, 21%);
+  --color-secondary-light: hsl(var(--secondary-hue), 100%, 28%);
+  --color-secondary-container: hsl(var(--secondary-hue), 100%, 94%);
+  --color-on-secondary-container: hsl(var(--secondary-hue), 100%, 10%);
+  
+  --color-error: hsl(var(--error-hue), 75%, 42%);
+  --color-error-container: hsl(var(--error-hue), 100%, 95%);
+  
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-surface-container: #f1f5f9;
+  
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+  
+  --color-border: #e2e8f0;
+  --color-outline: #6d7a77;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+/* Dark Mode Overrides (Optional - but premium) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0f172a;
+    --color-surface: #1e293b;
+    --color-surface-hover: #334155;
+    --color-surface-container: #334155;
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #cbd5e1;
+    --color-text-muted: #64748b;
+    --color-border: #334155;
+    --color-primary-container: hsl(var(--primary-hue), 100%, 15%);
+    --color-on-primary-container: hsl(var(--primary-hue), 100%, 80%);
+    --color-secondary-container: hsl(var(--secondary-hue), 100%, 15%);
+    --color-on-secondary-container: hsl(var(--secondary-hue), 100%, 80%);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* General Layout helpers */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  gap: 8px;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-light);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-secondary-light);
+}
+
+.btn-outline {
+  border-color: var(--color-border);
+  background-color: transparent;
+  color: var(--color-text-primary);
+}
+
+.btn-outline:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.btn-danger {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Typography */
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+p {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

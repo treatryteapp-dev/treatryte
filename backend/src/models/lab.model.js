@@ -31,6 +31,7 @@ async function create({ userId, name, licenseNumber, address, services, bankDeta
     bankDetails: bankDetails || {},
     isFeatured: false,
     rating: 4.8,
+    status: 'pending',
     createdAt: now,
     updatedAt: now,
   };
