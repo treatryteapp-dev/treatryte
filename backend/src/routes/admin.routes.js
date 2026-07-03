@@ -16,5 +16,6 @@ router.post('/subscriptions/:id/status', controller.updateSubscriptionStatus);
 router.get('/transactions', controller.listTransactions);
 router.get('/plans', controller.listPlans);
 router.post('/plans', controller.createPlan);
+router.delete('/plans/:id', controller.deletePlan);
 
 module.exports = router;

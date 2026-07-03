@@ -143,6 +143,14 @@ export const api = {
     return data.plan;
   },
 
+  async deletePlan(id: string): Promise<boolean> {
+    const res = await fetch(`${API_BASE}/api/admin/plans/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return res.ok;
+  },
+
   setToken(token: string) {
     localStorage.setItem('accessToken', token);
   },

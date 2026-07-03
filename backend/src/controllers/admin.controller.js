@@ -177,6 +177,12 @@ const createPlan = asyncHandler(async (req, res) => {
   res.status(201).json({ plan });
 });
 
+const deletePlan = asyncHandler(async (req, res) => {
+  const planId = parseObjectId(req.params.id);
+  await getDb().collection('plans').deleteOne({ _id: planId });
+  res.json({ success: true });
+});
+
 const { getDb } = require('../db');
 
 module.exports = {
@@ -189,4 +195,5 @@ module.exports = {
   listTransactions,
   listPlans,
   createPlan,
+  deletePlan,
 };

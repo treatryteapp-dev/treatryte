@@ -74,6 +74,22 @@ export const Subscriptions: React.FC = () => {
     }
   };
 
+  const handleDeletePlan = async (id: string) => {
+    if (!window.confirm('Are you sure you want to cancel and delete this subscription plan?')) return;
+    setLoading(true);
+    try {
+      const success = await api.deletePlan(id);
+      if (success) {
+        loadData();
+      } else {
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Failed to delete subscription plan', err);
+      setLoading(false);
+    }
+  };
+
   // Calculations for KPI Cards
   const activeCount = subscriptions.filter(s => s.status === 'active').length;
   const pausedCount = subscriptions.filter(s => s.status === 'paused').length;
@@ -595,6 +611,25 @@ export const Subscriptions: React.FC = () => {
                     )}
                   </ul>
                 </div>
+
+                <button
+                  onClick={() => handleDeletePlan(plan._id)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderColor: '#EF4444',
+                    border: '1px solid #EF4444',
+                    borderRadius: '8px',
+                    color: '#EF4444',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    backgroundColor: 'white',
+                    marginTop: '16px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel Plan
+                </button>
               </div>
             ))}
 
