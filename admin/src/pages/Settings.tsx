@@ -1,7 +1,29 @@
 import React, { useState } from 'react';
-import { Save, KeyRound, Webhook, Brush, Check } from 'lucide-react';
+import { Save, KeyRound, Webhook, Brush, Check, User } from 'lucide-react';
 
 export const Settings: React.FC = () => {
+  // Admin User Profile State
+  const [adminFullName, setAdminFullName] = useState(() => {
+    try {
+      const stored = localStorage.getItem('adminUser');
+      if (stored) {
+        return JSON.parse(stored).fullName || 'TreatRyte Admin';
+      }
+    } catch {}
+    return 'TreatRyte Admin';
+  });
+
+  const [adminEmailAddress, setAdminEmailAddress] = useState(() => {
+    try {
+      const stored = localStorage.getItem('adminUser');
+      if (stored) {
+        return JSON.parse(stored).email || 'treatryte.app@gmail.com';
+      }
+    } catch {}
+    return 'treatryte.app@gmail.com';
+  });
+
+  // Global App Branding State
   const [portalName, setPortalName] = useState(() => localStorage.getItem('adminPortalName') || 'TreatRyte Admin Portal');
   const [adminEmail, setAdminEmail] = useState(() => localStorage.getItem('adminEmail') || 'admin@treatryte.com');
   const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem('adminPrimaryColor') || '#004E47');
@@ -11,12 +33,24 @@ export const Settings: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleSave = () => {
+    // 1. Save global settings
     localStorage.setItem('adminPortalName', portalName);
     localStorage.setItem('adminEmail', adminEmail);
     localStorage.setItem('adminPrimaryColor', primaryColor);
     localStorage.setItem('adminSessionTimeout', sessionTimeout);
     localStorage.setItem('adminMfaEnabled', String(mfaEnabled));
     localStorage.setItem('adminWebhookUrl', webhookUrl);
+
+    // 2. Save personal admin profile updates
+    try {
+      const stored = localStorage.getItem('adminUser');
+      const currentUser = stored ? JSON.parse(stored) : {};
+      currentUser.fullName = adminFullName;
+      currentUser.email = adminEmailAddress;
+      localStorage.setItem('adminUser', JSON.stringify(currentUser));
+    } catch (e) {
+      console.error('Failed to update adminUser in localStorage', e);
+    }
 
     // Dispatch event to synchronize Sidebar/Header layouts
     window.dispatchEvent(new Event('adminSettingsUpdated'));
@@ -49,13 +83,42 @@ export const Settings: React.FC = () => {
           gap: '8px'
         }}>
           <Check size={16} />
-          <span>Platform configurations saved and synchronized successfully!</span>
+          <span>Platform and profile configurations saved and synchronized successfully!</span>
         </div>
       )}
 
       {/* Settings Grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
+        {/* Admin Profile Settings */}
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '24px' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+            <User size={20} style={{ color: '#004e47' }} />
+            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0b1c30' }}>Admin Profile Settings</h3>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#545f73', marginBottom: '8px' }}>ADMIN FULL NAME</label>
+              <input
+                type="text"
+                value={adminFullName}
+                onChange={(e) => setAdminFullName(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#545f73', marginBottom: '8px' }}>ADMIN EMAIL ADDRESS</label>
+              <input
+                type="email"
+                value={adminEmailAddress}
+                onChange={(e) => setAdminEmailAddress(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px' }}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Branding Configurations */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '24px' }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>

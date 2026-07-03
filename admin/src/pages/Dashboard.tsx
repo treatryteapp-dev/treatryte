@@ -37,6 +37,38 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleExportReport = () => {
+    if (!stats) return;
+    const headers = ['Metric', 'Value'];
+    const rows = [
+      ['Total Revenue', `₦${stats.totalRevenue.toFixed(2)}`],
+      ['Active Partners', stats.totalProviders.toString()],
+      ['Pending Reviews', stats.pendingApprovals.toString()],
+      ['System Health', `${stats.systemHealth}%`],
+      ['Total Patients', stats.totalPatients.toString()],
+      ['Total Appointments', stats.totalAppointments.toString()]
+    ];
+
+    if (transactions.length > 0) {
+      rows.push([]);
+      rows.push(['RECENT TRANSACTIONS']);
+      rows.push(['Transaction ID', 'User Name', 'Category', 'Amount', 'Status']);
+      transactions.forEach(tx => {
+        rows.push([tx.transactionId, tx.userName, tx.category, `₦${tx.amount.toFixed(2)}`, tx.status]);
+      });
+    }
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `TreatRyte_Executive_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading && stats === null) {
     return (
       <div className="flex-center" style={{ minHeight: '300px', flexDirection: 'column', gap: '16px' }}>
@@ -59,7 +91,7 @@ export const Dashboard: React.FC = () => {
             <Calendar size={16} />
             Last 30 Days
           </button>
-          <button className="btn btn-primary" style={{ backgroundColor: '#004e47' }}>Export Report</button>
+          <button onClick={handleExportReport} className="btn btn-primary" style={{ backgroundColor: '#004e47' }}>Export Report</button>
         </div>
       </div>
 

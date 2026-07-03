@@ -39,6 +39,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const handleSettingsUpdate = () => {
       const stored = localStorage.getItem('adminPortalName');
       setPortalTitle(stored ? stored.split(' ')[0] : 'TreatRyte');
+
+      try {
+        const storedUser = localStorage.getItem('adminUser');
+        if (storedUser) {
+          setAdminUser(JSON.parse(storedUser));
+        }
+      } catch (e) {
+        console.error('Failed to parse admin user profile during settings sync', e);
+      }
     };
     window.addEventListener('adminSettingsUpdated', handleSettingsUpdate);
 
