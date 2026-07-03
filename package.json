@@ -1,0 +1,10 @@
+{
+  "name": "treatryte-monorepo",
+  "version": "1.0.0",
+  "description": "TreatRyte Monorepo managing Backend, Admin Web Portal, and Mobile workspace.",
+  "scripts": {
+    "postinstall": "npm install --prefix backend && npm install --prefix admin",
+    "build": "npm run build --prefix admin",
+    "start": "npm start --prefix backend"
+  }
+}
