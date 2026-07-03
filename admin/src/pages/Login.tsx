@@ -15,8 +15,9 @@ export const Login: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    const API_BASE = import.meta.env.VITE_API_URL || '';
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
