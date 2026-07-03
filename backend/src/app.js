@@ -41,6 +41,17 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/provider', providerRoutes);
 app.use('/api/admin', adminRoutes);
 
+const path = require('path');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../../admin/dist')));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(__dirname, '../../admin/dist/index.html'));
+  });
+}
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
