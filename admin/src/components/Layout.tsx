@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, CreditCard, ShieldCheck, Settings, LogOut, HelpCircle } from 'lucide-react';
 import { api } from '../services/api';
@@ -11,6 +11,27 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [adminUser, setAdminUser] = useState<any>(null);
+  const [timeStr, setTimeStr] = useState('');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('adminUser');
+      if (stored) {
+        setAdminUser(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to parse admin user profile', e);
+    }
+
+    const updateTime = () => {
+      const now = new Date();
+      setTimeStr(now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const menuItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -21,6 +42,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleLogout = () => {
     api.logout();
+    localStorage.removeItem('adminUser');
     navigate('/login');
   };
 
@@ -136,7 +158,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
-              <span style={{ fontWeight: '600', fontSize: '13px', color: '#004e47' }}>02:45 PM</span>
+              <span style={{ fontWeight: '600', fontSize: '13px', color: '#004e47' }}>{timeStr || '02:45 PM'}</span>
               <span style={{
                 fontSize: '10px',
                 fontWeight: '700',
@@ -151,14 +173,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div style={{ width: '1px', height: '24px', backgroundColor: '#E2E8F0' }}></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontWeight: '700', fontSize: '13px', color: '#0b1c30' }}>Alex Rivera</p>
-                <p style={{ fontSize: '10px', color: '#545f73', lineHeight: '1' }}>System Administrator</p>
+                <p style={{ fontWeight: '700', fontSize: '13px', color: '#0b1c30' }}>
+                  {adminUser?.fullName || adminUser?.email || 'TreatRyte Admin'}
+                </p>
+                <p style={{ fontSize: '10px', color: '#545f73', lineHeight: '1' }}>
+                  {adminUser?.role === 'admin' ? 'System Administrator' : (adminUser?.role || 'Administrator')}
+                </p>
               </div>
-              <img
-                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #E2E8F0' }}
-                alt="Admin avatar"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAg9jt9xWU3PlMtBCVnV3mUpuY9-5NUFmDhx8y6d_27LKpkLBO4uL-8OTnvhelhfdx_azXfhwnya3BFt26OcveyW0FoMxAqGBHDGDP1VTxolsfAbFOi1x8MlpRIqHYKiViWXK1uRkJ5633f-L9iac8hAPU4rWnTkAUnWB5aCzOH5cm4K-48r8BSJUsNy2wVKnPWDakt4o3-Xu1NGLLF9FDM7iiecmZ5SE8bq6qjpOCcCjXUwJwA7tJjyHJAQTYXAUh-d3u21VkMGkA"
-              />
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: '#004e47',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700',
+                fontSize: '14px',
+                border: '1px solid #E2E8F0'
+              }}>
+                {(adminUser?.fullName ? adminUser.fullName.substring(0, 2).toUpperCase() : (adminUser?.email ? adminUser.email.substring(0, 2).toUpperCase() : 'TR'))}
+              </div>
             </div>
           </div>
         </header>

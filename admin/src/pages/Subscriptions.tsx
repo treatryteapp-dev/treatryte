@@ -44,6 +44,9 @@ export const Subscriptions: React.FC = () => {
   const suspendedCount = subscriptions.filter(s => s.status === 'suspended').length;
   const totalCount = subscriptions.length;
 
+  const retentionRate = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
+  const retentionOffset = 251.2 - (251.2 * retentionRate) / 100;
+
   // Calculate MRR at Risk (MRR of suspended & paused accounts)
   const revenueAtRisk = subscriptions
     .filter(s => s.status === 'suspended' || s.status === 'paused')
@@ -358,16 +361,16 @@ export const Subscriptions: React.FC = () => {
           <div style={{ position: 'relative', width: '96px', height: '96px' }}>
             <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
               <circle cx="48" cy="48" r="40" fill="transparent" stroke="#eceef0" strokeWidth="8" />
-              <circle cx="48" cy="48" r="40" fill="transparent" stroke="#004e47" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset="45" />
+              <circle cx="48" cy="48" r="40" fill="transparent" stroke="#004e47" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset={retentionOffset} />
             </svg>
             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: '18px', fontWeight: '700', color: '#0b1c30' }}>82%</span>
+              <span style={{ fontSize: '18px', fontWeight: '700', color: '#0b1c30' }}>{retentionRate}%</span>
             </div>
           </div>
           <div>
             <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#0b1c30' }}>Subscriber Retention</h4>
             <p style={{ fontSize: '13px', color: '#545f73', marginTop: '4px', maxWidth: '300px' }}>
-              Your retention rate has improved by 2.4% since the last audit period.
+              Your retention rate is currently {retentionRate}% based on {activeCount} active out of {totalCount} total subscriber accounts.
             </p>
             <button style={{ border: 'none', background: 'none', color: '#004e47', fontSize: '12px', fontWeight: '700', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
               View detailed report

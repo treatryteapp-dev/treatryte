@@ -38,6 +38,9 @@ export const Login: React.FC = () => {
       }
 
       api.setToken(data.accessToken);
+      if (data.user) {
+        localStorage.setItem('adminUser', JSON.stringify(data.user));
+      }
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Connection to backend failed');
