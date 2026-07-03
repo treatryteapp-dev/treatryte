@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/vault_models.dart';
@@ -40,6 +41,40 @@ class _VaultTabState extends State<VaultTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<VaultProvider>().refresh();
     });
+  }
+
+  Future<void> _showScanOrUploadOptions() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(AppSpacing.md),
+              child: Text('Choose an Option', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+              title: const Text('Scan Document (Camera)'),
+              onTap: () => Navigator.of(context).pop('scan'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.upload_file, color: AppColors.primary),
+              title: const Text('Upload File (Gallery/Local)'),
+              onTap: () => Navigator.of(context).pop('upload'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    if (action == 'scan') {
+      context.push('/scan-upload');
+    } else if (action == 'upload') {
+      _pickAndUpload();
+    }
   }
 
   Future<void> _pickAndUpload() async {
@@ -132,7 +167,7 @@ class _VaultTabState extends State<VaultTab> {
                 children: [
                   Text('Directories', style: textTheme.headlineSmall),
                   TextButton.icon(
-                    onPressed: _uploading ? null : _pickAndUpload,
+                    onPressed: _uploading ? null : _showScanOrUploadOptions,
                     icon: _uploading
                         ? const SizedBox(
                             width: 16,

@@ -19,9 +19,7 @@ class _JoinScreenState extends State<JoinScreen> {
     if (_selectedRole == _Role.user) {
       context.push('/register');
     } else if (_selectedRole == _Role.partner) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Partner registration is coming soon.')),
-      );
+      context.push('/partner-register');
     }
   }
 

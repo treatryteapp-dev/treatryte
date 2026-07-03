@@ -9,11 +9,13 @@ import '../screens/login_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/register_screen.dart';
+import '../screens/partner_register_screen.dart';
 import '../screens/setup_biometrics_screen.dart';
 import '../screens/subscription_plans_screen.dart';
 import '../screens/withdraw_pay_screen.dart';
+import '../screens/scan_upload_screen.dart';
 
-const _publicPaths = {'/', '/join', '/login', '/register', '/setup-biometrics'};
+const _publicPaths = {'/', '/join', '/login', '/register', '/partner-register', '/setup-biometrics'};
 
 GoRouter createAppRouter(AuthProvider authProvider) {
   return GoRouter(
@@ -41,6 +43,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/partner-register',
+        builder: (context, state) => const PartnerRegisterScreen(),
       ),
       GoRoute(
         path: '/setup-biometrics',
@@ -71,6 +77,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/subscription-plans',
         builder: (context, state) => const SubscriptionPlansScreen(),
+      ),
+      GoRoute(
+        path: '/scan-upload',
+        builder: (context, state) => const ScanUploadScreen(),
       ),
     ],
   );
