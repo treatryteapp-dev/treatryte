@@ -169,7 +169,7 @@ const listPlans = asyncHandler(async (req, res) => {
 });
 
 const createPlan = asyncHandler(async (req, res) => {
-  const { name, price, interval, type, features, nombaPlanId, transactionSplit } = req.body;
+  const { name, price, interval, type, features, excludedFeatures, nombaPlanId, transactionSplit } = req.body;
   if (!name || price === undefined || price === null) {
     throw new ApiError(400, 'Name and price are required', 'BAD_REQUEST');
   }
@@ -179,6 +179,7 @@ const createPlan = asyncHandler(async (req, res) => {
     interval,
     type,
     features,
+    excludedFeatures,
     nombaPlanId,
     transactionSplit
   });

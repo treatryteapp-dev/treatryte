@@ -12,8 +12,16 @@ const defaultPlans = [
       "Diagnostic Directory: Free searching of clinics with transparent pricing",
       "Digital Vault Storage: Max 5 medical records across 2 folders",
       "Record Sharing: Share 1 record with 1 recipient (expires in 24h)",
-      "Third-Party Uploads: Free clinic invitation links",
+      "Third-Party Vault Uploads: Free clinic invitation links",
       "Community Benefits: Local medical outreach notifications"
+    ],
+    excludedFeatures: [
+      "Expanded Vault Storage: Storage for up to 100 records and 10 folders",
+      "Advanced Sharing: Share 5 records with custom expiration (up to 30 days)",
+      "Ad-Free Experience: No sponsored ads inside the app",
+      "Unlimited Vault Storage: Unlimited document uploads",
+      "Family Account Linking: Manage up to 4 sub-profiles",
+      "Smart Insights: AI-translated record summaries"
     ],
     nombaPlanId: "",
     transactionSplit: 0,
@@ -31,6 +39,11 @@ const defaultPlans = [
       "Expanded Vault Storage: Storage for up to 100 records and 10 folders",
       "Advanced Sharing: Share 5 records with custom expiration timers (up to 30 days)",
       "Ad-Free Experience: No sponsored ads inside the app"
+    ],
+    excludedFeatures: [
+      "Unlimited Vault Storage: Unlimited document uploads",
+      "Family Account Linking: Manage up to 4 sub-profiles",
+      "Smart Insights: AI-translated record summaries"
     ],
     nombaPlanId: "plan_nomba_health_plus",
     transactionSplit: 0,
@@ -50,6 +63,7 @@ const defaultPlans = [
       "Unlimited Sharing: Unlimited sharing links with view/download permissions",
       "Smart Insights: AI-translated record summaries"
     ],
+    excludedFeatures: [],
     nombaPlanId: "plan_nomba_health_premium",
     transactionSplit: 0,
     status: "active",
@@ -67,6 +81,15 @@ const defaultPlans = [
       "Basic Billing: Issue up to 30 digital invoices/month",
       "Record Dispatch: Send up to 50 test results/month",
       "Staff Management: Up to 2 staff accounts"
+    ],
+    excludedFeatures: [
+      "Unlimited Billing & Records: Issue unlimited invoices and results",
+      "Custom Branding: Storefront banners, bios, and contact widgets",
+      "Expanded Staff: Up to 10 staff accounts",
+      "Clinic Analytics: Downloadable performance reports",
+      "AI-Driven Report Interpretation: Automated clinical translation engine",
+      "Multi-Branch Management: Track performance across up to 5 separate branches",
+      "Priority API Integration: Direct Webhook support for LIMS systems"
     ],
     nombaPlanId: "",
     transactionSplit: 2.5,
@@ -87,6 +110,11 @@ const defaultPlans = [
       "Expanded Staff: Up to 10 staff accounts",
       "Clinic Analytics: Downloadable performance reports"
     ],
+    excludedFeatures: [
+      "AI-Driven Report Interpretation: Automated clinical translation engine",
+      "Multi-Branch Management: Track performance across up to 5 separate branches",
+      "Priority API Integration: Direct Webhook support for LIMS systems"
+    ],
     nombaPlanId: "plan_nomba_growth_suite",
     transactionSplit: 1.5,
     status: "active",
@@ -106,6 +134,7 @@ const defaultPlans = [
       "Unlimited Staff Accounts: Secure profiles for all branch workers",
       "Priority API Integration: Direct Webhook support for LIMS systems"
     ],
+    excludedFeatures: [],
     nombaPlanId: "plan_nomba_enterprise_health_suite",
     transactionSplit: 1.0,
     status: "active",

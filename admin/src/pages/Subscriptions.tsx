@@ -20,6 +20,7 @@ export const Subscriptions: React.FC = () => {
   const [planType, setPlanType] = useState<'Partner' | 'Individual'>('Partner');
   const [planInterval, setPlanInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [planFeatures, setPlanFeatures] = useState('');
+  const [planExcludedFeatures, setPlanExcludedFeatures] = useState('');
   const [nombaPlanId, setNombaPlanId] = useState('');
   const [transactionSplit, setTransactionSplit] = useState('');
   const [submittingPlan, setSubmittingPlan] = useState(false);
@@ -63,12 +64,14 @@ export const Subscriptions: React.FC = () => {
         type: planType,
         interval: planInterval,
         features: planFeatures.split(',').map(f => f.trim()).filter(Boolean),
+        excludedFeatures: planExcludedFeatures.split(',').map(f => f.trim()).filter(Boolean),
         nombaPlanId: nombaPlanId || undefined,
         transactionSplit: transactionSplit ? Number(transactionSplit) : undefined,
       });
       setPlanName('');
       setPlanPrice('');
       setPlanFeatures('');
+      setPlanExcludedFeatures('');
       setNombaPlanId('');
       setTransactionSplit('');
       setShowCreatePlanModal(false);
@@ -628,6 +631,22 @@ export const Subscriptions: React.FC = () => {
                   </ul>
                 </div>
 
+                {plan.excludedFeatures && plan.excludedFeatures.length > 0 && (
+                  <div style={{ borderTop: '1px dashed #E2E8F0', paddingTop: '12px', marginTop: '12px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                      Not Included
+                    </p>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {plan.excludedFeatures.map((feat, i) => (
+                        <li key={i} style={{ display: 'flex', alignItems: 'start', gap: '8px', fontSize: '12.5px', color: '#94A3B8', textDecoration: 'line-through' }}>
+                          <XCircle size={13} style={{ color: '#FDA4AF', marginTop: '2px', flexShrink: 0 }} />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <button
                   onClick={() => handleDeletePlan(plan._id)}
                   style={{
@@ -784,6 +803,18 @@ export const Subscriptions: React.FC = () => {
                   style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', outline: 'none', resize: 'none' }}
                 />
                 <span style={{ fontSize: '10px', color: '#545f73', display: 'block', marginTop: '4px' }}>Provide a comma-separated list of items included in this plan.</span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Plan Excluded Features (Optional)</label>
+                <textarea
+                  placeholder="Excluded Feature 1, Excluded Feature 2..."
+                  rows={3}
+                  value={planExcludedFeatures}
+                  onChange={(e) => setPlanExcludedFeatures(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', outline: 'none', resize: 'none' }}
+                />
+                <span style={{ fontSize: '10px', color: '#545f73', display: 'block', marginTop: '4px' }}>Provide a comma-separated list of items NOT included in this plan (crossed out on cards).</span>
               </div>
             </div>
 

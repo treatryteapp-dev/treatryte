@@ -6,7 +6,7 @@ function collection() {
   return getDb().collection(COLLECTION);
 }
 
-async function create({ name, price, interval, type, features, nombaPlanId, transactionSplit }) {
+async function create({ name, price, interval, type, features, excludedFeatures, nombaPlanId, transactionSplit }) {
   const now = new Date();
   const doc = {
     name,
@@ -14,6 +14,7 @@ async function create({ name, price, interval, type, features, nombaPlanId, tran
     interval: interval || 'monthly',
     type: type || 'Partner',
     features: features || [],
+    excludedFeatures: excludedFeatures || [],
     nombaPlanId: nombaPlanId || '',
     transactionSplit: Number(transactionSplit || 0),
     status: 'active',
