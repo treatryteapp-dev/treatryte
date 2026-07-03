@@ -40,6 +40,8 @@ export interface Plan {
   interval: 'monthly' | 'yearly';
   type: 'Partner' | 'Individual';
   features: string[];
+  nombaPlanId?: string;
+  transactionSplit?: number;
   status: 'active' | 'inactive';
   createdAt: string;
 }

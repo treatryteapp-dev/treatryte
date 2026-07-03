@@ -169,11 +169,19 @@ const listPlans = asyncHandler(async (req, res) => {
 });
 
 const createPlan = asyncHandler(async (req, res) => {
-  const { name, price, interval, type, features } = req.body;
-  if (!name || !price) {
+  const { name, price, interval, type, features, nombaPlanId, transactionSplit } = req.body;
+  if (!name || price === undefined || price === null) {
     throw new ApiError(400, 'Name and price are required', 'BAD_REQUEST');
   }
-  const plan = await planModel.create({ name, price, interval, type, features });
+  const plan = await planModel.create({
+    name,
+    price,
+    interval,
+    type,
+    features,
+    nombaPlanId,
+    transactionSplit
+  });
   res.status(201).json({ plan });
 });
 

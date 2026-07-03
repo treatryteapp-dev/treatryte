@@ -15,6 +15,8 @@ const defaultPlans = [
       "Third-Party Uploads: Free clinic invitation links",
       "Community Benefits: Local medical outreach notifications"
     ],
+    nombaPlanId: "",
+    transactionSplit: 0,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()
@@ -30,6 +32,8 @@ const defaultPlans = [
       "Advanced Sharing: Share 5 records with custom expiration timers (up to 30 days)",
       "Ad-Free Experience: No sponsored ads inside the app"
     ],
+    nombaPlanId: "plan_nomba_health_plus",
+    transactionSplit: 0,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()
@@ -46,6 +50,8 @@ const defaultPlans = [
       "Unlimited Sharing: Unlimited sharing links with view/download permissions",
       "Smart Insights: AI-translated record summaries"
     ],
+    nombaPlanId: "plan_nomba_health_premium",
+    transactionSplit: 0,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()
@@ -62,6 +68,8 @@ const defaultPlans = [
       "Record Dispatch: Send up to 50 test results/month",
       "Staff Management: Up to 2 staff accounts"
     ],
+    nombaPlanId: "",
+    transactionSplit: 2.5,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()
@@ -79,6 +87,8 @@ const defaultPlans = [
       "Expanded Staff: Up to 10 staff accounts",
       "Clinic Analytics: Downloadable performance reports"
     ],
+    nombaPlanId: "plan_nomba_growth_suite",
+    transactionSplit: 1.5,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()
@@ -96,6 +106,8 @@ const defaultPlans = [
       "Unlimited Staff Accounts: Secure profiles for all branch workers",
       "Priority API Integration: Direct Webhook support for LIMS systems"
     ],
+    nombaPlanId: "plan_nomba_enterprise_health_suite",
+    transactionSplit: 1.0,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()
