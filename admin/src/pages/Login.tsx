@@ -17,7 +17,10 @@ export const Login: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    const API_BASE = import.meta.env.VITE_API_URL || '';
+    const API_BASE = import.meta.env.VITE_API_URL || 
+      (typeof window !== 'undefined' && window.location.hostname.includes('railway')
+        ? 'https://treatryte-backend.up.railway.app'
+        : 'http://localhost:4000');
     try {
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
