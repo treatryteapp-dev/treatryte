@@ -1,0 +1,130 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * TreatRyte — Vital Assurance design system.
+ * Clinical clarity + modern security. Teal / Emerald on cloud gray + navy slate.
+ */
+
+@theme inline {
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-emerald: var(--emerald);
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-soft: 0 4px 20px rgba(15, 23, 42, 0.05);
+  --shadow-lift: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --shadow-deep: 0 20px 48px rgba(15, 23, 42, 0.15);
+  --shadow-glow: 0 20px 60px -20px oklch(0.55 0.11 190 / 0.45);
+}
+
+:root {
+  --radius: 1rem;
+
+  --background: oklch(0.985 0.005 220);
+  --foreground: oklch(0.18 0.04 260);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.04 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.04 260);
+
+  /* Teal primary */
+  --primary: oklch(0.55 0.11 190);
+  --primary-foreground: oklch(1 0 0);
+  --primary-glow: oklch(0.68 0.13 185);
+
+  --secondary: oklch(0.96 0.01 220);
+  --secondary-foreground: oklch(0.18 0.04 260);
+
+  --muted: oklch(0.96 0.01 220);
+  --muted-foreground: oklch(0.45 0.02 250);
+
+  --accent: oklch(0.94 0.03 190);
+  --accent-foreground: oklch(0.35 0.09 190);
+
+  --emerald: oklch(0.68 0.16 160);
+
+  --navy: oklch(0.2 0.04 265);
+  --navy-foreground: oklch(0.98 0.005 220);
+
+  --destructive: oklch(0.62 0.22 20);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.18 0.04 260 / 0.08);
+  --input: oklch(0.18 0.04 260 / 0.12);
+  --ring: oklch(0.55 0.11 190);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility bg-hero-radial {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, oklch(0.55 0.11 190 / 0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 20%, oklch(0.68 0.16 160 / 0.12), transparent 55%),
+    var(--color-background);
+}
+
+@utility bg-navy-radial {
+  background:
+    radial-gradient(800px 400px at 20% 0%, oklch(0.55 0.11 190 / 0.35), transparent 60%),
+    radial-gradient(600px 400px at 100% 100%, oklch(0.68 0.16 160 / 0.2), transparent 60%),
+    var(--color-navy);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@utility animate-float {
+  animation: float 6s ease-in-out infinite;
+}
