@@ -8,6 +8,7 @@ import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { api } from './services/api';
 
+// Trigger standalone deployment rebuild
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = api.getToken();
   if (!token) {
