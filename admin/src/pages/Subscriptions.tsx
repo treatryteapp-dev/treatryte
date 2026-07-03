@@ -232,7 +232,7 @@ export const Subscriptions: React.FC = () => {
       {/* Tab Switcher */}
       <div style={{ display: 'flex', borderBottom: '1px solid #E2E8F0', marginTop: '8px' }}>
         <button
-          onClick={() => setActiveTab('subscribers')}
+          onClick={() => { setActiveTab('subscribers'); loadData(); }}
           style={{
             padding: '12px 24px',
             fontSize: '14px',
@@ -247,7 +247,7 @@ export const Subscriptions: React.FC = () => {
           Subscribers Ledger
         </button>
         <button
-          onClick={() => setActiveTab('plans')}
+          onClick={() => { setActiveTab('plans'); loadData(); }}
           style={{
             padding: '12px 24px',
             fontSize: '14px',
