@@ -13,6 +13,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   role: z.enum(['patient', 'provider']).optional(),
+  planId: z.string().optional(),
   facilityName: z.string().optional(),
   licenseNumber: z.string().optional(),
   services: z.array(z.string()).optional(),

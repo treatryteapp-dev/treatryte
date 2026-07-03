@@ -37,6 +37,7 @@ async function register({
   email,
   password,
   role,
+  planId,
   facilityName,
   licenseNumber,
   services,
@@ -57,6 +58,7 @@ async function register({
     email,
     passwordHash,
     role,
+    planId,
   });
   await walletModel.createForUser(user._id);
 

@@ -14,7 +14,8 @@ function findById(id) {
   return collection().findOne({ _id: id });
 }
 
-async function create({ fullName, dateOfBirth, gender, address, email, passwordHash, role }) {
+async function create({ fullName, dateOfBirth, gender, address, email, passwordHash, role, planId }) {
+  const { ObjectId } = require('mongodb');
   const now = new Date();
   const doc = {
     fullName,
@@ -24,6 +25,7 @@ async function create({ fullName, dateOfBirth, gender, address, email, passwordH
     email: email.toLowerCase(),
     passwordHash,
     role: role || 'patient',
+    planId: planId ? new ObjectId(planId) : null,
     nombaCustomerId: null,
     biometricLockEnabled: false,
     createdAt: now,
