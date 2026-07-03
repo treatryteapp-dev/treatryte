@@ -53,9 +53,10 @@ function Logo({ className = "" }: { className?: string }) {
 function Nav() {
   const [open, setOpen] = useState(false);
   const links = [
-    { href: "#features", label: "Features" },
+    { href: "#patients", label: "For Patients" },
     { href: "#partners", label: "For Partners" },
-    { href: "#pricing", label: "Pricing" },
+    { href: "#patient-pricing", label: "Patient Pricing" },
+    { href: "#partner-pricing", label: "Partner Pricing" },
     { href: "#faq", label: "FAQ" },
   ];
   return (
@@ -217,63 +218,77 @@ function FloatingCard({
   );
 }
 
-const features = [
+const patientFeatures = [
   {
     icon: BellRing,
-    title: "Medication alarms",
-    body: "Offline-first reminders with dosage guidance and a running doctor's feedback log for every dose.",
+    title: "Medication Alarms & Logs",
+    body: "Unlimited reminders with dosage guidance and Doctor's Feedback logs to promote 100% adherence.",
+    tag: "Free forever",
+  },
+  {
+    icon: MapPin,
+    title: "Transparent Clinic Search",
+    body: "Search geolocated diagnostic labs, dental practices, and eye clinics with published itemized pricing.",
     tag: "Free forever",
   },
   {
     icon: FolderLock,
-    title: "Personal medical vault",
-    body: "Structured folders like /Cardiology and /Diagnostics. Encrypted at rest. Yours to keep.",
-    tag: "Freemium",
-  },
-  {
-    icon: MapPin,
-    title: "Transparent lab search",
-    body: "Geolocated directory of diagnostic labs, dental and eye clinics — with published, itemized pricing.",
-    tag: "Free forever",
+    title: "Digital Medical Vault",
+    body: "Structured encrypted storage with custom folders like /Cardiology and /Diagnostics. Yours for life.",
+    tag: "Tiered Vault",
   },
   {
     icon: Share2,
-    title: "Granular record sharing",
-    body: "Share a single report with a doctor, family member or specialist. Revoke access in one tap.",
-    tag: "Freemium",
+    title: "Secure Record Sharing",
+    body: "Active sharing with customized link expiration timers (up to 30 days) and one-tap manual revocation.",
+    tag: "Granular Control",
   },
   {
     icon: Wallet,
-    title: "In-app wallet & billing",
-    body: "Fund a wallet, receive itemized lab invoices, and pay instantly through Nomba's checkout.",
-    tag: "Powered by Nomba",
+    title: "Third-Party Uploads",
+    body: "Receive test reports directly into your personal vault via secure invitation links for external clinics.",
+    tag: "Instant Delivery",
   },
   {
     icon: Sparkles,
-    title: "Outreach alerts",
-    body: "Real-time push for free medical outreaches, vaccinations and health campaigns near you.",
-    tag: "Free forever",
+    title: "Community & Outreaches",
+    body: "Get real-time notifications for local medical outreaches, health campaigns, and vaccination drives.",
+    tag: "Community",
   },
 ];
 
-function Features() {
+function PatientsSection() {
   return (
-    <section id="features" className="mx-auto max-w-[1280px] px-4 py-24 sm:px-6">
+    <section id="patients" className="mx-auto max-w-[1280px] px-4 py-24 sm:px-6">
+      <span id="features" className="sr-only" />
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">
-          For patients
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+          For Patients
         </span>
         <h2 className="text-balance mt-3 text-3xl font-bold tracking-tight text-navy sm:text-4xl">
           Everything your health folder should have been.
         </h2>
         <p className="mt-4 text-muted-foreground">
-          One app for medication adherence, medical records, transparent lab
-          pricing, and payments — designed for how care actually works in
-          Nigeria.
+          Take full control of your clinical journey with smart adherence alarms, personal vault folders, transparent lab discovery, and secure sharing.
         </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <a
+            href="#patient-pricing"
+            className="group inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+          >
+            See Patient Pricing
+            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+          </a>
+          <a
+            href="#download"
+            className="inline-flex items-center gap-2 rounded-full border border-navy/15 bg-white px-6 py-3.5 text-sm font-semibold text-navy shadow-soft transition hover:shadow-lift"
+          >
+            Download the App
+          </a>
+        </div>
       </div>
       <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {features.map((f) => (
+        {patientFeatures.map((f) => (
           <article
             key={f.title}
             className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-soft transition hover:-translate-y-1 hover:shadow-lift"
@@ -295,150 +310,184 @@ function Features() {
   );
 }
 
-function Partners() {
-  const items = [
-    "Automated record issuing straight to patient vaults",
-    "Your own transparent pricing page: treatryte.com/labs/your-clinic",
-    "Role-based dashboard for admins, doctors, radiologists, receptionists",
-    "AI lab-report interpretation with follow-up test recommendations",
+function PartnersSection() {
+  const partnerHighlights = [
+    {
+      title: "Public Storefront & Directory",
+      desc: "Custom web storefront displaying your working hours, specialist bios, and published itemized pricing.",
+    },
+    {
+      title: "Automated Digital Dispatch",
+      desc: "Issue test reports and invoices directly to patient digital vaults and wallets instantly.",
+    },
+    {
+      title: "Role-Based Staff Dashboard",
+      desc: "Provision secure accounts for clinic admins, doctors, lab technicians, and receptionists.",
+    },
+    {
+      title: "AI Clinical Interpretation",
+      desc: "Automated report translation engine that interprets test values and recommends logical follow-up diagnostics.",
+    },
   ];
+
   return (
     <section id="partners" className="bg-navy-radial text-navy-foreground">
       <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-4 py-24 sm:px-6 lg:grid-cols-2">
         <div>
-          <span className="text-xs font-semibold uppercase tracking-[0.15em] text-primary-glow">
-            For clinical partners
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-primary-glow">
+            For Clinical Partners
           </span>
           <h2 className="text-balance mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
             A modern operating system for labs, dental and eye clinics.
           </h2>
           <p className="mt-4 max-w-lg text-white/70">
-            Publish transparent pricing, issue results digitally, and get paid
-            faster — with an AI layer that reads reports the way clinicians do.
+            Automate workflows, publish transparent pricing, issue test results digitally to patient vaults, and process payments seamlessly on Nomba rails.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap gap-4">
             <a
-              href="#download"
-              className="rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+              href="#partner-pricing"
+              className="group inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
             >
-              Apply as a partner
+              See Partner Pricing
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
             </a>
             <a
-              href="#pricing"
+              href="#download"
               className="rounded-full border border-white/20 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
             >
-              See partner pricing
+              Apply as a Partner
             </a>
           </div>
         </div>
-        <ul className="grid gap-4">
-          {items.map((it) => (
-            <li
-              key={it}
-              className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur"
+        <div className="grid gap-4 sm:grid-cols-2">
+          {partnerHighlights.map((it) => (
+            <div
+              key={it.title}
+              className="flex flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur"
             >
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary-glow">
-                <Stethoscope className="h-4 w-4" />
+              <div>
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary-glow">
+                  <Stethoscope className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-white">{it.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/75">{it.desc}</p>
               </div>
-              <p className="min-w-0 text-sm leading-relaxed text-white/85">{it}</p>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </section>
   );
 }
 
-const plans = [
+const patientPlans = [
   {
-    name: "Patient — Free",
+    badge: "Tier 1",
+    name: "Free Tier (Basic Care)",
     price: "₦0",
-    per: "forever",
+    per: "/ month",
+    subtitle: "Casual users seeking medication reminders & clinic comparisons.",
     highlight: false,
     features: [
-      "Unlimited medication alarms",
-      "Up to 2 vault folders • 5 documents",
-      "Transparent lab & clinic search",
-      "1 active shared record",
+      "Unlimited Medication Alarms with Doctor's Feedback logs",
+      "Free Diagnostic Directory search with transparent pricing",
+      "Digital Vault: Up to 5 medical records across 2 folders",
+      "Active record sharing (1 record to 1 recipient, 24hr expiry)",
+      "Free third-party clinic upload invitation links",
+      "Local medical outreach notifications",
     ],
-    cta: "Download the app",
+    cta: "Get Started Free",
+    ctaHref: "#download",
   },
   {
-    name: "Patient — Premium",
-    price: "₦2,500",
-    per: "per month",
+    badge: "Tier 2",
+    name: "Health Plus (Personal Vault)",
+    price: "₦1,200",
+    per: "/ month",
+    subtitle: "Or ₦12,000 billed annually. For ongoing chronic & diagnostic care.",
     highlight: true,
     features: [
-      "Unlimited folders & nested subdirectories",
-      "HD uploads & auto-classification",
-      "Unlimited secure sharing with auto-expiry",
-      "Priority support",
+      "Everything in Free Tier",
+      "Storage for up to 100 medical records across 10 custom folders",
+      "Secure sharing of up to 5 records simultaneously",
+      "Customized link expiration timers (up to 30 days) & revocation",
+      "100% Ad-Free experience inside the app",
     ],
-    cta: "Start premium",
+    cta: "Upgrade to Health Plus",
+    ctaHref: "#download",
   },
   {
-    name: "Partner Portal",
-    price: "Custom",
-    per: "for clinics & labs",
+    badge: "Tier 3",
+    name: "Health Premium (Family Vault)",
+    price: "₦3,500",
+    per: "/ month",
+    subtitle: "Or ₦35,000 billed annually. For family management & heavy histories.",
     highlight: false,
     features: [
-      "Public transparent pricing page",
-      "Automated digital record issuing",
-      "Multi-user roles & analytics",
-      "AI clinical interpretation engine",
+      "Everything in Health Plus",
+      "Unlimited document uploads & sub-directory structures",
+      "Family Account Linking: manage up to 4 sub-profiles",
+      "Unlimited simultaneous sharing links & permissions",
+      "Priority access to AI-translated record summaries",
     ],
-    cta: "Talk to sales",
+    cta: "Start Family Vault",
+    ctaHref: "#download",
   },
 ];
 
-function Pricing() {
+function PatientPricing() {
   return (
-    <section id="pricing" className="mx-auto max-w-[1280px] px-4 py-24 sm:px-6">
+    <section id="patient-pricing" className="mx-auto max-w-[1280px] px-4 py-24 sm:px-6">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">
-          Pricing
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+          Patient Subscription Tiers
         </span>
         <h2 className="text-balance mt-3 text-3xl font-bold tracking-tight text-navy sm:text-4xl">
-          Free where it matters. Premium where it counts.
+          Plans designed for personal health security.
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Adherence tools and clinic discovery are free forever. Upgrade only
-          when your vault or workflow needs more.
+          Core medication alarms and clinic search are 100% free. Scale your encrypted vault storage and family sharing as your needs evolve.
         </p>
       </div>
-      <div className="mt-14 grid gap-6 lg:grid-cols-3">
-        {plans.map((p) => (
+      <div className="mt-14 grid gap-8 lg:grid-cols-3">
+        {patientPlans.map((p) => (
           <div
             key={p.name}
-            className={`relative flex flex-col rounded-2xl border p-8 ${
+            className={`relative flex flex-col justify-between rounded-2xl border p-8 ${
               p.highlight
-                ? "border-primary/40 bg-gradient-to-br from-primary/[0.06] to-emerald/[0.06] shadow-lift"
+                ? "border-primary/40 bg-gradient-to-br from-primary/[0.06] to-emerald/[0.06] shadow-lift ring-1 ring-primary/20"
                 : "border-border bg-card shadow-soft"
             }`}
           >
-            {p.highlight && (
-              <span className="absolute -top-3 left-8 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                Most loved
-              </span>
-            )}
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              {p.name}
-            </h3>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-navy">{p.price}</span>
-              <span className="text-sm text-muted-foreground">{p.per}</span>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                  {p.badge}
+                </span>
+                {p.highlight && (
+                  <span className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                    Recommended
+                  </span>
+                )}
+              </div>
+              <h3 className="mt-2 text-xl font-bold text-navy">{p.name}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{p.subtitle}</p>
+              <div className="mt-6 flex items-baseline gap-1.5">
+                <span className="text-4xl font-bold text-navy">{p.price}</span>
+                <span className="text-sm font-medium text-muted-foreground">{p.per}</span>
+              </div>
+              <ul className="mt-6 space-y-3.5 border-t border-border/60 pt-6 text-sm">
+                {p.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-navy/85">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="mt-6 space-y-3 text-sm">
-              {p.features.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-navy/80">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald" />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
             <a
-              href="#download"
-              className={`mt-8 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
+              href={p.ctaHref}
+              className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition ${
                 p.highlight
                   ? "bg-primary text-primary-foreground shadow-glow hover:brightness-110"
                   : "border border-navy/15 bg-white text-navy hover:shadow-lift"
@@ -449,6 +498,130 @@ function Pricing() {
             </a>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+const partnerPlans = [
+  {
+    badge: "Tier 1",
+    name: "Starter Partner (Pay-As-You-Go)",
+    price: "₦0",
+    per: "/ month base fee",
+    subtitle: "2.5% platform fee on directory storefront checkouts.",
+    highlight: false,
+    features: [
+      "Web Storefront with working hours & transparent pricing",
+      "Basic Billing: issue digital invoices (up to 30/month)",
+      "Record Dispatch: manually send up to 50 results/month",
+      "Staff Management: up to 2 staff accounts (Admin, Receptionist)",
+      "Nomba Transaction Splits integration",
+    ],
+    cta: "Join Starter Partner",
+    ctaHref: "#download",
+  },
+  {
+    badge: "Tier 2",
+    name: "Growth Suite (Automated Clinic)",
+    price: "₦15,000",
+    per: "/ month via Nomba",
+    subtitle: "Reduced 1.5% platform fee. For established diagnostic labs.",
+    highlight: true,
+    features: [
+      "Everything in Starter Partner",
+      "Unlimited Billing & automated health record dispatch",
+      "Custom Branding: custom banners, bios & contact widgets",
+      "Up to 10 staff accounts with role-based access control",
+      "Monthly downloadable clinic analytics & performance reports",
+    ],
+    cta: "Enroll in Growth Suite",
+    ctaHref: "#download",
+  },
+  {
+    badge: "Tier 3",
+    name: "Enterprise Health Suite (AI & Multi-Branch)",
+    price: "₦45,000",
+    per: "/ month via Nomba",
+    subtitle: "Lowest 1.0% platform fee. For hospital networks & multi-branch labs.",
+    highlight: false,
+    features: [
+      "Everything in Growth Suite",
+      "AI Clinical Translation Engine & follow-up test recommendations",
+      "Multi-Branch Portal: manage up to 5 physical locations",
+      "Unlimited role-based staff accounts across all branches",
+      "Priority Webhook API integration for clinic LIMS systems",
+    ],
+    cta: "Contact Enterprise Team",
+    ctaHref: "mailto:partners@treatryte.com",
+  },
+];
+
+function PartnerPricing() {
+  return (
+    <section id="partner-pricing" className="border-t border-border/60 bg-muted/40 py-24">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-navy/20 bg-navy/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-navy">
+            Partner Subscription Tiers
+          </span>
+          <h2 className="text-balance mt-3 text-3xl font-bold tracking-tight text-navy sm:text-4xl">
+            Predictable pricing for modern healthcare businesses.
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            Connect directly with patients, dispatch lab results seamlessly, and reduce overhead with automated Nomba billing infrastructure.
+          </p>
+        </div>
+        <div className="mt-14 grid gap-8 lg:grid-cols-3">
+          {partnerPlans.map((p) => (
+            <div
+              key={p.name}
+              className={`relative flex flex-col justify-between rounded-2xl border p-8 ${
+                p.highlight
+                  ? "border-primary/40 bg-gradient-to-br from-primary/[0.06] to-emerald/[0.06] shadow-lift ring-1 ring-primary/20 bg-card"
+                  : "border-border bg-card shadow-soft"
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                    {p.badge}
+                  </span>
+                  {p.highlight && (
+                    <span className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                      Best Value
+                    </span>
+                  )}
+                </div>
+                <h3 className="mt-2 text-xl font-bold text-navy">{p.name}</h3>
+                <p className="mt-1 text-xs text-muted-foreground">{p.subtitle}</p>
+                <div className="mt-6 flex items-baseline gap-1.5">
+                  <span className="text-4xl font-bold text-navy">{p.price}</span>
+                  <span className="text-sm font-medium text-muted-foreground">{p.per}</span>
+                </div>
+                <ul className="mt-6 space-y-3.5 border-t border-border/60 pt-6 text-sm">
+                  {p.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-navy/85">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <a
+                href={p.ctaHref}
+                className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition ${
+                  p.highlight
+                    ? "bg-primary text-primary-foreground shadow-glow hover:brightness-110"
+                  : "border border-navy/15 bg-white text-navy hover:shadow-lift"
+                }`}
+              >
+                {p.cta}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -571,9 +744,10 @@ function Landing() {
       <main>
         <Hero />
         <Walkthrough />
-        <Features />
-        <Partners />
-        <Pricing />
+        <PatientsSection />
+        <PartnersSection />
+        <PatientPricing />
+        <PartnerPricing />
         <FAQ />
         <CTA />
       </main>
