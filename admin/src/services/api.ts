@@ -33,6 +33,16 @@ export interface Subscription {
   status: 'active' | 'paused' | 'suspended';
 }
 
+export interface PlatformTransaction {
+  id: string;
+  transactionId: string;
+  userName: string;
+  category: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+}
+
 let API_BASE = import.meta.env.VITE_API_URL || 
   (typeof window !== 'undefined' && window.location.hostname.includes('railway')
     ? 'https://treatryte-backend.up.railway.app'
@@ -95,6 +105,13 @@ export const api = {
       body: JSON.stringify({ status }),
     });
     return res.ok;
+  },
+
+  async fetchTransactions(): Promise<PlatformTransaction[]> {
+    const res = await fetch(`${API_BASE}/api/admin/transactions`, { headers: getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch transactions');
+    const data = await res.json();
+    return data.transactions;
   },
 
   setToken(token: string) {

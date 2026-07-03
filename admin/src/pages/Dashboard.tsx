@@ -1,28 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { CreditCard, HeartPulse, ClipboardCheck, Activity, AlertCircle, Eye, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { api, type DashboardStats, type LabProfile } from '../services/api';
-
-const chartData = [
-  { name: 'Jan', subscriptions: 30, retention: 20 },
-  { name: 'Feb', subscriptions: 35, retention: 25 },
-  { name: 'Mar', subscriptions: 32, retention: 30 },
-  { name: 'Apr', subscriptions: 38, retention: 40 },
-  { name: 'May', subscriptions: 40, retention: 50 },
-  { name: 'Jun', subscriptions: 42, retention: 60 },
-  { name: 'Jul', subscriptions: 45, retention: 95 },
-];
+import { api, type DashboardStats, type LabProfile, type PlatformTransaction } from '../services/api';
 
 export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [pendingLabs, setPendingLabs] = useState<LabProfile[]>([]);
+  const [transactions, setTransactions] = useState<PlatformTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = () => {
-    Promise.all([api.fetchStats(), api.fetchLabs()])
-      .then(([statsData, labsData]) => {
+    Promise.all([api.fetchStats(), api.fetchLabs(), api.fetchTransactions()])
+      .then(([statsData, labsData, txData]) => {
         setStats(statsData);
         setPendingLabs(labsData.filter(l => l.status === 'pending'));
+        setTransactions(txData);
         setLoading(false);
       })
       .catch((err) => {
@@ -174,7 +166,7 @@ export const Dashboard: React.FC = () => {
 
           <div style={{ width: '100%', height: '280px' }}>
             <ResponsiveContainer>
-              <BarChart data={stats?.activityData || chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={stats?.activityData || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                 <XAxis dataKey="name" stroke="#545f73" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#545f73" fontSize={11} tickLine={false} axisLine={false} />
@@ -280,56 +272,56 @@ export const Dashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
-                <td style={{ padding: '16px 24px', fontSize: '14px', fontFamily: 'monospace', color: '#004e47' }}>TR-89231-M</td>
-                <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: '#0b1c30' }}>Main Street Oncology</td>
-                <td style={{ padding: '16px 24px', fontSize: '14px', color: '#545f73' }}>Annual Subscription</td>
-                <td style={{ padding: '16px 24px', fontSize: '14px', color: '#0b1c30' }}>$12,400.00</td>
-                <td style={{ padding: '16px 24px' }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    color: '#10B981'
-                  }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }}></div>
-                    Completed
-                  </span>
-                </td>
-                <td style={{ padding: '16px 24px' }}>
-                  <button style={{ background: 'none', border: 'none', color: '#545f73', cursor: 'pointer' }}><Eye size={16} /></button>
-                </td>
-              </tr>
-              <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
-                <td style={{ padding: '16px 24px', fontSize: '14px', fontFamily: 'monospace', color: '#004e47' }}>TR-89232-M</td>
-                <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: '#0b1c30' }}>Westside Pediatrics</td>
-                <td style={{ padding: '16px 24px', fontSize: '14px', color: '#545f73' }}>Monthly Tier Upgrade</td>
-                <td style={{ padding: '16px 24px', fontSize: '14px', color: '#0b1c30' }}>$2,150.00</td>
-                <td style={{ padding: '16px 24px' }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    color: '#F59E0B'
-                  }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#F59E0B' }}></div>
-                    Processing
-                  </span>
-                </td>
-                <td style={{ padding: '16px 24px' }}>
-                  <button style={{ background: 'none', border: 'none', color: '#545f73', cursor: 'pointer' }}><Eye size={16} /></button>
-                </td>
-              </tr>
+              {transactions.map((tx) => (
+                <tr key={tx.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                  <td style={{ padding: '16px 24px', fontSize: '14px', fontFamily: 'monospace', color: '#004e47' }}>{tx.transactionId}</td>
+                  <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: '#0b1c30' }}>{tx.userName}</td>
+                  <td style={{ padding: '16px 24px', fontSize: '14px', color: '#545f73' }}>{tx.category}</td>
+                  <td style={{ padding: '16px 24px', fontSize: '14px', color: '#0b1c30' }}>
+                    ₦{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      backgroundColor:
+                        tx.status === 'success' ? 'rgba(16, 185, 129, 0.1)' :
+                        tx.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' :
+                        'rgba(239, 68, 68, 0.1)',
+                      color:
+                        tx.status === 'success' ? '#10B981' :
+                        tx.status === 'pending' ? '#F59E0B' :
+                        '#EF4444'
+                    }}>
+                      <div style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor:
+                          tx.status === 'success' ? '#10B981' :
+                          tx.status === 'pending' ? '#F59E0B' :
+                          '#EF4444'
+                      }}></div>
+                      {tx.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    <button style={{ background: 'none', border: 'none', color: '#545f73', cursor: 'pointer' }}><Eye size={16} /></button>
+                  </td>
+                </tr>
+              ))}
+              {transactions.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#545f73' }}>
+                    No recent platform transactions found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -133,6 +133,30 @@ const updateSubscriptionStatus = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+const listTransactions = asyncHandler(async (req, res) => {
+  const transactions = await getDb().collection('transactions')
+    .find()
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .toArray();
+
+  const populated = [];
+  for (const tx of transactions) {
+    const user = await userModel.findById(tx.userId);
+    populated.push({
+      id: tx._id.toString(),
+      transactionId: tx.nombaTransactionId || tx.nombaTransferRef || tx._id.toString().substring(0, 10).toUpperCase(),
+      userName: user ? user.fullName || user.email : 'Unknown User',
+      category: tx.category ? tx.category.replace('_', ' ').toUpperCase() : 'PAYMENT',
+      amount: tx.amount / 100,
+      status: tx.status || 'pending',
+      createdAt: tx.createdAt,
+    });
+  }
+
+  res.json({ transactions: populated });
+});
+
 const { getDb } = require('../db');
 
 module.exports = {
@@ -142,4 +166,5 @@ module.exports = {
   getDashboardStats,
   listSubscriptions,
   updateSubscriptionStatus,
+  listTransactions,
 };
