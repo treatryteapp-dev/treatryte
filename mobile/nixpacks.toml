@@ -19,4 +19,4 @@ cmds = [
 cmds = ["/flutter/bin/flutter build web --release --base-href /"]
 
 [start]
-cmd = "/flutter/bin/dart pub global activate dhttpd && /flutter/bin/dart pub global run dhttpd --path build/web --port $PORT"
+cmd = "/flutter/bin/dart pub global activate dhttpd && /flutter/bin/dart pub global run dhttpd --path build/web --port $PORT --host 0.0.0.0"
