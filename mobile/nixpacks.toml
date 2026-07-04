@@ -1,11 +1,22 @@
+# nixpkgs' "flutter" package lags badly behind stable (resolved to Flutter
+# 3.13.0 / Dart 3.1.0 on a real build here, but this project requires Dart
+# ^3.10.1 per pubspec.yaml). Installing Flutter directly from its own repo
+# at the exact version used for local development avoids that entirely, and
+# is much lighter than nixpkgs' flutter package (which pulls in the full
+# desktop-Linux toolchain - GTK/X11/systemd - that a web-only build never
+# needs).
 [phases.setup]
-nixPkgs = ["flutter"]
+nixPkgs = ["git", "curl", "unzip", "xz"]
 
 [phases.install]
-cmds = ["flutter pub get"]
+cmds = [
+  "git clone https://github.com/flutter/flutter.git -b 3.38.3 --depth 1 /flutter",
+  "/flutter/bin/flutter precache --web",
+  "/flutter/bin/flutter pub get"
+]
 
 [phases.build]
-cmds = ["flutter build web --release --base-href /"]
+cmds = ["/flutter/bin/flutter build web --release --base-href /"]
 
 [start]
-cmd = "dart pub global activate dhttpd && dart pub global run dhttpd --path build/web --port $PORT"
+cmd = "/flutter/bin/dart pub global activate dhttpd && /flutter/bin/dart pub global run dhttpd --path build/web --port $PORT"
