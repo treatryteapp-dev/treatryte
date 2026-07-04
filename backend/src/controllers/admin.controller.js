@@ -48,13 +48,22 @@ const rejectLab = asyncHandler(async (req, res) => {
 const getDashboardStats = asyncHandler(async (req, res) => {
   const totalPatients = await userModel.collection().countDocuments({ role: 'patient' });
   const totalProviders = await userModel.collection().countDocuments({ role: 'provider' });
+  const approvedPartners = await labModel.collection().countDocuments({ status: 'approved' });
   const pendingApprovals = await labModel.collection().countDocuments({ status: 'pending' });
   const totalAppointments = await appointmentModel.collection().countDocuments();
-  
-  // Calculate total revenue from successful transactions (in kobo, convert to Naira)
-  const txs = await getDb().collection('transactions').find({ status: 'success' }).toArray();
-  const txTotalKobo = txs.reduce((sum, t) => sum + t.amount, 0);
-  const totalRevenue = txTotalKobo / 100;
+
+  // Real platform earnings: the flat service fee on every confirmed
+  // appointment plus the platform's cut from partner settlements. This is
+  // deliberately NOT a sum of all `transactions` - that collection also
+  // holds wallet top-ups and withdrawals, which are not platform revenue.
+  const confirmedAppointments = await appointmentModel.collection().find({ status: 'confirmed' }).toArray();
+  const serviceFeeRevenueKobo = confirmedAppointments.reduce((sum, a) => sum + a.serviceFee, 0);
+  const settlements = await settlementModel.collection().find({ status: { $in: ['pending', 'completed'] } }).toArray();
+  const settlementFeeRevenueKobo = settlements.reduce((sum, s) => sum + s.platformFeeKobo, 0);
+  const totalRevenue = (serviceFeeRevenueKobo + settlementFeeRevenueKobo) / 100;
+
+  const outstanding = await settlementService.computeOutstanding();
+  const outstandingSettlementsKobo = outstanding.reduce((sum, o) => sum + o.netAmountKobo, 0);
 
   let systemHealth = 100.00;
   try {
@@ -63,30 +72,40 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     systemHealth = 0.00;
   }
 
-  // Generate dynamic monthly activity data (Jan - Jul 2026)
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-  const activityData = [];
-
-  // Group user signups by month
+  // "Paying" = has a planId that resolves to a plan with a real price,
+  // same check used in listSubscriptions.
+  const plans = await planModel.findAll();
   const users = await userModel.collection().find().toArray();
-  const appointments = await appointmentModel.collection().find().toArray();
+  const isPaying = (user) => {
+    const plan = user.planId && plans.find(p => p._id.toString() === user.planId.toString());
+    return !!plan && plan.price > 0;
+  };
+  const payingPatients = users.filter(u => u.role === 'patient' && isPaying(u)).length;
+  const payingProviders = users.filter(u => u.role === 'provider' && isPaying(u)).length;
 
-  for (let i = 0; i < months.length; i++) {
-    const monthIndex = i; // 0 for Jan, 1 for Feb, etc.
-    const monthSignups = users.filter(u => {
+  // Rolling 7-month window ending at the current month, so this doesn't go
+  // blank once the calendar moves past a hardcoded year/range.
+  const appointments = await appointmentModel.collection().find().toArray();
+  const activityData = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthName = monthDate.toLocaleString('en-US', { month: 'short' });
+
+    const newSignups = users.filter(u => {
       const date = new Date(u.createdAt);
-      return date.getFullYear() === 2026 && date.getMonth() === monthIndex;
+      return date.getFullYear() === monthDate.getFullYear() && date.getMonth() === monthDate.getMonth();
     }).length;
 
     const monthAppointments = appointments.filter(a => {
       const date = new Date(a.createdAt);
-      return date.getFullYear() === 2026 && date.getMonth() === monthIndex;
+      return date.getFullYear() === monthDate.getFullYear() && date.getMonth() === monthDate.getMonth();
     }).length;
 
     activityData.push({
-      name: months[i],
-      subscriptions: monthSignups,
-      retention: monthAppointments,
+      name: monthName,
+      newSignups,
+      appointments: monthAppointments,
     });
   }
 
@@ -94,9 +113,13 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     stats: {
       totalPatients,
       totalProviders,
+      approvedPartners,
+      payingPatients,
+      payingProviders,
       pendingApprovals,
       totalAppointments,
       totalRevenue,
+      outstandingSettlementsKobo,
       systemHealth,
       activityData,
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, ShieldCheck, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, CreditCard, ShieldCheck, Landmark, Settings, LogOut } from 'lucide-react';
 import { api } from '../services/api';
 import logo from '../assets/logo.jpeg';
 
@@ -61,6 +61,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Subscriptions', path: '/subscriptions', icon: CreditCard },
     { name: 'Partner Onboarding', path: '/vetting', icon: ShieldCheck },
+    { name: 'Settlements', path: '/settlements', icon: Landmark },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 

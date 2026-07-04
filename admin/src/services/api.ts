@@ -44,11 +44,15 @@ export interface Bank {
 export interface DashboardStats {
   totalPatients: number;
   totalProviders: number;
+  approvedPartners: number;
+  payingPatients: number;
+  payingProviders: number;
   pendingApprovals: number;
   totalAppointments: number;
   totalRevenue: number;
+  outstandingSettlementsKobo: number;
   systemHealth: number;
-  activityData: Array<{ name: string; subscriptions: number; retention: number }>;
+  activityData: Array<{ name: string; newSignups: number; appointments: number }>;
 }
 
 export interface Subscription {

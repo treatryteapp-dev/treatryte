@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { CreditCard, HeartPulse, ClipboardCheck, Activity, AlertCircle, Eye, Calendar } from 'lucide-react';
+import { CreditCard, HeartPulse, ClipboardCheck, Activity, AlertCircle, Eye, Calendar, Users, Landmark } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api, type DashboardStats, type LabProfile, type PlatformTransaction } from '../services/api';
+
+const formatNaira = (kobo: number) => `₦${(kobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -42,11 +44,15 @@ export const Dashboard: React.FC = () => {
     const headers = ['Metric', 'Value'];
     const rows = [
       ['Total Revenue', `₦${stats.totalRevenue.toFixed(2)}`],
-      ['Active Partners', stats.totalProviders.toString()],
+      ['Active Partners', stats.approvedPartners.toString()],
       ['Pending Reviews', stats.pendingApprovals.toString()],
       ['System Health', `${stats.systemHealth}%`],
       ['Total Patients', stats.totalPatients.toString()],
-      ['Total Appointments', stats.totalAppointments.toString()]
+      ['Paying Patients', stats.payingPatients.toString()],
+      ['Total Providers', stats.totalProviders.toString()],
+      ['Paying Providers', stats.payingProviders.toString()],
+      ['Total Appointments', stats.totalAppointments.toString()],
+      ['Outstanding Settlements', formatNaira(stats.outstandingSettlementsKobo)]
     ];
 
     if (transactions.length > 0) {
@@ -123,6 +129,22 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Total Patients */}
+        <div className="clinical-card" style={{ padding: '24px', backgroundColor: 'white', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{ color: '#545f73', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Patients</span>
+            <div style={{ padding: '8px', backgroundColor: 'rgba(99,102,241,0.1)', color: '#4f46e5', borderRadius: '8px' }}>
+              <Users size={18} />
+            </div>
+          </div>
+          <div style={{ marginTop: '16px' }}>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.totalPatients ?? 0}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+              <span style={{ color: '#545f73', fontSize: '12px' }}>{stats?.payingPatients ?? 0} paying subscribers</span>
+            </div>
+          </div>
+        </div>
+
         {/* Active Partners */}
         <div className="clinical-card" style={{ padding: '24px', backgroundColor: 'white', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -132,12 +154,24 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>
-            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.totalProviders ?? 0}</h3>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{stats?.approvedPartners ?? 0}</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-              <HeartPulse size={14} style={{ color: '#10B981' }} />
-              <span style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>Live clinical</span>
-              <span style={{ color: 'rgba(84, 95, 115, 0.5)', fontSize: '12px' }}>storefronts</span>
+              <span style={{ color: '#545f73', fontSize: '12px' }}>{stats?.payingProviders ?? 0} paying subscribers</span>
             </div>
+          </div>
+        </div>
+
+        {/* Outstanding Settlements */}
+        <div className="clinical-card" style={{ padding: '24px', backgroundColor: 'white', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{ color: '#545f73', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Outstanding Settlements</span>
+            <div style={{ padding: '8px', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', borderRadius: '8px' }}>
+              <Landmark size={18} />
+            </div>
+          </div>
+          <div style={{ marginTop: '16px' }}>
+            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#0b1c30' }}>{formatNaira(stats?.outstandingSettlementsKobo ?? 0)}</h3>
+            <a href="/settlements" style={{ fontSize: '12px', color: '#004e47', fontWeight: '600', textDecoration: 'none' }}>View settlements</a>
           </div>
         </div>
 
@@ -188,11 +222,11 @@ export const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#004e47' }}></div>
-                <span style={{ fontSize: '12px', color: '#545f73' }}>Subscriptions</span>
+                <span style={{ fontSize: '12px', color: '#545f73' }}>New Signups</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#bcc7de' }}></div>
-                <span style={{ fontSize: '12px', color: '#545f73' }}>Retention</span>
+                <span style={{ fontSize: '12px', color: '#545f73' }}>Appointments</span>
               </div>
             </div>
           </div>
@@ -204,8 +238,8 @@ export const Dashboard: React.FC = () => {
                 <XAxis dataKey="name" stroke="#545f73" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#545f73" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip />
-                <Bar dataKey="subscriptions" fill="#004e47" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="retention" fill="#bcc7de" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="newSignups" fill="#004e47" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="appointments" fill="#bcc7de" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

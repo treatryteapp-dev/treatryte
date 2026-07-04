@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { PartnerVetting } from './pages/PartnerVetting';
 import { Subscriptions } from './pages/Subscriptions';
+import { Settlements } from './pages/Settlements';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { api } from './services/api';
@@ -51,6 +52,17 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <PartnerVetting />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settlements"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Settlements />
               </Layout>
             </ProtectedRoute>
           }
