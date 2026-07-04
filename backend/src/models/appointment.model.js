@@ -28,6 +28,7 @@ async function create({ userId, labId, testId, scheduledDate, scheduledTimeSlot,
     serviceFee,
     total,
     transactionId: null,
+    settlementId: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -61,6 +62,17 @@ function updateStatus(appointmentId, status) {
   );
 }
 
+function listUnsettledConfirmed() {
+  return collection().find({ status: 'confirmed', settlementId: null }).toArray();
+}
+
+function markSettled(appointmentIds, settlementId) {
+  return collection().updateMany(
+    { _id: { $in: appointmentIds } },
+    { $set: { settlementId, updatedAt: new Date() } }
+  );
+}
+
 module.exports = {
   COLLECTION,
   collection,
@@ -71,4 +83,6 @@ module.exports = {
   list,
   listByLabId,
   updateStatus,
+  listUnsettledConfirmed,
+  markSettled,
 };

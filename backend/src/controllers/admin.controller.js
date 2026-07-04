@@ -3,6 +3,9 @@ const labModel = require('../models/lab.model');
 const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
 const appointmentModel = require('../models/appointment.model');
+const settlementModel = require('../models/settlement.model');
+const settlementService = require('../services/settlement.service');
+const nomba = require('../nomba');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 
@@ -53,6 +56,13 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const txTotalKobo = txs.reduce((sum, t) => sum + t.amount, 0);
   const totalRevenue = txTotalKobo / 100;
 
+  let systemHealth = 100.00;
+  try {
+    await getDb().command({ ping: 1 });
+  } catch {
+    systemHealth = 0.00;
+  }
+
   // Generate dynamic monthly activity data (Jan - Jul 2026)
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
   const activityData = [];
@@ -87,7 +97,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       pendingApprovals,
       totalAppointments,
       totalRevenue,
-      systemHealth: 100.00,
+      systemHealth,
       activityData,
     }
   });
@@ -101,8 +111,7 @@ const listSubscriptions = asyncHandler(async (req, res) => {
   const subscriptions = users.map(user => {
     const isProvider = user.role === 'provider';
     const userPlan = (user.planId && plans.find(p => p._id.toString() === user.planId.toString()))
-      || plans.find(p => p.type === (isProvider ? 'Partner' : 'Individual'))
-      || { name: isProvider ? 'Enterprise Core' : 'Standard Bundle', price: isProvider ? 12450.00 : 299.00 };
+      || { name: 'Unassigned', price: 0 };
 
     return {
       id: user._id.toString(),
@@ -192,6 +201,46 @@ const deletePlan = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+const listSettlements = asyncHandler(async (req, res) => {
+  const outstanding = await settlementService.computeOutstanding();
+  const history = await settlementModel.listHistory();
+  res.json({ outstanding, history });
+});
+
+const triggerSettlements = asyncHandler(async (req, res) => {
+  const summary = await settlementService.triggerBatch();
+  res.json({ summary });
+});
+
+const listBanks = asyncHandler(async (req, res) => {
+  const banks = await nomba.listBanks();
+  res.json({ banks });
+});
+
+const updateLabBankDetails = asyncHandler(async (req, res) => {
+  const labId = parseObjectId(req.params.id);
+  const { bankCode, accountNumber } = req.body;
+  if (!bankCode || !accountNumber) {
+    throw new ApiError(400, 'bankCode and accountNumber are required', 'BAD_REQUEST');
+  }
+
+  const lab = await labModel.findById(labId);
+  if (!lab) {
+    throw new ApiError(404, 'Laboratory profile not found', 'NOT_FOUND');
+  }
+
+  const { accountName } = await nomba.lookupBankAccount({ accountNumber, bankCode });
+  const banks = await nomba.listBanks();
+  const bank = banks.find(b => (b.code || b.bankCode) === bankCode);
+  const bankName = bank ? (bank.name || bank.bankName) : lab.bankDetails?.bankName || '';
+
+  await labModel.update(labId, {
+    bankDetails: { bankCode, bankName, accountNumber, accountName },
+  });
+
+  res.json({ success: true, accountName });
+});
+
 const { getDb } = require('../db');
 
 module.exports = {
@@ -205,4 +254,8 @@ module.exports = {
   listPlans,
   createPlan,
   deletePlan,
+  listSettlements,
+  triggerSettlements,
+  listBanks,
+  updateLabBankDetails,
 };

@@ -17,5 +17,9 @@ router.get('/transactions', controller.listTransactions);
 router.get('/plans', controller.listPlans);
 router.post('/plans', controller.createPlan);
 router.delete('/plans/:id', controller.deletePlan);
+router.get('/settlements', controller.listSettlements);
+router.post('/settlements/trigger', controller.triggerSettlements);
+router.get('/banks', controller.listBanks);
+router.patch('/labs/:id/bank-details', controller.updateLabBankDetails);
 
 module.exports = router;

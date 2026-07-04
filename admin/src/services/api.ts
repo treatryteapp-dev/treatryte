@@ -5,11 +5,40 @@ export interface LabProfile {
   address: string;
   services: string[];
   bankDetails: {
+    bankCode?: string;
     bankName: string;
     accountNumber: string;
+    accountName?: string;
   };
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+}
+
+export interface OutstandingSettlement {
+  lab: { _id: string; name: string; bankDetails: LabProfile['bankDetails'] };
+  appointmentIds: string[];
+  grossAmountKobo: number;
+  platformFeeKobo: number;
+  netAmountKobo: number;
+  payoutReady: boolean;
+}
+
+export interface SettlementRecord {
+  _id: string;
+  labId: string;
+  grossAmountKobo: number;
+  platformFeeKobo: number;
+  netAmountKobo: number;
+  bankSnapshot: LabProfile['bankDetails'];
+  status: 'processing' | 'pending' | 'completed' | 'failed';
+  nombaTransferRef: string | null;
+  createdAt: string;
+  settledAt: string | null;
+}
+
+export interface Bank {
+  code: string;
+  name: string;
 }
 
 export interface DashboardStats {
@@ -153,6 +182,42 @@ export const api = {
       headers: getHeaders(),
     });
     return res.ok;
+  },
+
+  async fetchSettlements(): Promise<{ outstanding: OutstandingSettlement[]; history: SettlementRecord[] }> {
+    const res = await fetch(`${API_BASE}/api/admin/settlements`, { headers: getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch settlements');
+    return res.json();
+  },
+
+  async triggerSettlements(): Promise<{ processed: number; failed: number; skipped: number; totalAmountKobo: number }> {
+    const res = await fetch(`${API_BASE}/api/admin/settlements/trigger`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to trigger settlements');
+    const data = await res.json();
+    return data.summary;
+  },
+
+  async fetchBanks(): Promise<Bank[]> {
+    const res = await fetch(`${API_BASE}/api/admin/banks`, { headers: getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch banks');
+    const data = await res.json();
+    return (data.banks || []).map((b: any) => ({ code: b.code ?? b.bankCode, name: b.name ?? b.bankName }));
+  },
+
+  async updateLabBankDetails(labId: string, bankCode: string, accountNumber: string): Promise<{ accountName: string }> {
+    const res = await fetch(`${API_BASE}/api/admin/labs/${labId}/bank-details`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ bankCode, accountNumber }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to verify bank details');
+    }
+    return res.json();
   },
 
   setToken(token: string) {

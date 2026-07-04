@@ -80,7 +80,7 @@ export const PartnerVetting: React.FC = () => {
   }
 
   const pendingCount = labs.filter(l => l.status === 'pending').length;
-  const underReviewCount = labs.filter(l => l.status === 'rejected').length;
+  const declinedCount = labs.filter(l => l.status === 'rejected').length;
   const displayedLabs = labs.filter(l => activeTab === 'new' ? l.status === 'pending' : l.status === 'rejected');
 
   return (
@@ -141,7 +141,7 @@ export const PartnerVetting: React.FC = () => {
               cursor: 'pointer'
             }}
           >
-            Under Review
+            Declined
             <span style={{
               backgroundColor: activeTab === 'review' ? '#00685f' : '#e1e2e5',
               color: activeTab === 'review' ? '#93e4d8' : '#191c1e',
@@ -149,7 +149,7 @@ export const PartnerVetting: React.FC = () => {
               borderRadius: '10px',
               fontSize: '11px'
             }}>
-              {underReviewCount}
+              {declinedCount}
             </span>
           </button>
         </div>
@@ -189,10 +189,10 @@ export const PartnerVetting: React.FC = () => {
         <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '48px', backgroundColor: '#F8FAFC' }}>
           <ShieldCheck size={64} style={{ color: '#006c4a', marginBottom: '24px' }} />
           <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0b1c30' }}>
-            {activeTab === 'new' ? 'No pending applications' : 'No applications under review'}
+            {activeTab === 'new' ? 'No pending applications' : 'No declined applications'}
           </h3>
           <p style={{ color: '#545f73', marginTop: '8px' }}>
-            {activeTab === 'new' ? 'All clinical providers have been cleared and verified.' : 'No partner applications are currently rejected or under review.'}
+            {activeTab === 'new' ? 'All clinical providers have been cleared and verified.' : 'No partner applications have been declined.'}
           </p>
         </div>
       ) : (
@@ -373,28 +373,6 @@ export const PartnerVetting: React.FC = () => {
                     <span style={{ fontSize: '11px', color: '#545f73', fontWeight: '600' }}>{selectedLab.status === 'approved' ? 'Approved' : 'Review Now'}</span>
                   </div>
                 </div>
-              </div>
-
-              {/* AI Analysis Bento */}
-              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(15,23,42,0.02)' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#0b1c30', marginBottom: '16px' }}>AI Compliance Risk Analysis</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                  <div style={{ padding: '16px', backgroundColor: 'rgba(108, 248, 187, 0.05)', border: '1px solid rgba(108, 248, 187, 0.1)', borderRadius: '12px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '9px', fontWeight: '700', color: '#00714d', textTransform: 'uppercase' }}>NPI Match</p>
-                    <p style={{ fontSize: '20px', fontWeight: '800', color: '#00714d', marginTop: '4px' }}>99.8%</p>
-                  </div>
-                  <div style={{ padding: '16px', backgroundColor: 'rgba(108, 248, 187, 0.05)', border: '1px solid rgba(108, 248, 187, 0.1)', borderRadius: '12px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '9px', fontWeight: '700', color: '#00714d', textTransform: 'uppercase' }}>Identity</p>
-                    <p style={{ fontSize: '16px', fontWeight: '800', color: '#00714d', marginTop: '8px' }}>Low Risk</p>
-                  </div>
-                  <div style={{ padding: '16px', backgroundColor: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '12px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '9px', fontWeight: '700', color: '#EF4444', textTransform: 'uppercase' }}>History</p>
-                    <p style={{ fontSize: '16px', fontWeight: '800', color: '#EF4444', marginTop: '8px' }}>Low Flag</p>
-                  </div>
-                </div>
-                <p style={{ fontSize: '11px', color: '#545f73', fontStyle: 'italic', marginTop: '12px' }}>
-                  Note: Provider matching check and license expiration index verified successfully.
-                </p>
               </div>
             </div>
 
