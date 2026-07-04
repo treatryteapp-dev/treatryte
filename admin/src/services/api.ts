@@ -41,6 +41,17 @@ export interface Bank {
   name: string;
 }
 
+export interface PlatformSettings {
+  partnerStatusWebhookUrl: string;
+}
+
+export interface AdminUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+}
+
 export interface DashboardStats {
   totalPatients: number;
   totalProviders: number;
@@ -265,6 +276,36 @@ export const api = {
       throw new Error(err.message || 'Failed to verify bank details');
     }
     return res.json();
+  },
+
+  async updateAdminProfile(fullName: string, email: string, currentPassword: string): Promise<AdminUser> {
+    const res = await authFetch(`${API_BASE}/api/admin/profile`, {
+      method: 'PATCH',
+      body: JSON.stringify({ fullName, email, currentPassword }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update profile');
+    }
+    const data = await res.json();
+    return data.user;
+  },
+
+  async fetchPlatformSettings(): Promise<PlatformSettings> {
+    const res = await authFetch(`${API_BASE}/api/admin/settings`);
+    if (!res.ok) throw new Error('Failed to fetch platform settings');
+    const data = await res.json();
+    return data.settings;
+  },
+
+  async updatePlatformSettings(partnerStatusWebhookUrl: string): Promise<PlatformSettings> {
+    const res = await authFetch(`${API_BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      body: JSON.stringify({ partnerStatusWebhookUrl }),
+    });
+    if (!res.ok) throw new Error('Failed to update platform settings');
+    const data = await res.json();
+    return data.settings;
   },
 
   setTokens(accessToken: string, refreshToken: string) {

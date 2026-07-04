@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, CreditCard, ShieldCheck, Landmark, Settings, LogOut } from 'lucide-react';
 import { api } from '../services/api';
+import { useIdleLogout } from '../hooks/useIdleLogout';
 import logo from '../assets/logo.jpeg';
 
 interface LayoutProps {
@@ -11,6 +12,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  useIdleLogout();
   const [adminUser, setAdminUser] = useState<any>(null);
   const [timeStr, setTimeStr] = useState('');
 

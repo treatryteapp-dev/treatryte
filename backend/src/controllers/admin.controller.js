@@ -1,10 +1,13 @@
 const { ObjectId } = require('mongodb');
+const bcrypt = require('bcrypt');
+const { z } = require('zod');
 const labModel = require('../models/lab.model');
 const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
 const appointmentModel = require('../models/appointment.model');
 const settlementModel = require('../models/settlement.model');
 const settlementService = require('../services/settlement.service');
+const platformSettingsModel = require('../models/platformSettings.model');
 const nomba = require('../nomba');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
@@ -16,6 +19,27 @@ function parseObjectId(id) {
   return new ObjectId(id);
 }
 
+// Fire-and-forget: a failing/unreachable webhook must never break the
+// approve/reject response itself.
+async function notifyPartnerStatusWebhook(lab, status) {
+  try {
+    const { partnerStatusWebhookUrl } = await platformSettingsModel.getSettings();
+    if (!partnerStatusWebhookUrl) return;
+    await fetch(partnerStatusWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        labId: lab._id.toString(),
+        name: lab.name,
+        status,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  } catch (err) {
+    console.error('Partner status webhook failed:', err.message);
+  }
+}
+
 const listLabs = asyncHandler(async (req, res) => {
   const labs = await labModel.collection().find().sort({ createdAt: -1 }).toArray();
   res.json({ labs });
@@ -23,25 +47,29 @@ const listLabs = asyncHandler(async (req, res) => {
 
 const approveLab = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);
-  const result = await labModel.collection().updateOne(
+  const lab = await labModel.collection().findOneAndUpdate(
     { _id: labId },
-    { $set: { status: 'approved', updatedAt: new Date() } }
+    { $set: { status: 'approved', updatedAt: new Date() } },
+    { returnDocument: 'after' },
   );
-  if (result.matchedCount === 0) {
+  if (!lab) {
     throw new ApiError(404, 'Laboratory profile not found', 'NOT_FOUND');
   }
+  notifyPartnerStatusWebhook(lab, 'approved');
   res.json({ success: true });
 });
 
 const rejectLab = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);
-  const result = await labModel.collection().updateOne(
+  const lab = await labModel.collection().findOneAndUpdate(
     { _id: labId },
-    { $set: { status: 'rejected', updatedAt: new Date() } }
+    { $set: { status: 'rejected', updatedAt: new Date() } },
+    { returnDocument: 'after' },
   );
-  if (result.matchedCount === 0) {
+  if (!lab) {
     throw new ApiError(404, 'Laboratory profile not found', 'NOT_FOUND');
   }
+  notifyPartnerStatusWebhook(lab, 'rejected');
   res.json({ success: true });
 });
 
@@ -266,6 +294,49 @@ const updateLabBankDetails = asyncHandler(async (req, res) => {
   res.json({ success: true, accountName });
 });
 
+const updateProfileSchema = z.object({
+  fullName: z.string().min(1),
+  email: z.string().email(),
+  currentPassword: z.string().min(1),
+});
+
+const updateProfile = asyncHandler(async (req, res) => {
+  const { fullName, email, currentPassword } = req.body;
+
+  const user = await userModel.findById(req.userId);
+  if (!user) {
+    throw new ApiError(404, 'User not found', 'NOT_FOUND');
+  }
+
+  const passwordMatches = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!passwordMatches) {
+    throw new ApiError(401, 'Current password is incorrect', 'INVALID_CREDENTIALS');
+  }
+
+  const normalizedEmail = email.toLowerCase();
+  if (normalizedEmail !== user.email) {
+    const existing = await userModel.findByEmail(normalizedEmail);
+    if (existing) {
+      throw new ApiError(409, 'An account with this email already exists', 'EMAIL_TAKEN');
+    }
+  }
+
+  await userModel.update(req.userId, { fullName, email: normalizedEmail });
+  const updated = await userModel.findById(req.userId);
+  res.json({ user: userModel.toPublic(updated) });
+});
+
+const listPlatformSettings = asyncHandler(async (req, res) => {
+  const settings = await platformSettingsModel.getSettings();
+  res.json({ settings });
+});
+
+const updatePlatformSettings = asyncHandler(async (req, res) => {
+  const { partnerStatusWebhookUrl } = req.body;
+  const settings = await platformSettingsModel.updateSettings({ partnerStatusWebhookUrl: partnerStatusWebhookUrl || '' });
+  res.json({ settings });
+});
+
 const { getDb } = require('../db');
 
 module.exports = {
@@ -283,4 +354,8 @@ module.exports = {
   triggerSettlements,
   listBanks,
   updateLabBankDetails,
+  updateProfileSchema,
+  updateProfile,
+  listPlatformSettings,
+  updatePlatformSettings,
 };

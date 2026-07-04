@@ -1,6 +1,7 @@
 const express = require('express');
 const controller = require('../controllers/admin.controller');
 const { requireAuth } = require('../middleware/auth');
+const { validateBody } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -21,5 +22,8 @@ router.get('/settlements', controller.listSettlements);
 router.post('/settlements/trigger', controller.triggerSettlements);
 router.get('/banks', controller.listBanks);
 router.patch('/labs/:id/bank-details', controller.updateLabBankDetails);
+router.patch('/profile', validateBody(controller.updateProfileSchema), controller.updateProfile);
+router.get('/settings', controller.listPlatformSettings);
+router.patch('/settings', controller.updatePlatformSettings);
 
 module.exports = router;

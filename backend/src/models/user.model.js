@@ -35,6 +35,13 @@ async function create({ fullName, dateOfBirth, gender, address, email, passwordH
   return { ...doc, _id: result.insertedId };
 }
 
+function update(userId, updates) {
+  return collection().updateOne(
+    { _id: userId },
+    { $set: { ...updates, updatedAt: new Date() } },
+  );
+}
+
 function toPublic(user) {
   if (!user) return null;
   return {
@@ -49,4 +56,4 @@ function toPublic(user) {
   };
 }
 
-module.exports = { COLLECTION, collection, findByEmail, findById, create, toPublic };
+module.exports = { COLLECTION, collection, findByEmail, findById, create, update, toPublic };
