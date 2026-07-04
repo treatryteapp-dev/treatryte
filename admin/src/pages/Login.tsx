@@ -37,7 +37,7 @@ export const Login: React.FC = () => {
         throw new Error(data.message || 'Login failed');
       }
 
-      api.setToken(data.accessToken);
+      api.setTokens(data.accessToken, data.refreshToken);
       if (data.user) {
         localStorage.setItem('adminUser', JSON.stringify(data.user));
       }
