@@ -711,7 +711,9 @@ function CTA() {
               Download for Android
             </a>
             <a
-              href="#"
+              href="https://treatryte-web.up.railway.app"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
             >
               For Web
