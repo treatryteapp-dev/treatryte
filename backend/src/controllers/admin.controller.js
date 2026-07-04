@@ -127,7 +127,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 });
 
 const listSubscriptions = asyncHandler(async (req, res) => {
-  const users = await userModel.collection().find().toArray();
+  // Admin accounts aren't patients or partners - exclude them so they don't
+  // show up mislabeled as "Individual" subscribers.
+  const users = await userModel.collection().find({ role: { $in: ['patient', 'provider'] } }).toArray();
   const plans = await planModel.findAll();
   
   // Format users into subscription schema
