@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["flutter"]
+
+[phases.install]
+cmds = ["flutter pub get"]
+
+[phases.build]
+cmds = ["flutter build web --release --base-href /"]
+
+[start]
+cmd = "dart pub global activate dhttpd && dart pub global run dhttpd --path build/web --port $PORT"

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
@@ -53,9 +55,22 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
       return;
     }
 
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => CheckoutWebViewScreen(checkoutUrl: checkoutLink)),
-    );
+    if (kIsWeb) {
+      // webview_flutter has no web support, and payment pages generally
+      // refuse to render inside an embedded iframe anyway - open a real
+      // browser tab instead. The wallet balance updates via the backend's
+      // Nomba webhook the same way it does after the mobile embedded
+      // webview closes, so the refresh-then-pop flow is unchanged.
+      await launchUrl(Uri.parse(checkoutLink), webOnlyWindowName: '_blank');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Complete your payment in the new tab, then return here.')),
+      );
+    } else {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => CheckoutWebViewScreen(checkoutUrl: checkoutLink)),
+      );
+    }
     if (!mounted) return;
     await context.read<WalletProvider>().refresh();
     if (mounted) context.pop();
