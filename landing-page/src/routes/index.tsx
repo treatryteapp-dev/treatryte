@@ -1,11 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   BellRing,
   FolderLock,
   MapPin,
   Wallet,
   ShieldCheck,
-  Sparkles,
+  Activity,
+  Users,
   Share2,
   Stethoscope,
   ArrowRight,
@@ -122,7 +123,7 @@ function Hero() {
       <div className="mx-auto grid max-w-[1280px] items-center gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:min-h-[calc(100svh-73px)] lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:py-8 xl:py-10">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            <Sparkles className="h-3.5 w-3.5" /> Built for Nigeria's health economy
+            <Activity className="h-3.5 w-3.5" /> Built for Nigeria's health economy
           </span>
           <h1 className="text-balance mt-4 text-4xl font-bold tracking-tight text-navy sm:text-5xl lg:mt-5 lg:text-6xl lg:leading-[1.05]">
             Your health, on time.{" "}
@@ -248,7 +249,7 @@ const patientFeatures = [
     tag: "Instant Delivery",
   },
   {
-    icon: Sparkles,
+    icon: Users,
     title: "Community & Outreaches",
     body: "Get real-time notifications for local medical outreaches, health campaigns, and vaccination drives.",
     tag: "Community",
@@ -709,6 +710,12 @@ function CTA() {
             >
               Download for Android
             </a>
+            <a
+              href="#"
+              className="rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              For Web
+            </a>
           </div>
         </div>
       </div>
@@ -726,9 +733,9 @@ function Footer() {
           tomorrows.
         </p>
         <div className="flex gap-5 text-xs text-muted-foreground">
-          <a href="#" className="hover:text-navy">Privacy</a>
-          <a href="#" className="hover:text-navy">Terms</a>
-          <a href="#" className="hover:text-navy">Contact</a>
+          <Link to="/privacy" className="hover:text-navy">Privacy</Link>
+          <Link to="/terms" className="hover:text-navy">Terms</Link>
+          <a href="mailto:alexegbuchulamginika@gmail.com" className="hover:text-navy">Contact</a>
         </div>
       </div>
     </footer>
