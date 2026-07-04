@@ -10,6 +10,7 @@ import {
 import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import favicon from "../assets/favicon.jpeg";
 
 function NotFoundComponent() {
   return (
@@ -90,6 +91,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "TreatRyte is a sleek, modern landing page for a health and finance app." },
     ],
     links: [
+      {
+        rel: "icon",
+        type: "image/jpeg",
+        href: favicon,
+      },
       {
         rel: "stylesheet",
         href: appCss,
