@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -76,6 +77,22 @@ class _TreatRyteAppState extends State<TreatRyteApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         routerConfig: _router,
+        // The UI is built mobile-first and hasn't been adapted for wide
+        // desktop layouts yet - on web, constrain it to a centered
+        // phone-width column instead of letting it stretch full-bleed
+        // across the browser window. Native mobile builds are unaffected.
+        builder: (context, child) {
+          if (!kIsWeb || child == null) return child ?? const SizedBox.shrink();
+          return ColoredBox(
+            color: AppColors.surfaceContainerHigh,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: child,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
