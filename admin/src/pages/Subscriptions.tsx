@@ -9,6 +9,7 @@ export const Subscriptions: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'subscribers' | 'plans'>('subscribers');
 
   // Filters for Subscribers Ledger
+  const [ledgerView, setLedgerView] = useState<'paying' | 'all'>('paying');
   const [typeFilter, setTypeFilter] = useState<'All' | 'Partners' | 'Individuals'>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [tierFilter, setTierFilter] = useState<string>('All');
@@ -119,6 +120,9 @@ export const Subscriptions: React.FC = () => {
 
   // Filtered subscribers
   const filteredSubscribers = subscriptions.filter(item => {
+    // Ledger view: paying subscribers only, or every registered account
+    if (ledgerView === 'paying' && item.mrr <= 0) return false;
+
     // Type Filter
     if (typeFilter === 'Partners' && item.type !== 'Partner') return false;
     if (typeFilter === 'Individuals' && item.type !== 'Individual') return false;
@@ -134,6 +138,7 @@ export const Subscriptions: React.FC = () => {
 
   // Extract unique plan tiers from subscriptions for filter options
   const uniqueTiers = Array.from(new Set(subscriptions.map(s => s.tier)));
+  const payingCount = subscriptions.filter(s => s.mrr > 0).length;
 
   if (loading && subscriptions.length === 0) {
     return (
@@ -265,6 +270,40 @@ export const Subscriptions: React.FC = () => {
 
       {activeTab === 'subscribers' ? (
         <>
+          {/* Ledger view: paying subscribers vs every registered account */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #E2E8F0' }}>
+            <button
+              onClick={() => setLedgerView('paying')}
+              style={{
+                padding: '10px 20px',
+                fontSize: '13px',
+                fontWeight: ledgerView === 'paying' ? '700' : '500',
+                color: ledgerView === 'paying' ? '#004e47' : '#545f73',
+                border: 'none',
+                background: 'none',
+                borderBottom: ledgerView === 'paying' ? '2px solid #004e47' : 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Paying Subscribers ({payingCount})
+            </button>
+            <button
+              onClick={() => setLedgerView('all')}
+              style={{
+                padding: '10px 20px',
+                fontSize: '13px',
+                fontWeight: ledgerView === 'all' ? '700' : '500',
+                color: ledgerView === 'all' ? '#004e47' : '#545f73',
+                border: 'none',
+                background: 'none',
+                borderBottom: ledgerView === 'all' ? '2px solid #004e47' : 'none',
+                cursor: 'pointer'
+              }}
+            >
+              All Users ({totalCount})
+            </button>
+          </div>
+
           {/* Controls & Filters */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -348,7 +387,7 @@ export const Subscriptions: React.FC = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #E2E8F0' }}>
-                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#545f73', textTransform: 'uppercase' }}>Subscriber</th>
+                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#545f73', textTransform: 'uppercase' }}>{ledgerView === 'paying' ? 'Subscriber' : 'User'}</th>
                     <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#545f73', textTransform: 'uppercase' }}>Account Type</th>
                     <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#545f73', textTransform: 'uppercase' }}>Plan Tier</th>
                     <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#545f73', textTransform: 'uppercase' }}>Monthly MRR</th>
@@ -463,7 +502,7 @@ export const Subscriptions: React.FC = () => {
                   {filteredSubscribers.length === 0 && (
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'center', padding: '48px', color: '#545f73' }}>
-                        No subscribers match the current filter criteria.
+                        {ledgerView === 'paying' ? 'No paying subscribers match the current filter criteria.' : 'No users match the current filter criteria.'}
                       </td>
                     </tr>
                   )}
