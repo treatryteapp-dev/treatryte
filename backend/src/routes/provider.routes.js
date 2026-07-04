@@ -1,11 +1,12 @@
 const express = require('express');
 const controller = require('../controllers/provider.controller');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
 
 const router = express.Router();
 
 router.use(requireAuth);
+router.use(requireRole('provider'));
 
 router.get('/profile', controller.getProfile);
 

@@ -11,5 +11,6 @@ router.post('/login', validateBody(controller.loginSchema), controller.login);
 router.post('/refresh', validateBody(controller.refreshSchema), controller.refresh);
 router.post('/logout', validateBody(controller.refreshSchema), controller.logout);
 router.get('/me', requireAuth, controller.me);
+router.patch('/me/plan', requireAuth, validateBody(controller.updatePlanSchema), controller.updatePlan);
 
 module.exports = router;

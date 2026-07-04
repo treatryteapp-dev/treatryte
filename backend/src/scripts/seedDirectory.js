@@ -2,6 +2,16 @@ require('dotenv').config();
 const { getDb, getClient } = require('../db');
 
 async function main() {
+  // This script wipes and replaces the entire labs/tests/clinics
+  // collections with demo data - running it against production would
+  // destroy every real partner's lab profile. Local/dev bootstrap only.
+  if (process.env.NODE_ENV === 'production' && !process.env.FORCE_SEED) {
+    throw new Error(
+      'Refusing to run seedDirectory.js against production (NODE_ENV=production). ' +
+      'Set FORCE_SEED=1 if you really intend to wipe labs/tests/clinics.'
+    );
+  }
+
   const db = getDb();
 
   await db.collection('labs').deleteMany({});
@@ -16,6 +26,7 @@ async function main() {
     rating: 4.5,
     reviewCount: 126,
     isFeatured: true,
+    status: 'approved',
     createdAt: new Date(),
   });
 

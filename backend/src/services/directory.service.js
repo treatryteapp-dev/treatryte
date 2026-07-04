@@ -9,6 +9,13 @@ async function getFeaturedLabs() {
   );
 }
 
+async function getApprovedLabs() {
+  const labs = await labModel.findApproved();
+  return Promise.all(
+    labs.map(async (lab) => ({ ...lab, tests: await testModel.findByLabId(lab._id) })),
+  );
+}
+
 function getLabTests(labId) {
   return testModel.findByLabId(labId);
 }
@@ -26,4 +33,4 @@ async function search(query) {
   return { labs, clinics };
 }
 
-module.exports = { getFeaturedLabs, getLabTests, getTrendingTests, getClinics, search };
+module.exports = { getFeaturedLabs, getApprovedLabs, getLabTests, getTrendingTests, getClinics, search };

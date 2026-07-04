@@ -2,6 +2,7 @@ const { z } = require('zod');
 const { ObjectId } = require('mongodb');
 
 const vaultService = require('../services/vault.service');
+const labModel = require('../models/lab.model');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 
@@ -24,7 +25,19 @@ function parseObjectId(id) {
 }
 
 const presign = asyncHandler(async (req, res) => {
-  const result = await vaultService.presignUpload(req.userId, req.body);
+  let labId;
+  // Never trust a client-supplied labId - resolve the caller's own lab
+  // server-side so a verification doc can only ever attach to the
+  // uploader's own partner profile.
+  if (req.body.category === 'partner_verification') {
+    const lab = await labModel.findByUserId(req.userId);
+    if (!lab) {
+      throw new ApiError(404, 'No partner profile found for this account', 'LAB_NOT_FOUND');
+    }
+    labId = lab._id;
+  }
+
+  const result = await vaultService.presignUpload(req.userId, { ...req.body, labId });
   res.status(201).json(result);
 });
 

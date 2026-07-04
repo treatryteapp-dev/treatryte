@@ -7,7 +7,7 @@ const labs = asyncHandler(async (req, res) => {
   if (req.query.featured === 'true') {
     return res.json({ labs: await directoryService.getFeaturedLabs() });
   }
-  res.json({ labs: [] });
+  res.json({ labs: await directoryService.getApprovedLabs() });
 });
 
 const labTests = asyncHandler(async (req, res) => {

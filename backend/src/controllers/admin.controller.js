@@ -8,6 +8,8 @@ const appointmentModel = require('../models/appointment.model');
 const settlementModel = require('../models/settlement.model');
 const settlementService = require('../services/settlement.service');
 const platformSettingsModel = require('../models/platformSettings.model');
+const vaultFileModel = require('../models/vaultFile.model');
+const { signVaultUrl } = require('../cloudfrontSign');
 const nomba = require('../nomba');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
@@ -43,6 +45,19 @@ async function notifyPartnerStatusWebhook(lab, status) {
 const listLabs = asyncHandler(async (req, res) => {
   const labs = await labModel.collection().find().sort({ createdAt: -1 }).toArray();
   res.json({ labs });
+});
+
+const listLabDocuments = asyncHandler(async (req, res) => {
+  const labId = parseObjectId(req.params.id);
+  const files = await vaultFileModel.findByLabId(labId, 'partner_verification');
+  const documents = files.map((f) => ({
+    id: f._id,
+    fileName: f.fileName,
+    mimeType: f.mimeType,
+    uploadedAt: f.uploadedAt,
+    url: signVaultUrl(f.s3Key),
+  }));
+  res.json({ documents });
 });
 
 const approveLab = asyncHandler(async (req, res) => {
@@ -341,6 +356,7 @@ const { getDb } = require('../db');
 
 module.exports = {
   listLabs,
+  listLabDocuments,
   approveLab,
   rejectLab,
   getDashboardStats,

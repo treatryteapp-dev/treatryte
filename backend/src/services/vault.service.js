@@ -12,10 +12,10 @@ const { ApiError } = require('../middleware/errorHandler');
 
 const PRESIGN_TTL_SECONDS = 300;
 
-async function presignUpload(userId, { fileName, mimeType, sizeBytes, category }) {
+async function presignUpload(userId, { fileName, mimeType, sizeBytes, category, labId }) {
   const s3Key = `vault/${userId.toString()}/${crypto.randomUUID()}-${fileName}`;
 
-  const file = await vaultFileModel.create({ userId, category, fileName, mimeType, sizeBytes, s3Key });
+  const file = await vaultFileModel.create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId });
 
   const uploadUrl = await getS3SignedUrl(
     getS3Client(),

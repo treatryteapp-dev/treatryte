@@ -7,7 +7,11 @@ function collection() {
 }
 
 function findFeatured() {
-  return collection().find({ isFeatured: true }).toArray();
+  return collection().find({ isFeatured: true, status: 'approved' }).toArray();
+}
+
+function findApproved() {
+  return collection().find({ status: 'approved' }).toArray();
 }
 
 function findById(labId) {
@@ -16,7 +20,7 @@ function findById(labId) {
 
 function search(query) {
   return collection()
-    .find({ name: { $regex: query, $options: 'i' } })
+    .find({ name: { $regex: query, $options: 'i' }, status: 'approved' })
     .toArray();
 }
 
@@ -54,6 +58,7 @@ module.exports = {
   COLLECTION,
   collection,
   findFeatured,
+  findApproved,
   findById,
   search,
   create,

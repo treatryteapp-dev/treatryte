@@ -10,6 +10,7 @@ router.use(requireAuth);
 
 router.get('/stats', controller.getDashboardStats);
 router.get('/labs', controller.listLabs);
+router.get('/labs/:id/documents', controller.listLabDocuments);
 router.post('/labs/:id/approve', controller.approveLab);
 router.post('/labs/:id/reject', controller.rejectLab);
 router.get('/subscriptions', controller.listSubscriptions);

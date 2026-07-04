@@ -4,6 +4,8 @@ const { ObjectId } = require('mongodb');
 const labModel = require('../models/lab.model');
 const testModel = require('../models/test.model');
 const appointmentModel = require('../models/appointment.model');
+const userModel = require('../models/user.model');
+const planModel = require('../models/plan.model');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 
@@ -24,7 +26,9 @@ async function getProviderLab(userId) {
 
 const getProfile = asyncHandler(async (req, res) => {
   const lab = await getProviderLab(req.userId);
-  res.json({ lab });
+  const user = await userModel.findById(req.userId);
+  const plan = user?.planId ? await planModel.collection().findOne({ _id: user.planId }) : null;
+  res.json({ lab, plan });
 });
 
 const listServices = asyncHandler(async (req, res) => {

@@ -6,7 +6,7 @@ function collection() {
   return getDb().collection(COLLECTION);
 }
 
-async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key }) {
+async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId }) {
   const now = new Date();
   const doc = {
     userId,
@@ -15,6 +15,7 @@ async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key }
     mimeType,
     sizeBytes,
     s3Key,
+    labId: labId || null,
     status: 'pending_upload',
     uploadedAt: null,
     createdAt: now,
@@ -22,6 +23,12 @@ async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key }
   };
   const result = await collection().insertOne(doc);
   return { ...doc, _id: result.insertedId };
+}
+
+function findByLabId(labId, category) {
+  const query = { labId, status: 'uploaded' };
+  if (category) query.category = category;
+  return collection().find(query).sort({ createdAt: -1 }).toArray();
 }
 
 function findById(userId, fileId) {
@@ -64,6 +71,7 @@ module.exports = {
   collection,
   create,
   findById,
+  findByLabId,
   markUploaded,
   list,
   categoryCounts,
