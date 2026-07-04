@@ -100,7 +100,7 @@ export const Subscriptions: React.FC = () => {
   };
 
   // Calculations for KPI Cards
-  const activeCount = subscriptions.filter(s => s.status === 'active').length;
+  const activeCount = subscriptions.filter(s => s.status === 'active' && s.mrr > 0).length;
   const pausedCount = subscriptions.filter(s => s.status === 'paused').length;
   const suspendedCount = subscriptions.filter(s => s.status === 'suspended').length;
   const totalCount = subscriptions.length;
