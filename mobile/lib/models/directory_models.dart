@@ -26,14 +26,17 @@ class Lab {
     required this.tests,
   });
 
+  // distanceKm/hours/reviewCount only exist on old demo-seeded labs (no
+  // geolocation/reviews feature exists yet) - real signed-up-and-approved
+  // partners won't have them, so these must tolerate being absent.
   factory Lab.fromJson(Map<String, dynamic> json) => Lab(
         id: json['_id'] as String,
         name: json['name'] as String,
-        distanceKm: (json['distanceKm'] as num).toDouble(),
-        address: json['address'] as String,
-        hours: json['hours'] as String,
-        rating: (json['rating'] as num).toDouble(),
-        reviewCount: json['reviewCount'] as int,
+        distanceKm: (json['distanceKm'] as num?)?.toDouble() ?? 0.0,
+        address: json['address'] as String? ?? '',
+        hours: json['hours'] as String? ?? 'Hours not provided',
+        rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+        reviewCount: json['reviewCount'] as int? ?? 0,
         tests: (json['tests'] as List<dynamic>? ?? [])
             .map((t) => LabTest.fromJson(t as Map<String, dynamic>))
             .toList(),

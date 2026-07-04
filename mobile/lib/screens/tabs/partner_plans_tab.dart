@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/plan_models.dart';
+import '../../providers/partner_provider.dart';
+import '../../providers/plan_provider.dart';
 import '../../theme/app_theme.dart';
 
 class PartnerPlansTab extends StatefulWidget {
@@ -9,12 +14,20 @@ class PartnerPlansTab extends StatefulWidget {
 }
 
 class _PartnerPlansTabState extends State<PartnerPlansTab> {
-  bool _isAnnual = true;
-  String _activePlan = 'Standard';
+  bool _loaded = false;
+  bool _switching = false;
 
   @override
   Widget build(BuildContext context) {
+    if (!_loaded) {
+      _loaded = true;
+      final provider = context.read<PlanProvider>();
+      Future.microtask(() => provider.loadPlans(type: 'Partner'));
+    }
+
     final textTheme = Theme.of(context).textTheme;
+    final planProvider = context.watch<PlanProvider>();
+    final currentPlanId = context.watch<PartnerProvider>().plan?.id;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -42,130 +55,42 @@ class _PartnerPlansTabState extends State<PartnerPlansTab> {
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // Toggle Monthly/Annual
-            Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                ),
-                padding: const EdgeInsets.all(4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildToggleBtn('Monthly', !_isAnnual),
-                    _buildToggleBtn('Annual (Save 15%)', _isAnnual),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // Free Plan Card
-            _buildPlanCard(
-              title: 'Free',
-              price: '₦0',
-              subtitle: 'For new practitioners starting out',
-              features: [
-                '1-100 Patients Registry',
-                'No Managed Services',
-                'Basic Medical Records',
-                'Email Support',
+            if (planProvider.isLoading)
+              const Center(child: Padding(padding: EdgeInsets.all(AppSpacing.xl), child: CircularProgressIndicator()))
+            else if (planProvider.plans.isEmpty)
+              Text('No partner plans are configured yet.', style: textTheme.bodySmall)
+            else
+              for (final plan in planProvider.plans) ...[
+                _buildPlanCard(plan, isActive: plan.id == currentPlanId),
+                const SizedBox(height: AppSpacing.md),
               ],
-              isActive: _activePlan == 'Free',
-              onSelect: () => setState(() => _activePlan = 'Free'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Standard Plan Card (Recommended)
-            _buildPlanCard(
-              title: 'Standard',
-              price: _isAnnual ? '₦150,000/year' : '₦15,000/month',
-              subtitle: 'For growing community clinics',
-              features: [
-                '101-500 Patients Registry',
-                '5 Custom Managed Services',
-                'Advanced Health Analytics',
-                'Priority Chat Support',
-                'Financial Settlement Reports',
-              ],
-              isRecommended: true,
-              isActive: _activePlan == 'Standard',
-              onSelect: () => setState(() => _activePlan = 'Standard'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Premium Plan Card
-            _buildPlanCard(
-              title: 'Premium',
-              price: 'Custom Pricing',
-              subtitle: 'For multi-departmental hospitals',
-              features: [
-                'Unlimited Patients Registry',
-                'Unlimited Managed Services',
-                'Fully Custom API Access',
-                'Dedicated Support Manager',
-                'Instant Settlement Integration',
-              ],
-              isActive: _activePlan == 'Premium',
-              onSelect: () => setState(() => _activePlan = 'Premium'),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildToggleBtn(String label, bool active) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _isAnnual = label.contains('Annual');
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? AppColors.surfaceContainerLowest : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: active ? AppColors.primary : AppColors.onSurfaceVariant,
-          ),
-        ),
-      ),
+  Future<void> _selectPlan(Plan plan) async {
+    setState(() => _switching = true);
+    final ok = await context.read<PlanProvider>().selectPlan(plan.id);
+    if (ok) {
+      await context.read<PartnerProvider>().loadProfile();
+    }
+    if (!mounted) return;
+    setState(() => _switching = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? 'Switched to ${plan.name}.' : 'Failed to switch plans.')),
     );
   }
 
-  Widget _buildPlanCard({
-    required String title,
-    required String price,
-    required String subtitle,
-    required List<String> features,
-    bool isRecommended = false,
-    bool isActive = false,
-    required VoidCallback onSelect,
-  }) {
+  Widget _buildPlanCard(Plan plan, {required bool isActive}) {
     final textTheme = Theme.of(context).textTheme;
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.lg),
         side: BorderSide(
-          color: isRecommended ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.3),
-          width: isRecommended ? 2 : 1,
+          color: isActive ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.3),
+          width: isActive ? 2 : 1,
         ),
       ),
       child: Padding(
@@ -173,47 +98,36 @@ class _PartnerPlansTabState extends State<PartnerPlansTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isRecommended)
-              Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppRadii.full),
-                ),
-                child: const Text(
-                  'RECOMMENDED',
-                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                ),
-              ),
-            Text(title, style: textTheme.headlineSmall),
-            const SizedBox(height: 2),
-            Text(subtitle, style: textTheme.bodySmall),
+            Text(plan.name, style: textTheme.headlineSmall),
             const SizedBox(height: AppSpacing.md),
             Text(
-              price,
+              plan.price == 0 ? '₦0' : '₦${plan.price.toStringAsFixed(0)}/${plan.interval}',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
             ),
+            if (plan.transactionSplit > 0) ...[
+              const SizedBox(height: 4),
+              Text('${plan.transactionSplit}% Nomba transaction fee', style: textTheme.bodySmall),
+            ],
             const Divider(height: AppSpacing.lg),
-            ...features.map((feature) => Padding(
+            ...plan.features.map((feature) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: Row(
                     children: [
                       const Icon(Icons.check, size: 16, color: AppColors.secondary),
                       const SizedBox(width: AppSpacing.sm),
-                      Text(feature, style: textTheme.bodySmall),
+                      Expanded(child: Text(feature, style: textTheme.bodySmall)),
                     ],
                   ),
                 )),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
-              onPressed: isActive ? null : onSelect,
+              onPressed: isActive || _switching ? null : () => _selectPlan(plan),
               style: ElevatedButton.styleFrom(
                 backgroundColor: isActive ? AppColors.secondaryContainer : AppColors.primary,
                 foregroundColor: isActive ? AppColors.onSecondaryContainer : Colors.white,
                 minimumSize: const Size.fromHeight(48),
               ),
-              child: Text(isActive ? 'Current Plan' : 'Upgrade Plan'),
+              child: Text(isActive ? 'Current Plan' : 'Switch to This Plan'),
             ),
           ],
         ),

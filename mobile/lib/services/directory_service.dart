@@ -12,6 +12,13 @@ class DirectoryService {
         query: {'featured': 'true'},
       );
 
+  /// All admin-approved labs, not just the curated "featured" subset -
+  /// this is what makes an approved partner actually discoverable.
+  Future<List<Lab>> getApprovedLabs() => _api.get(
+        '/directory/labs',
+        (data) => (data['labs'] as List<dynamic>).map((l) => Lab.fromJson(l as Map<String, dynamic>)).toList(),
+      );
+
   Future<List<LabTest>> getTrendingTests() => _api.get(
         '/directory/tests/trending',
         (data) =>

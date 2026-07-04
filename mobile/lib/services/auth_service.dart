@@ -34,6 +34,12 @@ class AuthService {
     required String email,
     required String password,
     String? role,
+    String? planId,
+    String? facilityName,
+    String? licenseNumber,
+    List<String>? services,
+    String? bankName,
+    String? accountNumber,
   }) async {
     final result = await _api.post('/auth/register', _parseAuthResponse, body: {
       'fullName': fullName,
@@ -43,6 +49,12 @@ class AuthService {
       'email': email,
       'password': password,
       if (role != null) 'role': role,
+      if (planId != null) 'planId': planId,
+      if (facilityName != null) 'facilityName': facilityName,
+      if (licenseNumber != null) 'licenseNumber': licenseNumber,
+      if (services != null) 'services': services,
+      if (bankName != null) 'bankName': bankName,
+      if (accountNumber != null) 'accountNumber': accountNumber,
     });
     await _storage.saveTokens(accessToken: result.accessToken, refreshToken: result.refreshToken);
     return AuthResult(result.user);

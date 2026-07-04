@@ -33,6 +33,12 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     String? role,
+    String? planId,
+    String? facilityName,
+    String? licenseNumber,
+    List<String>? services,
+    String? bankName,
+    String? accountNumber,
   }) =>
       _runAuthAction(() => _authService.register(
             fullName: fullName,
@@ -42,6 +48,12 @@ class AuthProvider extends ChangeNotifier {
             email: email,
             password: password,
             role: role,
+            planId: planId,
+            facilityName: facilityName,
+            licenseNumber: licenseNumber,
+            services: services,
+            bankName: bankName,
+            accountNumber: accountNumber,
           ));
 
   Future<bool> login({required String email, required String password}) =>

@@ -52,6 +52,7 @@ function toPublic(user) {
     address: user.address,
     email: user.email,
     role: user.role,
+    planId: user.planId ? user.planId.toString() : null,
     biometricLockEnabled: user.biometricLockEnabled,
   };
 }

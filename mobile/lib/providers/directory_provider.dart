@@ -8,7 +8,9 @@ class DirectoryProvider extends ChangeNotifier {
 
   final DirectoryService _service;
 
-  List<Lab> featuredLabs = [];
+  // All admin-approved labs, not just the curated "featured" subset - an
+  // approved partner needs to actually be discoverable here.
+  List<Lab> labs = [];
   List<LabTest> trendingTests = [];
   List<Clinic> clinics = [];
   bool isLoading = false;
@@ -17,7 +19,7 @@ class DirectoryProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      featuredLabs = await _service.getFeaturedLabs();
+      labs = await _service.getApprovedLabs();
       trendingTests = await _service.getTrendingTests();
       clinics = await _service.getClinics(type: clinicType);
     } finally {

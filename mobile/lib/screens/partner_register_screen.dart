@@ -1,9 +1,14 @@
-import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../models/plan_models.dart';
 import '../providers/auth_provider.dart';
+import '../providers/plan_provider.dart';
+import '../providers/vault_provider.dart';
 import '../theme/app_theme.dart';
 
 class PartnerRegisterScreen extends StatefulWidget {
@@ -14,7 +19,8 @@ class PartnerRegisterScreen extends StatefulWidget {
 }
 
 class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
-  int _currentStep = 0; // 0: Facility Info, 1: Certificate Upload, 2: Credential Audit, 3: Submission Success
+  // 0: Facility Info, 1: Certificate Upload, 2: Choose Plan, 3: Credential Audit, 4: Submission Success
+  int _currentStep = 0;
 
   // Form controllers for Step 1
   final _formKey = GlobalKey<FormState>();
@@ -26,6 +32,8 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   final _addressController = TextEditingController();
   final _stateController = TextEditingController(text: 'Lagos State');
+  final _bankNameController = TextEditingController();
+  final _accountNumberController = TextEditingController();
 
   // Selected Services
   final Set<String> _selectedServices = {'General Practice'};
@@ -37,17 +45,11 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
     'Surgical Center'
   ];
 
-  // Uploaded Files mock state
-  final List<Map<String, dynamic>> _uploadedFiles = [
-    {
-      'name': 'State_Medical_License_2024.pdf',
-      'size': '2.4 MB',
-      'status': 'verified',
-      'progress': 1.0
-    }
-  ];
-  bool _isUploadingMockFile = false;
-  double _mockUploadProgress = 0.0;
+  // Real picked verification documents - uploaded only once registration
+  // succeeds and a session exists (see _submit).
+  final List<PlatformFile> _pickedFiles = [];
+  bool _plansLoaded = false;
+  String? _selectedPlanId;
 
   // Step 3 Confirmation
   bool _attested = false;
@@ -62,32 +64,31 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
     _confirmPasswordController.dispose();
     _addressController.dispose();
     _stateController.dispose();
+    _bankNameController.dispose();
+    _accountNumberController.dispose();
     super.dispose();
   }
 
-  void _addMockFile() {
-    if (_isUploadingMockFile) return;
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(withData: true, allowMultiple: true);
+    if (result == null) return;
     setState(() {
-      _isUploadingMockFile = true;
-      _mockUploadProgress = 0.0;
+      _pickedFiles.addAll(result.files.where((f) => f.bytes != null));
     });
+  }
 
-    Timer.periodic(const Duration(milliseconds: 150), (timer) {
-      setState(() {
-        _mockUploadProgress += 0.15;
-        if (_mockUploadProgress >= 1.0) {
-          _mockUploadProgress = 1.0;
-          _isUploadingMockFile = false;
-          _uploadedFiles.add({
-            'name': 'Board_Certification_Scan.jpg',
-            'size': '1.8 MB',
-            'status': 'uploaded',
-            'progress': 1.0
-          });
-          timer.cancel();
-        }
-      });
-    });
+  String _guessMimeType(String? extension) {
+    switch (extension?.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      default:
+        return 'application/octet-stream';
+    }
   }
 
   Future<void> _submit() async {
@@ -100,7 +101,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.register(
-      fullName: _facilityNameController.text.trim(),
+      fullName: _contactController.text.trim(),
       // Send dummy date and gender to pass backend registration validation
       dateOfBirth: '2000-01-01',
       gender: 'prefer_not_to_say',
@@ -108,23 +109,51 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       role: 'provider',
+      planId: _selectedPlanId,
+      facilityName: _facilityNameController.text.trim(),
+      licenseNumber: _licenseController.text.trim(),
+      services: _selectedServices.toList(),
+      bankName: _bankNameController.text.trim().isEmpty ? null : _bankNameController.text.trim(),
+      accountNumber: _accountNumberController.text.trim().isEmpty ? null : _accountNumberController.text.trim(),
     );
 
     if (!mounted) return;
-    if (success) {
-      setState(() {
-        _currentStep = 3; // Go to success screen
-      });
-    } else {
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(auth.errorMessage ?? 'Registration failed')),
       );
+      return;
     }
+
+    // Account now exists and a session token is set - upload any picked
+    // verification documents against the fresh session.
+    var uploadFailures = 0;
+    final vault = context.read<VaultProvider>();
+    for (final file in _pickedFiles) {
+      final uploaded = await vault.uploadFile(
+        fileName: file.name,
+        mimeType: _guessMimeType(file.extension),
+        bytes: file.bytes as Uint8List,
+        category: 'partner_verification',
+      );
+      if (!uploaded) uploadFailures++;
+    }
+
+    if (!mounted) return;
+    if (uploadFailures > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration succeeded, but $uploadFailures document(s) failed to upload. You can retry later.')),
+      );
+    }
+
+    setState(() {
+      _currentStep = 4; // Go to success screen
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_currentStep == 3) {
+    if (_currentStep == 4) {
       return _buildSuccessScreen(context);
     }
 
@@ -187,7 +216,9 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           const Expanded(child: Divider(indent: 8, endIndent: 8)),
           _StepIcon(step: 2, active: _currentStep >= 1, completed: _currentStep > 1),
           const Expanded(child: Divider(indent: 8, endIndent: 8)),
-          _StepIcon(step: 3, active: _currentStep >= 2, completed: false),
+          _StepIcon(step: 3, active: _currentStep >= 2, completed: _currentStep > 2),
+          const Expanded(child: Divider(indent: 8, endIndent: 8)),
+          _StepIcon(step: 4, active: _currentStep >= 3, completed: false),
         ],
       ),
     );
@@ -200,10 +231,80 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       case 1:
         return _buildCertificateUploadView();
       case 2:
+        return _buildChoosePlanView();
+      case 3:
         return _buildCredentialAuditView();
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildChoosePlanView() {
+    final textTheme = Theme.of(context).textTheme;
+    final planProvider = context.watch<PlanProvider>();
+
+    if (!_plansLoaded) {
+      _plansLoaded = true;
+      final provider = context.read<PlanProvider>();
+      Future.microtask(() => provider.loadPlans(type: 'Partner'));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Choose a Plan', style: textTheme.headlineMedium),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Pick a subscription tier now, or skip and choose later from your Partner dashboard.',
+          style: textTheme.bodyMedium,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        if (planProvider.isLoading)
+          const Center(child: Padding(padding: EdgeInsets.all(AppSpacing.xl), child: CircularProgressIndicator()))
+        else if (planProvider.plans.isEmpty)
+          Text('No plans are available right now - you can select one later.', style: textTheme.bodySmall)
+        else
+          ...planProvider.plans.map((plan) => _buildPlanOption(plan)),
+      ],
+    );
+  }
+
+  Widget _buildPlanOption(Plan plan) {
+    final textTheme = Theme.of(context).textTheme;
+    final isSelected = _selectedPlanId == plan.id;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPlanId = isSelected ? null : plan.id),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryContainer.withValues(alpha: 0.15) : AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(AppRadii.md),
+          border: Border.all(color: isSelected ? AppColors.primary : AppColors.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              color: isSelected ? AppColors.primary : AppColors.outline,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(plan.name, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    plan.price == 0 ? 'Free' : '₦${plan.price.toStringAsFixed(0)} / ${plan.interval}',
+                    style: textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildFacilityInfoForm() {
@@ -360,6 +461,33 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
               );
             }).toList(),
           ),
+          const SizedBox(height: AppSpacing.xl),
+          Row(
+            children: [
+              const Icon(Icons.account_balance, color: AppColors.primary, size: 20),
+              const SizedBox(width: AppSpacing.sm),
+              Text('SETTLEMENT ACCOUNT (OPTIONAL)', style: textTheme.labelMedium),
+            ],
+          ),
+          const Divider(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'You can add this later from your Partner Vetting review if you don\'t have it ready now.',
+            style: textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _FieldLabel('BANK NAME'),
+          TextFormField(
+            controller: _bankNameController,
+            decoration: const InputDecoration(hintText: 'e.g. GTBank'),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _FieldLabel('ACCOUNT NUMBER'),
+          TextFormField(
+            controller: _accountNumberController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(hintText: '0123456789'),
+          ),
         ],
       ),
     );
@@ -378,7 +506,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
         ),
         const SizedBox(height: AppSpacing.xl),
         GestureDetector(
-          onTap: _addMockFile,
+          onTap: _pickFiles,
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
@@ -411,7 +539,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 OutlinedButton(
-                  onPressed: _addMockFile,
+                  onPressed: _pickFiles,
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(180, 44),
                   ),
@@ -423,142 +551,76 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
         ),
         const SizedBox(height: AppSpacing.xl),
         Text(
-          'UPLOADED CREDENTIALS',
+          'SELECTED CREDENTIALS',
           style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 0.5),
         ),
         const Divider(height: AppSpacing.md),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _uploadedFiles.length + (_isUploadingMockFile ? 1 : 0),
-          separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (context, index) {
-            if (index == _uploadedFiles.length && _isUploadingMockFile) {
-              return _buildUploadProgressTile();
-            }
-            final file = _uploadedFiles[index];
-            final isVerified = file['status'] == 'verified';
+        if (_pickedFiles.isEmpty)
+          Text(
+            'No documents selected yet. Uploads happen once your account is created.',
+            style: textTheme.bodySmall,
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _pickedFiles.length,
+            separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+            itemBuilder: (context, index) {
+              final file = _pickedFiles[index];
+              final sizeLabel = '${(file.size / 1024).toStringAsFixed(0)} KB';
 
-            return Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(AppRadii.md),
-                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainer,
-                      borderRadius: BorderRadius.circular(AppRadii.sm),
-                    ),
-                    child: Icon(
-                      file['name'].endsWith('.pdf') ? Icons.description : Icons.image,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          file['name'],
-                          style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(file['size'], style: textTheme.bodySmall),
-                            const SizedBox(width: AppSpacing.sm),
-                            if (isVerified)
-                              Row(
-                                children: [
-                                  const Icon(Icons.check_circle, size: 14, color: AppColors.secondary),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Verified',
-                                    style: textTheme.labelSmall?.copyWith(color: AppColors.secondary),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                    onPressed: () {
-                      setState(() {
-                        _uploadedFiles.removeAt(index);
-                      });
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUploadProgressTile() {
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
+              return Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
                 ),
-                child: const Icon(Icons.image, color: AppColors.onSurfaceVariant),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      'Board_Certification_Scan.jpg',
-                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
+                      ),
+                      child: Icon(
+                        file.name.toLowerCase().endsWith('.pdf') ? Icons.description : Icons.image,
+                        color: AppColors.onSurfaceVariant,
+                      ),
                     ),
-                    const SizedBox(height: 2),
-                    Text('Uploading ${(_mockUploadProgress * 100).toInt()}%...', style: textTheme.bodySmall),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            file.name,
+                            style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(sizeLabel, style: textTheme.bodySmall),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                      onPressed: () {
+                        setState(() {
+                          _pickedFiles.removeAt(index);
+                        });
+                      },
+                    ),
                   ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
-          const SizedBox(height: AppSpacing.sm),
-          LinearProgressIndicator(
-            value: _mockUploadProgress,
-            backgroundColor: AppColors.surfaceContainer,
-            color: AppColors.primary,
-            minHeight: 4,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -633,26 +695,52 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           title: 'Settlement Account',
           icon: Icons.account_balance,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceContainer,
-                    shape: BoxShape.circle,
+            if (_bankNameController.text.trim().isEmpty && _accountNumberController.text.trim().isEmpty)
+              const Text('Not provided - you can add this later.', style: TextStyle(color: AppColors.outline, fontSize: 13))
+            else
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: const BoxDecoration(
+                      color: AppColors.surfaceContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.outline),
                   ),
-                  child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.outline),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('GTBank Plc', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text('0123456789 • Apex Medical Center', style: TextStyle(color: AppColors.outline, fontSize: 13)),
-                  ],
-                ),
-              ],
-            )
+                  const SizedBox(width: AppSpacing.md),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _bankNameController.text.trim().isEmpty ? 'Bank not provided' : _bankNameController.text.trim(),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        _accountNumberController.text.trim().isEmpty ? '' : _accountNumberController.text.trim(),
+                        style: const TextStyle(color: AppColors.outline, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _buildAuditCard(
+          title: 'Selected Plan',
+          icon: Icons.workspace_premium_outlined,
+          editStep: 2,
+          children: [
+            Builder(builder: (context) {
+              final plans = context.watch<PlanProvider>().plans;
+              final matches = plans.where((p) => p.id == _selectedPlanId);
+              final selectedName = _selectedPlanId != null && matches.isNotEmpty ? matches.first.name : null;
+              return Text(
+                selectedName ?? 'No plan selected - you can choose one later.',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              );
+            }),
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
@@ -683,6 +771,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
     required String title,
     required IconData icon,
     required List<Widget> children,
+    int editStep = 0,
   }) {
     return Card(
       child: Padding(
@@ -701,7 +790,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                   ],
                 ),
                 TextButton(
-                  onPressed: () => setState(() => _currentStep = 0),
+                  onPressed: () => setState(() => _currentStep = editStep),
                   child: const Text('Edit'),
                 ),
               ],
@@ -769,6 +858,8 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                       } else if (_currentStep == 1) {
                         setState(() => _currentStep = 2);
                       } else if (_currentStep == 2) {
+                        setState(() => _currentStep = 3);
+                      } else if (_currentStep == 3) {
                         _submit();
                       }
                     },
@@ -781,7 +872,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(_currentStep == 2 ? 'Submit Registration' : 'Next Step'),
+                        Text(_currentStep == 3 ? 'Submit Registration' : 'Next Step'),
                         const SizedBox(width: AppSpacing.xs),
                         const Icon(Icons.arrow_forward, size: 18),
                       ],

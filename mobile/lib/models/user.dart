@@ -5,6 +5,7 @@ class AppUser {
     required this.email,
     required this.role,
     required this.biometricLockEnabled,
+    this.planId,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
@@ -13,6 +14,7 @@ class AppUser {
         email: json['email'] as String,
         role: json['role'] as String,
         biometricLockEnabled: json['biometricLockEnabled'] as bool? ?? false,
+        planId: json['planId'] as String?,
       );
 
   final String id;
@@ -20,6 +22,7 @@ class AppUser {
   final String email;
   final String role;
   final bool biometricLockEnabled;
+  final String? planId;
 
   String get firstName => fullName.split(' ').first;
 }

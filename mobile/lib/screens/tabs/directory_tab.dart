@@ -86,13 +86,18 @@ class _DirectoryTabState extends State<DirectoryTab> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              if (directory.isLoading && directory.featuredLabs.isEmpty)
+              if (directory.isLoading && directory.labs.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
                   child: Center(child: CircularProgressIndicator()),
                 )
+              else if (directory.labs.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Text('No approved diagnostic centres yet.', style: textTheme.bodySmall),
+                )
               else
-                for (final lab in directory.featuredLabs) _FeaturedLabCard(lab: lab),
+                for (final lab in directory.labs) _FeaturedLabCard(lab: lab),
               const SizedBox(height: AppSpacing.xl),
               Text('Trending Tests', style: textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.sm),

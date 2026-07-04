@@ -157,6 +157,12 @@ class ApiClient {
   Future<T> patch<T>(String path, T Function(dynamic data) onSuccess, {dynamic body}) =>
       _handle(() => _dio.patch(path, data: body), onSuccess);
 
+  Future<T> put<T>(String path, T Function(dynamic data) onSuccess, {dynamic body}) =>
+      _handle(() => _dio.put(path, data: body), onSuccess);
+
+  Future<T> delete<T>(String path, T Function(dynamic data) onSuccess) =>
+      _handle(() => _dio.delete(path), onSuccess);
+
   Future<void> putRaw(String url, List<int> bytes, {required String contentType}) async {
     await _dio.put(
       url,

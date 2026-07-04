@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/partner_provider.dart';
 import '../theme/app_theme.dart';
+import 'partner_status_screen.dart';
 import 'tabs/directory_tab.dart';
 import 'tabs/home_tab.dart';
 import 'tabs/meds_tab.dart';
@@ -24,6 +26,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _tabIndex = 0;
+  bool _partnerStatusLoaded = false;
 
   static const _patientTabs = [
     (icon: Icons.home_filled, label: 'Home'),
@@ -61,6 +64,27 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().currentUser;
     final isProvider = user?.role == 'provider';
+
+    if (isProvider) {
+      final partner = context.watch<PartnerProvider>();
+      if (!_partnerStatusLoaded) {
+        _partnerStatusLoaded = true;
+        final provider = context.read<PartnerProvider>();
+        Future.microtask(() => provider.loadProfile());
+      }
+
+      if (partner.isLoading && partner.lab == null) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+
+      final status = partner.lab?.status;
+      if (status != null && status != 'approved') {
+        return PartnerStatusScreen(
+          status: status,
+          onRetry: () => context.read<PartnerProvider>().loadProfile(),
+        );
+      }
+    }
 
     final tabs = isProvider ? _providerTabs : _patientTabs;
     final pages = isProvider ? _providerPages : _patientPages;

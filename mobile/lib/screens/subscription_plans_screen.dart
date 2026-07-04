@@ -1,59 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../models/plan_models.dart';
+import '../providers/auth_provider.dart';
+import '../providers/plan_provider.dart';
 import '../theme/app_theme.dart';
-
-class _Plan {
-  const _Plan({
-    required this.name,
-    required this.tagline,
-    required this.priceLabel,
-    required this.features,
-    this.badge,
-  });
-
-  final String name;
-  final String tagline;
-  final String priceLabel;
-  final List<({String label, bool included})> features;
-  final String? badge;
-}
-
-const _plans = [
-  _Plan(
-    name: 'Free',
-    tagline: 'Basic medical exploration',
-    priceLabel: '₦0',
-    features: [
-      (label: 'See partner medical centres near you', included: true),
-      (label: 'Limited to 5 file uploads', included: true),
-      (label: 'No partner booking/access', included: false),
-    ],
-  ),
-  _Plan(
-    name: 'Standard',
-    tagline: 'Comprehensive personal care',
-    priceLabel: '₦25,000',
-    features: [
-      (label: 'See partner medical centres near you', included: true),
-      (label: 'Unlimited file uploads', included: true),
-      (label: 'Access to booking with partner medical centres', included: true),
-      (label: 'No shared family wallet', included: false),
-    ],
-  ),
-  _Plan(
-    name: 'Family Plan',
-    tagline: 'Shared health security for all',
-    priceLabel: '₦45,000',
-    badge: 'BEST VALUE',
-    features: [
-      (label: 'See partner medical centres near you', included: true),
-      (label: 'Unlimited file uploads', included: true),
-      (label: 'Access to booking with partner medical centres', included: true),
-      (label: 'Shared wallet for family members', included: true),
-    ],
-  ),
-];
 
 class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({super.key});
@@ -63,11 +15,22 @@ class SubscriptionPlansScreen extends StatefulWidget {
 }
 
 class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
-  int _selectedIndex = 1;
+  bool _loaded = false;
+  String? _selectedPlanId;
+  bool _switching = false;
 
   @override
   Widget build(BuildContext context) {
+    if (!_loaded) {
+      _loaded = true;
+      final provider = context.read<PlanProvider>();
+      Future.microtask(() => provider.loadPlans(type: 'Individual'));
+    }
+
     final textTheme = Theme.of(context).textTheme;
+    final planProvider = context.watch<PlanProvider>();
+    final currentPlanId = context.watch<AuthProvider>().currentUser?.planId;
+    _selectedPlanId ??= currentPlanId;
 
     return Scaffold(
       appBar: AppBar(
@@ -78,81 +41,101 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         title: const Text('Upgrade your Coverage'),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select a plan that fits your healthcare needs',
-                style: textTheme.bodyMedium,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              for (var i = 0; i < _plans.length; i++) ...[
-                _PlanCard(
-                  plan: _plans[i],
-                  selected: i == _selectedIndex,
-                  onTap: () => setState(() => _selectedIndex = i),
-                ),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              const SizedBox(height: AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                ),
-                child: Row(
+        child: planProvider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.shield_outlined, size: 18, color: AppColors.secondary),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(
-                          style: textTheme.bodySmall,
-                          children: const [
-                            TextSpan(
-                              text: 'Your medical history and data are encrypted with '
-                                  'bank-grade security protocols. ',
-                            ),
-                            TextSpan(
-                              text: 'Learn more about our security.',
-                              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                    Text(
+                      'Select a plan that fits your healthcare needs',
+                      style: textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (planProvider.plans.isEmpty)
+                      Text('No plans are available right now.', style: textTheme.bodySmall)
+                    else
+                      for (final plan in planProvider.plans) ...[
+                        _PlanCard(
+                          plan: plan,
+                          selected: plan.id == _selectedPlanId,
+                          isCurrent: plan.id == currentPlanId,
+                          onTap: () => setState(() => _selectedPlanId = plan.id),
                         ),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
+                    const SizedBox(height: AppSpacing.sm),
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.shield_outlined, size: 18, color: AppColors.secondary),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                style: textTheme.bodySmall,
+                                children: const [
+                                  TextSpan(
+                                    text: 'Your medical history and data are encrypted with '
+                                        'bank-grade security protocols. ',
+                                  ),
+                                  TextSpan(
+                                    text: 'Learn more about our security.',
+                                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (planProvider.plans.isNotEmpty)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: (_selectedPlanId == null || _selectedPlanId == currentPlanId || _switching)
+                              ? null
+                              : _confirmSelection,
+                          child: Text(_selectedPlanId == currentPlanId ? 'Current Plan' : 'Confirm Selection'),
+                        ),
+                      ),
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${_plans[_selectedIndex].name} plan checkout is coming soon.')),
-                    );
-                  },
-                  child: Text('Continue with ${_plans[_selectedIndex].name}'),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
+    );
+  }
+
+  Future<void> _confirmSelection() async {
+    if (_selectedPlanId == null) return;
+    setState(() => _switching = true);
+    final ok = await context.read<PlanProvider>().selectPlan(_selectedPlanId!);
+    if (ok) {
+      await context.read<AuthProvider>().checkSession();
+    }
+    if (!mounted) return;
+    setState(() => _switching = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? 'Plan updated.' : 'Failed to update your plan.')),
     );
   }
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.selected, required this.onTap});
+  const _PlanCard({required this.plan, required this.selected, required this.isCurrent, required this.onTap});
 
-  final _Plan plan;
+  final Plan plan;
   final bool selected;
+  final bool isCurrent;
   final VoidCallback onTap;
 
   @override
@@ -181,7 +164,7 @@ class _PlanCard extends StatelessWidget {
                     child: Row(
                       children: [
                         Text(plan.name, style: textTheme.headlineSmall),
-                        if (plan.badge != null) ...[
+                        if (isCurrent) ...[
                           const SizedBox(width: AppSpacing.sm),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
@@ -190,7 +173,7 @@ class _PlanCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(AppRadii.full),
                             ),
                             child: Text(
-                              plan.badge!,
+                              'CURRENT',
                               style: textTheme.labelSmall?.copyWith(
                                 color: AppColors.onSecondaryContainer,
                                 fontWeight: FontWeight.w700,
@@ -207,19 +190,17 @@ class _PlanCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 2),
-              Text(plan.tagline, style: textTheme.bodySmall),
               const SizedBox(height: AppSpacing.sm),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    plan.priceLabel,
+                    plan.price == 0 ? '₦0' : '₦${plan.price.toStringAsFixed(0)}',
                     style: textTheme.headlineMedium?.copyWith(color: AppColors.primary),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 4),
-                    child: Text('/month', style: textTheme.bodySmall),
+                    child: Text('/${plan.interval}', style: textTheme.bodySmall),
                   ),
                 ],
               ),
@@ -230,19 +211,22 @@ class _PlanCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        feature.included ? Icons.check_circle : Icons.cancel_outlined,
-                        size: 16,
-                        color: feature.included ? AppColors.secondary : AppColors.outline,
-                      ),
+                      const Icon(Icons.check_circle, size: 16, color: AppColors.secondary),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: Text(feature, style: textTheme.bodySmall)),
+                    ],
+                  ),
+                ),
+              for (final feature in plan.excludedFeatures)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.cancel_outlined, size: 16, color: AppColors.outline),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
-                        child: Text(
-                          feature.label,
-                          style: textTheme.bodySmall?.copyWith(
-                            color: feature.included ? AppColors.onSurface : AppColors.outline,
-                          ),
-                        ),
+                        child: Text(feature, style: textTheme.bodySmall?.copyWith(color: AppColors.outline)),
                       ),
                     ],
                   ),
