@@ -192,16 +192,42 @@ class _DirectoryTabState extends State<DirectoryTab> {
   }
 }
 
-class _FeaturedLabCard extends StatelessWidget {
+class _FeaturedLabCard extends StatefulWidget {
   const _FeaturedLabCard({required this.lab});
 
   final Lab lab;
 
   @override
+  State<_FeaturedLabCard> createState() => _FeaturedLabCardState();
+}
+
+class _FeaturedLabCardState extends State<_FeaturedLabCard> {
+  static const _collapsedCount = 3;
+  bool _expanded = false;
+
+  void _bookTest(BuildContext context, LabTest test) {
+    final lab = widget.lab;
+    context.push(
+      '/book-test',
+      extra: BookTestArgs(
+        labId: lab.id,
+        labName: lab.name,
+        labAddress: lab.address,
+        testId: test.id,
+        testName: test.name,
+        priceKobo: test.priceKobo ?? 0,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final lab = widget.lab;
     final textTheme = Theme.of(context).textTheme;
     final fullStars = lab.rating.floor();
     final hasHalfStar = lab.rating - fullStars >= 0.5;
+    final hasMoreTests = lab.tests.length > _collapsedCount;
+    final visibleTests = _expanded ? lab.tests : lab.tests.take(_collapsedCount).toList();
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -276,32 +302,30 @@ class _FeaturedLabCard extends StatelessWidget {
                   ],
                 ),
                 const Divider(height: AppSpacing.lg),
-                for (final test in lab.tests)
-                  _TestRow(
-                    name: test.name,
-                    duration: test.duration ?? '',
-                    price: test.priceKobo != null ? '₦${(test.priceKobo! / 100).toStringAsFixed(0)}' : '',
+                if (lab.tests.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                    child: Text('No services listed yet.', style: textTheme.bodySmall),
+                  )
+                else
+                  for (final test in visibleTests)
+                    _TestRow(
+                      name: test.name,
+                      duration: test.duration ?? '',
+                      price: test.priceKobo != null ? '₦${(test.priceKobo! / 100).toStringAsFixed(0)}' : '',
+                      onBook: () => _bookTest(context, test),
+                    ),
+                if (hasMoreTests)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.xs),
+                    child: TextButton(
+                      onPressed: () => setState(() => _expanded = !_expanded),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
+                      child: Text(
+                        _expanded ? 'Show less' : 'View all ${lab.tests.length} services',
+                      ),
+                    ),
                   ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: lab.tests.isEmpty
-                        ? null
-                        : () => context.push(
-                              '/book-test',
-                              extra: BookTestArgs(
-                                labId: lab.id,
-                                labName: lab.name,
-                                labAddress: lab.address,
-                                testId: lab.tests.first.id,
-                                testName: lab.tests.first.name,
-                                priceKobo: lab.tests.first.priceKobo ?? 0,
-                              ),
-                            ),
-                    child: const Text('Book & Pay Now'),
-                  ),
-                ),
               ],
             ),
           ),
@@ -312,11 +336,17 @@ class _FeaturedLabCard extends StatelessWidget {
 }
 
 class _TestRow extends StatelessWidget {
-  const _TestRow({required this.name, required this.duration, required this.price});
+  const _TestRow({
+    required this.name,
+    required this.duration,
+    required this.price,
+    required this.onBook,
+  });
 
   final String name;
   final String duration;
   final String price;
+  final VoidCallback onBook;
 
   @override
   Widget build(BuildContext context) {
@@ -339,6 +369,16 @@ class _TestRow extends StatelessWidget {
             fontWeight: FontWeight.w700,
             color: AppColors.primary,
           )),
+          const SizedBox(width: AppSpacing.sm),
+          OutlinedButton(
+            onPressed: onBook,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Text('Book', style: TextStyle(fontSize: 12)),
+          ),
         ],
       ),
     );
