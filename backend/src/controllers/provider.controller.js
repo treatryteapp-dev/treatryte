@@ -8,6 +8,8 @@ const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
 const vaultFileModel = require('../models/vaultFile.model');
 const prescriptionModel = require('../models/prescription.model');
+const patientModel = require('../models/patient.model');
+const medicalRecordModel = require('../models/medicalRecord.model');
 const notificationService = require('../services/notification.service');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
@@ -182,62 +184,90 @@ const cancelAppointment = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+function toPartnerPatient(patient) {
+  return {
+    id: patient._id,
+    patientCode: patient.patientCode,
+    fullName: patient.fullName,
+    email: patient.email,
+    dateOfBirth: patient.dateOfBirth,
+    gender: patient.gender,
+    lastVisit: patient.lastVisitAt,
+  };
+}
+
 const listPatients = asyncHandler(async (req, res) => {
   const lab = await getProviderLab(req.userId);
-  const distinctPatients = await appointmentModel.listDistinctPatientsByLabId(lab._id);
-  const patientIds = distinctPatients.map((p) => p._id);
-  const users = await userModel.collection().find({ _id: { $in: patientIds } }).toArray();
-  const usersById = new Map(users.map((u) => [u._id.toString(), u]));
-
-  const patients = distinctPatients
-    .map((p) => {
-      const user = usersById.get(p._id.toString());
-      if (!user) return null;
-      return {
-        id: user._id,
-        fullName: user.fullName,
-        dateOfBirth: user.dateOfBirth,
-        gender: user.gender,
-        lastVisit: p.lastVisit,
-      };
-    })
-    .filter(Boolean);
-
-  res.json({ patients });
+  const patients = await patientModel.findByLabId(lab._id);
+  res.json({ patients: patients.map(toPartnerPatient) });
 });
 
 async function getOwnedPatient(lab, patientId) {
-  const hasAppointment = await appointmentModel.collection().findOne({ labId: lab._id, userId: patientId });
-  if (!hasAppointment) {
-    throw new ApiError(403, 'This patient has no appointment history with your lab', 'FORBIDDEN');
-  }
-  const patient = await userModel.findById(patientId);
+  const patient = await patientModel.findById(lab._id, patientId);
   if (!patient) {
     throw new ApiError(404, 'Patient not found', 'PATIENT_NOT_FOUND');
   }
   return patient;
 }
 
+// A patient directory entry only has a real medicalProfile/vault reports if
+// it's linked to a real registered account - a walk-in patient with no
+// account has neither, since there's nowhere for that data to live.
+const createPatientSchema = z.object({
+  fullName: z.string().min(1),
+  email: z.string().email(),
+  dateOfBirth: z.string().optional(),
+  gender: z.string().optional(),
+});
+
+const createPatient = asyncHandler(async (req, res) => {
+  const lab = await getProviderLab(req.userId);
+  const email = req.body.email.toLowerCase();
+
+  const existing = await patientModel.findByLabIdAndEmail(lab._id, email);
+  if (existing) {
+    return res.json({ patient: toPartnerPatient(existing) });
+  }
+
+  const linkedUser = await userModel.findByEmail(email);
+  const patient = await patientModel.create({
+    labId: lab._id,
+    fullName: req.body.fullName,
+    email,
+    dateOfBirth: req.body.dateOfBirth,
+    gender: req.body.gender,
+    linkedUserId: linkedUser ? linkedUser._id : null,
+  });
+
+  res.status(201).json({ patient: toPartnerPatient(patient) });
+});
+
 const getPatientDetail = asyncHandler(async (req, res) => {
   const lab = await getProviderLab(req.userId);
   const patientId = parseObjectId(req.params.id);
   const patient = await getOwnedPatient(lab, patientId);
 
-  const [reports, prescriptions] = await Promise.all([
-    vaultFileModel.findByLabIdAndUserId(lab._id, patientId),
+  const linkedUser = patient.linkedUserId ? await userModel.findById(patient.linkedUserId) : null;
+
+  const [reports, prescriptions, medicalRecords] = await Promise.all([
+    linkedUser ? vaultFileModel.findByLabIdAndUserId(lab._id, patient.linkedUserId) : [],
     prescriptionModel.findByLabIdAndPatientId(lab._id, patientId),
+    medicalRecordModel.findByLabIdAndPatientId(lab._id, patientId),
   ]);
 
   res.json({
     patient: {
       id: patient._id,
+      patientCode: patient.patientCode,
       fullName: patient.fullName,
+      email: patient.email,
       dateOfBirth: patient.dateOfBirth,
       gender: patient.gender,
-      medicalProfile: patient.medicalProfile || { bloodGroup: null, allergies: [], conditions: [] },
+      medicalProfile: linkedUser?.medicalProfile || { bloodGroup: null, allergies: [], conditions: [] },
     },
     reports,
     prescriptions,
+    medicalRecords,
   });
 });
 
@@ -251,7 +281,7 @@ const addPrescriptionSchema = z.object({
 const addPrescription = asyncHandler(async (req, res) => {
   const lab = await getProviderLab(req.userId);
   const patientId = parseObjectId(req.params.id);
-  await getOwnedPatient(lab, patientId);
+  const patient = await getOwnedPatient(lab, patientId);
 
   const prescription = await prescriptionModel.create({
     labId: lab._id,
@@ -262,13 +292,43 @@ const addPrescription = asyncHandler(async (req, res) => {
     notes: req.body.notes,
   });
 
-  await notificationService.notify(patientId, {
-    type: 'prescription',
-    title: 'New Prescription',
-    body: `${lab.name} added a new prescription: ${req.body.medicineName}.`,
-  });
+  if (patient.linkedUserId) {
+    await notificationService.notify(patient.linkedUserId, {
+      type: 'prescription',
+      title: 'New Prescription',
+      body: `${lab.name} added a new prescription: ${req.body.medicineName}.`,
+    });
+  }
 
   res.status(201).json({ prescription });
+});
+
+const issueMedicalRecordSchema = z.object({
+  visitType: z.string().min(1),
+  notes: z.string().optional(),
+});
+
+const issueMedicalRecord = asyncHandler(async (req, res) => {
+  const lab = await getProviderLab(req.userId);
+  const patientId = parseObjectId(req.params.id);
+  const patient = await getOwnedPatient(lab, patientId);
+
+  const record = await medicalRecordModel.create({
+    labId: lab._id,
+    patientId,
+    visitType: req.body.visitType,
+    notes: req.body.notes,
+  });
+
+  if (patient.linkedUserId) {
+    await notificationService.notify(patient.linkedUserId, {
+      type: 'medical_record',
+      title: 'New Medical Record',
+      body: `${lab.name} added a new record: ${req.body.visitType}.`,
+    });
+  }
+
+  res.status(201).json({ record });
 });
 
 const invitePatientSchema = z.object({
@@ -296,6 +356,8 @@ module.exports = {
   updateServiceSchema,
   rescheduleSchema,
   addPrescriptionSchema,
+  createPatientSchema,
+  issueMedicalRecordSchema,
   invitePatientSchema,
   getProfile,
   resubmitApplication,
@@ -308,7 +370,9 @@ module.exports = {
   rescheduleAppointment,
   cancelAppointment,
   listPatients,
+  createPatient,
   getPatientDetail,
   addPrescription,
+  issueMedicalRecord,
   invitePatient,
 };

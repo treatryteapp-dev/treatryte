@@ -54,8 +54,39 @@ class ProviderService {
             (data['patients'] as List<dynamic>).map((p) => PartnerPatient.fromJson(p as Map<String, dynamic>)).toList(),
       );
 
+  /// Finds-or-creates a patient directory entry for this lab by email - a
+  /// walk-in with no TreatRyte account works exactly the same as a real
+  /// patient here, since a lookup by email is all that's required.
+  Future<PartnerPatient> createPatient({
+    required String fullName,
+    required String email,
+    String? dateOfBirth,
+    String? gender,
+  }) =>
+      _api.post(
+        '/provider/patients',
+        (data) => PartnerPatient.fromJson(data['patient'] as Map<String, dynamic>),
+        body: {
+          'fullName': fullName,
+          'email': email,
+          if (dateOfBirth != null) 'dateOfBirth': dateOfBirth,
+          if (gender != null) 'gender': gender,
+        },
+      );
+
   Future<PatientDetail> getPatientDetail(String patientId) =>
       _api.get('/provider/patients/$patientId', (data) => PatientDetail.fromJson(data as Map<String, dynamic>));
+
+  Future<MedicalRecord> issueMedicalRecord(
+    String patientId, {
+    required String visitType,
+    String? notes,
+  }) =>
+      _api.post(
+        '/provider/patients/$patientId/records',
+        (data) => MedicalRecord.fromJson(data['record'] as Map<String, dynamic>),
+        body: {'visitType': visitType, if (notes != null) 'notes': notes},
+      );
 
   Future<void> addPrescription(
     String patientId, {

@@ -16,10 +16,19 @@ const _timeSlotOrder = ['09:00 AM', '10:30 AM', '11:00 AM', '01:30 PM', '03:00 P
 /// Shows the Issue Record bottom sheet. Extracted as a top-level function
 /// so it can be called from both the home tab button and the global FAB
 /// in MainShell without creating a dependency cycle.
+///
+/// The patient's email is the compulsory, always-usable identifier: if a
+/// patient directory entry already exists for this lab+email it's reused
+/// (interchangeable with looking them up by their patientCode later),
+/// otherwise one is created on the fly - this works identically whether or
+/// not the patient has a real TreatRyte account.
 void showIssueRecordSheet(BuildContext context) {
-  final patientCtrl = TextEditingController();
+  final partner = context.read<PartnerProvider>();
+  final nameCtrl = TextEditingController();
+  final emailCtrl = TextEditingController();
   final notesCtrl = TextEditingController();
   String selectedVisitType = 'General Consultation';
+  var submitting = false;
   const visitTypes = [
     'General Consultation',
     'Follow-up Visit',
@@ -72,11 +81,21 @@ void showIssueRecordSheet(BuildContext context) {
               ),
               const SizedBox(height: AppSpacing.md),
               TextField(
-                controller: patientCtrl,
+                controller: nameCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Patient Name or ID',
-                  hintText: 'e.g. Aisha Bello or TR-8821',
-                  prefixIcon: Icon(Icons.person_search_outlined),
+                  labelText: 'Patient Full Name',
+                  hintText: 'e.g. Aisha Bello',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Patient Email',
+                  hintText: 'Required - existing or new patient, with or without an account',
+                  prefixIcon: Icon(Icons.email_outlined),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -107,16 +126,56 @@ void showIssueRecordSheet(BuildContext context) {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  icon: const Icon(Icons.save_outlined, size: 18),
-                  label: const Text('Save Record'),
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Medical record issued successfully.'),
-                      ),
-                    );
-                  },
+                  icon: submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.save_outlined, size: 18),
+                  label: Text(submitting ? 'Saving...' : 'Save Record'),
+                  onPressed: submitting
+                      ? null
+                      : () async {
+                          final name = nameCtrl.text.trim();
+                          final email = emailCtrl.text.trim();
+                          if (name.isEmpty || email.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Patient name and email are required.')),
+                            );
+                            return;
+                          }
+
+                          setSheetState(() => submitting = true);
+                          final patient = await partner.createPatient(fullName: name, email: email);
+                          if (patient == null) {
+                            setSheetState(() => submitting = false);
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(partner.patientsError ?? 'Failed to save patient')),
+                              );
+                            }
+                            return;
+                          }
+
+                          final ok = await partner.issueMedicalRecord(
+                            patient.id,
+                            visitType: selectedVisitType,
+                            notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+                          );
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  ok
+                                      ? 'Medical record issued for $name (${patient.patientCode}).'
+                                      : partner.patientDetailError ?? 'Failed to issue medical record',
+                                ),
+                              ),
+                            );
+                          }
+                        },
                 ),
               ),
             ],

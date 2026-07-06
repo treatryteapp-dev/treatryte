@@ -1,6 +1,8 @@
 const appointmentModel = require('../models/appointment.model');
 const testModel = require('../models/test.model');
 const labModel = require('../models/lab.model');
+const userModel = require('../models/user.model');
+const patientModel = require('../models/patient.model');
 const subscriptionModel = require('../models/subscription.model');
 const platformSettingsModel = require('../models/platformSettings.model');
 const walletService = require('./wallet.service');
@@ -124,6 +126,14 @@ async function createAppointment(userId, { labId, testIds, scheduledDate, schedu
       title: 'New Appointment Booked',
       body: `A patient booked and paid for a ${scheduledTimeSlot} slot on ${date.toISOString().slice(0, 10)}.`,
     });
+
+    // Keeps the partner's patient directory in sync automatically - a real
+    // booking is exactly as much reason to appear there as a manually
+    // created walk-in record.
+    const patientUser = await userModel.findById(userId);
+    if (patientUser) {
+      await patientModel.findOrCreateForUser(labId, patientUser);
+    }
   }
 
   return appointment;

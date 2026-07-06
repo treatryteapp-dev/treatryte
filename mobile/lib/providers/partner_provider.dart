@@ -221,4 +221,44 @@ class PartnerProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Finds-or-creates a patient directory entry by email, refreshing the
+  /// list either way - returns null on failure.
+  Future<PartnerPatient?> createPatient({
+    required String fullName,
+    required String email,
+    String? dateOfBirth,
+    String? gender,
+  }) async {
+    try {
+      final patient = await _service.createPatient(
+        fullName: fullName,
+        email: email,
+        dateOfBirth: dateOfBirth,
+        gender: gender,
+      );
+      await loadPatients();
+      return patient;
+    } on ApiException catch (e) {
+      patientsError = e.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> issueMedicalRecord(
+    String patientId, {
+    required String visitType,
+    String? notes,
+  }) async {
+    try {
+      await _service.issueMedicalRecord(patientId, visitType: visitType, notes: notes);
+      await loadPatientDetail(patientId);
+      return true;
+    } on ApiException catch (e) {
+      patientDetailError = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
 }

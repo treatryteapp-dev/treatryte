@@ -27,12 +27,163 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
   List<PartnerPatient> _filtered(List<PartnerPatient> all) {
     if (_searchQuery.isEmpty) return all;
     final q = _searchQuery.toLowerCase();
-    return all.where((p) => p.fullName.toLowerCase().contains(q)).toList();
+    return all
+        .where((p) =>
+            p.fullName.toLowerCase().contains(q) ||
+            p.email.toLowerCase().contains(q) ||
+            p.patientCode.toLowerCase().contains(q))
+        .toList();
   }
 
   void _selectPatient(String id) {
     setState(() => _selectedPatientId = id);
     context.read<PartnerProvider>().loadPatientDetail(id);
+  }
+
+  Future<void> _showAddPatientDialog() async {
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final partner = context.read<PartnerProvider>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New Patient'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Works for walk-ins too - no TreatRyte account needed. A unique patient ID is assigned automatically.',
+              style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextField(
+              controller: emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                hintText: 'Required identifier for this patient',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Add Patient'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    final name = nameCtrl.text.trim();
+    final email = emailCtrl.text.trim();
+    if (name.isEmpty || email.isEmpty) return;
+
+    final patient = await partner.createPatient(fullName: name, email: email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          patient != null
+              ? '$name added (${patient.patientCode}).'
+              : partner.patientsError ?? 'Failed to add patient.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showIssueRecordSheet(PartnerPatient patient) async {
+    final notesCtrl = TextEditingController();
+    String selectedVisitType = 'General Consultation';
+    const visitTypes = [
+      'General Consultation',
+      'Follow-up Visit',
+      'Lab Results Review',
+      'Specialist Referral',
+      'Telehealth',
+      'Emergency',
+    ];
+    final partner = context.read<PartnerProvider>();
+
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+            ),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Issue Medical Record — ${patient.fullName}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Visit Type'),
+                  child: DropdownButton<String>(
+                    value: selectedVisitType,
+                    underline: const SizedBox.shrink(),
+                    isExpanded: true,
+                    items: visitTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t))).toList(),
+                    onChanged: (val) => setSheetState(() => selectedVisitType = val ?? selectedVisitType),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  controller: notesCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Clinical Notes', alignLabelWithHint: true),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.save_outlined, size: 18),
+                    label: const Text('Save Record'),
+                    onPressed: () async {
+                      final ok = await partner.issueMedicalRecord(
+                        patient.id,
+                        visitType: selectedVisitType,
+                        notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+                      );
+                      if (ctx.mounted) Navigator.of(ctx).pop(ok);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted || saved == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(saved ? 'Record saved for ${patient.fullName}' : 'Failed to save record.')),
+    );
   }
 
   Future<void> _showInvitePatientDialog() async {
@@ -241,6 +392,12 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                         ],
                       ),
                     ),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.person_add_outlined, size: 18),
+                      label: const Text('New'),
+                      onPressed: _showAddPatientDialog,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
                     FilledButton.tonalIcon(
                       icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
                       label: const Text('Invite'),
@@ -253,7 +410,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                   controller: _searchController,
                   onChanged: (value) => setState(() => _searchQuery = value),
                   decoration: const InputDecoration(
-                    hintText: 'Search by name...',
+                    hintText: 'Search by name, email, or patient ID...',
                     prefixIcon: Icon(Icons.search, color: AppColors.outline),
                   ),
                 ),
@@ -277,7 +434,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                           child: Text(
-                            'No patients yet. Invite one to get started.',
+                            'No patients yet. Add a new patient or send an invite to get started.',
                             style: TextStyle(color: AppColors.outline),
                           ),
                         ),
@@ -363,6 +520,11 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                           '${_ageFromDob(detail.dateOfBirth)} years old • ${detail.gender ?? 'Unknown'}',
                                           style: textTheme.bodySmall,
                                         ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${detail.patientCode} • ${detail.email}',
+                                          style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -424,17 +586,85 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                 ],
                               ),
                               const Divider(height: AppSpacing.xl),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () => _showAddPrescriptionSheet(
-                                    filtered.firstWhere((p) => p.id == detail.id),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _showIssueRecordSheet(
+                                        filtered.firstWhere((p) => p.id == detail.id),
+                                      ),
+                                      icon: const Icon(Icons.assignment_outlined, size: 18),
+                                      label: const Text('Issue Record'),
+                                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                                    ),
                                   ),
-                                  icon: const Icon(Icons.add_reaction, size: 18),
-                                  label: const Text('Add Prescription'),
-                                  style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                                ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => _showAddPrescriptionSheet(
+                                        filtered.firstWhere((p) => p.id == detail.id),
+                                      ),
+                                      icon: const Icon(Icons.add_reaction, size: 18),
+                                      label: const Text('Add Prescription'),
+                                      style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                                    ),
+                                  ),
+                                ],
                               ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.folder_shared_outlined, color: AppColors.primary, size: 20),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Text('Medical Records', style: textTheme.headlineSmall?.copyWith(fontSize: 18)),
+                                ],
+                              ),
+                              const Divider(height: AppSpacing.lg),
+                              if (detail.medicalRecords.isEmpty)
+                                Text('No medical records issued yet.', style: textTheme.bodySmall)
+                              else
+                                for (final record in detail.medicalRecords)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surfaceContainer,
+                                            borderRadius: BorderRadius.circular(AppRadii.sm),
+                                          ),
+                                          child: const Icon(Icons.assignment_outlined, color: AppColors.primary, size: 16),
+                                        ),
+                                        const SizedBox(width: AppSpacing.md),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                record.visitType,
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                              ),
+                                              if (record.notes.isNotEmpty)
+                                                Text(record.notes, style: textTheme.bodySmall),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                             ],
                           ),
                         ),
