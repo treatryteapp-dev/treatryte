@@ -1,7 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/env.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -24,6 +27,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _gender;
   bool _agreedToTerms = false;
   DateTime? _dateOfBirth;
+  late final TapGestureRecognizer _termsRecognizer;
+  late final TapGestureRecognizer _privacyRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()..onTap = () => _openLegalPage('/terms');
+    _privacyRecognizer = TapGestureRecognizer()..onTap = () => _openLegalPage('/privacy');
+  }
 
   @override
   void dispose() {
@@ -32,7 +44,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _addressController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     super.dispose();
+  }
+
+  Future<void> _openLegalPage(String path) async {
+    final uri = Uri.parse('${AppConfig.landingPageUrl}$path');
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!mounted || opened) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Could not open this page.')),
+    );
   }
 
   Future<void> _pickDate() async {
@@ -186,27 +209,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Text.rich(
                           TextSpan(
                             style: textTheme.bodySmall,
-                            children: const [
-                              TextSpan(
+                            children: [
+                              const TextSpan(
                                 text: 'I certify that all provided information '
                                     'is accurate and I agree to the ',
                               ),
                               TextSpan(
                                 text: 'Terms of Service',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
+                                recognizer: _termsRecognizer,
                               ),
-                              TextSpan(text: ' and '),
+                              const TextSpan(text: ' and '),
                               TextSpan(
                                 text: 'Privacy Policy',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
+                                recognizer: _privacyRecognizer,
                               ),
-                              TextSpan(text: '.'),
+                              const TextSpan(text: '.'),
                             ],
                           ),
                         ),
@@ -236,10 +261,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                const Center(
+                Center(
                   child: Text(
-                    '© 2024 TreatRyte Technologies. All rights reserved.',
-                    style: TextStyle(fontSize: 11, color: AppColors.outline),
+                    '© ${DateTime.now().year} TreatRyte Technologies. All rights reserved.',
+                    style: const TextStyle(fontSize: 11, color: AppColors.outline),
                   ),
                 ),
               ],

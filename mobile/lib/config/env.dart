@@ -10,4 +10,11 @@ class AppConfig {
     'API_BASE_URL',
     defaultValue: 'https://treatryte-backend.up.railway.app/api',
   );
+
+  // Marketing site that hosts the Terms of Service and Privacy Policy pages
+  // linked from in-app legal copy.
+  static const landingPageUrl = String.fromEnvironment(
+    'LANDING_PAGE_URL',
+    defaultValue: 'https://treatryte-landing-page.up.railway.app',
+  );
 }

@@ -278,7 +278,7 @@ export const Login: React.FC = () => {
       {/* Simple Footer */}
       <footer style={{ width: '100%', textAlign: 'center', padding: '16px 0', borderTop: '1px solid rgba(61, 73, 71, 0.05)' }}>
         <p style={{ fontSize: '12px', color: '#bcc9c6' }}>
-          © 2024 TreatRyte. Clinical Precision. Financial Security.
+          © {new Date().getFullYear()} TreatRyte. Clinical Precision. Financial Security.
         </p>
       </footer>
 
