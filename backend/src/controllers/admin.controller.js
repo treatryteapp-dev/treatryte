@@ -1,5 +1,6 @@
 const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const { z } = require('zod');
 const labModel = require('../models/lab.model');
 const userModel = require('../models/user.model');
@@ -62,17 +63,28 @@ const listLabDocuments = asyncHandler(async (req, res) => {
 
 const approveLab = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);
-  const lab = await labModel.collection().findOneAndUpdate(
-    { _id: labId },
-    { $set: { status: 'approved', updatedAt: new Date() } },
-    { returnDocument: 'after' },
-  );
-  if (!lab) {
+
+  // Check if the lab already has an account number assigned (e.g. re-approval).
+  const existing = await labModel.findById(labId);
+  if (!existing) {
     throw new ApiError(404, 'Laboratory profile not found', 'NOT_FOUND');
   }
+
+  const updates = { status: 'approved', updatedAt: new Date() };
+  if (!existing.accountNumber) {
+    // Generate a unique partner account number: TR- followed by 8 uppercase hex chars.
+    updates.accountNumber = 'TR-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+  }
+
+  const lab = await labModel.collection().findOneAndUpdate(
+    { _id: labId },
+    { $set: updates },
+    { returnDocument: 'after' },
+  );
   notifyPartnerStatusWebhook(lab, 'approved');
-  res.json({ success: true });
+  res.json({ success: true, accountNumber: lab.accountNumber });
 });
+
 
 const rejectLab = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);
@@ -269,6 +281,27 @@ const deletePlan = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+const updatePlan = asyncHandler(async (req, res) => {
+  const planId = parseObjectId(req.params.id);
+  const { name, price, interval, type, features, excludedFeatures, nombaPlanId, transactionSplit } = req.body;
+  const updates = {};
+  if (name !== undefined) updates.name = name;
+  if (price !== undefined) updates.price = Number(price);
+  if (interval !== undefined) updates.interval = interval;
+  if (type !== undefined) updates.type = type;
+  if (features !== undefined) updates.features = features;
+  if (excludedFeatures !== undefined) updates.excludedFeatures = excludedFeatures;
+  if (nombaPlanId !== undefined) updates.nombaPlanId = nombaPlanId;
+  if (transactionSplit !== undefined) updates.transactionSplit = Number(transactionSplit);
+
+  const result = await planModel.update(planId, updates);
+  if (result.matchedCount === 0) {
+    throw new ApiError(404, 'Plan not found', 'NOT_FOUND');
+  }
+  const updated = await planModel.collection().findOne({ _id: planId });
+  res.json({ plan: updated });
+});
+
 const listSettlements = asyncHandler(async (req, res) => {
   const outstanding = await settlementService.computeOutstanding();
   const history = await settlementModel.listHistory();
@@ -366,6 +399,7 @@ module.exports = {
   listPlans,
   createPlan,
   deletePlan,
+  updatePlan,
   listSettlements,
   triggerSettlements,
   listBanks,

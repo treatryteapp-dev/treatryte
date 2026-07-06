@@ -1,9 +1,123 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+
+/// Shows the Issue Record bottom sheet. Extracted as a top-level function
+/// so it can be called from both the home tab button and the global FAB
+/// in MainShell without creating a dependency cycle.
+void showIssueRecordSheet(BuildContext context) {
+  final patientCtrl = TextEditingController();
+  final notesCtrl = TextEditingController();
+  String selectedVisitType = 'General Consultation';
+  const visitTypes = [
+    'General Consultation',
+    'Follow-up Visit',
+    'Lab Results Review',
+    'Specialist Referral',
+    'Telehealth',
+    'Emergency',
+  ];
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setSheetState) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+          ),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(AppRadii.full),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  const Icon(Icons.assignment_outlined, color: AppColors.primary),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Text(
+                    'Issue Medical Record',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: patientCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Patient Name or ID',
+                  hintText: 'e.g. Aisha Bello or TR-8821',
+                  prefixIcon: Icon(Icons.person_search_outlined),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              InputDecorator(
+                decoration: const InputDecoration(labelText: 'Visit Type'),
+                child: DropdownButton<String>(
+                  value: selectedVisitType,
+                  underline: const SizedBox.shrink(),
+                  isExpanded: true,
+                  items: visitTypes
+                      .map((t) => DropdownMenuItem<String>(value: t, child: Text(t)))
+                      .toList(),
+                  onChanged: (val) =>
+                      setSheetState(() => selectedVisitType = val ?? selectedVisitType),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: notesCtrl,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Clinical Notes',
+                  hintText: 'Findings, symptoms, treatment plan...',
+                  alignLabelWithHint: true,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.save_outlined, size: 18),
+                  label: const Text('Save Record'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Medical record issued successfully.'),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
 class PartnerHomeTab extends StatefulWidget {
   const PartnerHomeTab({super.key});
@@ -89,11 +203,7 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Quick Record modal would open here.')),
-                      );
-                    },
+                    onPressed: () => showIssueRecordSheet(context),
                     icon: const Icon(Icons.assignment_outlined, size: 18),
                     label: const Text('Issue Record'),
                     style: ElevatedButton.styleFrom(
@@ -112,7 +222,14 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Upcoming', style: textTheme.headlineSmall),
-                TextButton(onPressed: () {}, child: const Text('View All')),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Switch to the Appointments tab to see all.')),
+                    );
+                  },
+                  child: const Text('View All'),
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),

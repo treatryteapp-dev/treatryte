@@ -54,6 +54,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
   // Step 3 Confirmation
   bool _attested = false;
 
+  // Guards the submit call: prevents a second tap entering _submit() during
+  // the await window before auth.isLoading flips to true.
+  bool _submitting = false;
+
   @override
   void dispose() {
     _facilityNameController.dispose();
@@ -92,12 +96,14 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return; // guard against double-tap
     if (!_attested) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please check the attestation checkbox.')),
       );
       return;
     }
+    setState(() => _submitting = true);
 
     final auth = context.read<AuthProvider>();
     final success = await auth.register(
@@ -119,6 +125,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
 
     if (!mounted) return;
     if (!success) {
+      setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(auth.errorMessage ?? 'Registration failed')),
       );
@@ -146,8 +153,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       );
     }
 
+    // Navigate to success screen and clear the submitting guard.
     setState(() {
-      _currentStep = 4; // Go to success screen
+      _currentStep = 4;
+      _submitting = false;
     });
   }
 
@@ -848,7 +857,9 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: auth.isLoading
+              // Disable the button when loading OR when a submission is already
+              // in-flight (closes the race window before auth.isLoading flips).
+              onPressed: (auth.isLoading || _submitting)
                   ? null
                   : () {
                       if (_currentStep == 0) {
@@ -863,7 +874,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                         _submit();
                       }
                     },
-              child: auth.isLoading
+              child: (auth.isLoading || _submitting)
                   ? const SizedBox(
                       width: 20,
                       height: 20,

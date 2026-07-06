@@ -1,57 +1,85 @@
-import React, { useEffect, useState } from 'react';
-import { ShieldCheck, Check, FileText, ZoomIn, Download, Maximize, XCircle } from 'lucide-react';
-import { api, type LabProfile } from '../services/api';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ShieldCheck, Check, FileText, XCircle, ExternalLink, RefreshCw, BadgeCheck } from 'lucide-react';
+import { api, type LabDocument, type LabProfile } from '../services/api';
+
+type Tab = 'new' | 'review' | 'accepted';
+
+/* ─────────────────────────────────────────────── helpers ── */
+
+const statusColor = (status: string) => {
+  if (status === 'approved') return { bg: '#d1fae5', text: '#065f46' };
+  if (status === 'rejected') return { bg: '#fee2e2', text: '#991b1b' };
+  return { bg: '#fef3c7', text: '#92400e' };
+};
+
+/* ─────────────────────────────────────────────── component ── */
 
 export const PartnerVetting: React.FC = () => {
   const [labs, setLabs] = useState<LabProfile[]>([]);
   const [selectedLab, setSelectedLab] = useState<LabProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<'new' | 'review'>('new');
+  const [activeTab, setActiveTab] = useState<Tab>('new');
   const [loading, setLoading] = useState(true);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const loadLabs = () => {
+  // Documents loaded per selected lab
+  const [documents, setDocuments] = useState<LabDocument[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsError, setDocsError] = useState<string | null>(null);
+
+  /* ── data loading ── */
+
+  const loadLabs = useCallback(() => {
     setLoading(true);
     api.fetchLabs()
       .then((data) => {
         setLabs(data);
-        const filtered = data.filter(l => activeTab === 'new' ? l.status === 'pending' : l.status === 'rejected');
-        if (filtered.length > 0) {
-          setSelectedLab(filtered[0]);
-        } else {
-          setSelectedLab(null);
-        }
-        setLoading(false);
+        const filtered = filterByTab(data, activeTab);
+        setSelectedLab(filtered.length > 0 ? filtered[0] : null);
       })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
-  };
-
-  const handleTabChange = (tab: 'new' | 'review') => {
-    setActiveTab(tab);
-    const filtered = labs.filter(l => tab === 'new' ? l.status === 'pending' : l.status === 'rejected');
-    if (filtered.length > 0) {
-      setSelectedLab(filtered[0]);
-    } else {
-      setSelectedLab(null);
-    }
-  };
-
-  useEffect(() => {
-    loadLabs();
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [activeTab]);
+
+  useEffect(() => { loadLabs(); }, [loadLabs]);
+
+  // Load real signed documents when a lab is selected
+  useEffect(() => {
+    if (!selectedLab) {
+      setDocuments([]);
+      return;
+    }
+    setDocsLoading(true);
+    setDocsError(null);
+    api.fetchLabDocuments(selectedLab._id)
+      .then(setDocuments)
+      .catch((err) => setDocsError(err.message ?? 'Failed to load documents'))
+      .finally(() => setDocsLoading(false));
+  }, [selectedLab?._id]);
+
+  /* ── tab helpers ── */
+
+  function filterByTab(data: LabProfile[], tab: Tab) {
+    if (tab === 'new') return data.filter(l => l.status === 'pending');
+    if (tab === 'review') return data.filter(l => l.status === 'rejected');
+    return data.filter(l => l.status === 'approved');
+  }
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    const filtered = filterByTab(labs, tab);
+    setSelectedLab(filtered.length > 0 ? filtered[0] : null);
+  };
+
+  /* ── actions ── */
 
   const handleApprove = async () => {
     if (!selectedLab) return;
     setSubmitting(true);
     const success = await api.approveLab(selectedLab._id);
     setSubmitting(false);
-    if (success) {
-      loadLabs();
-    }
+    if (success) loadLabs();
   };
 
   const handleReject = async () => {
@@ -66,26 +94,63 @@ export const PartnerVetting: React.FC = () => {
     }
   };
 
-  const setDeclineText = (text: string) => {
-    setDeclineReason(text);
-  };
+  /* ── derived counts ── */
+
+  const pendingCount = labs.filter(l => l.status === 'pending').length;
+  const declinedCount = labs.filter(l => l.status === 'rejected').length;
+  const acceptedCount = labs.filter(l => l.status === 'approved').length;
+  const displayedLabs = filterByTab(labs, activeTab);
+
+  /* ── loading state ── */
 
   if (loading && labs.length === 0) {
     return (
       <div className="flex-center" style={{ minHeight: '300px', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#004e47', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#004e47', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         <p>Loading onboarding pipelines...</p>
       </div>
     );
   }
 
-  const pendingCount = labs.filter(l => l.status === 'pending').length;
-  const declinedCount = labs.filter(l => l.status === 'rejected').length;
-  const displayedLabs = labs.filter(l => activeTab === 'new' ? l.status === 'pending' : l.status === 'rejected');
+  /* ── tab button ── */
+
+  const TabButton = ({ tab, label, count }: { tab: Tab; label: string; count: number }) => (
+    <button
+      onClick={() => handleTabChange(tab)}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '0 4px',
+        height: '100%',
+        border: 'none',
+        background: 'none',
+        color: activeTab === tab ? '#004e47' : '#545f73',
+        fontWeight: activeTab === tab ? '700' : '500',
+        borderBottom: activeTab === tab ? '2px solid #004e47' : '2px solid transparent',
+        fontSize: '14px',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+      <span style={{
+        backgroundColor: activeTab === tab ? '#00685f' : '#e1e2e5',
+        color: activeTab === tab ? '#93e4d8' : '#191c1e',
+        padding: '2px 8px',
+        borderRadius: '10px',
+        fontSize: '11px',
+      }}>
+        {count}
+      </span>
+    </button>
+  );
 
   return (
     <div style={{ margin: '-32px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-      {/* Sub-navigation switcher */}
+
+      {/* ── Sub-navigation ── */}
       <section style={{
         backgroundColor: '#ffffff',
         padding: '0 32px',
@@ -94,417 +159,332 @@ export const PartnerVetting: React.FC = () => {
         justifyContent: 'space-between',
         borderBottom: '1px solid #E2E8F0',
         height: '56px',
-        flexShrink: 0
+        flexShrink: 0,
       }}>
         <div style={{ display: 'flex', gap: '32px', height: '100%' }}>
-          <button
-            onClick={() => handleTabChange('new')}
-            style={{
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '0 4px',
-              border: 'none',
-              background: 'none',
-              color: activeTab === 'new' ? '#004e47' : '#545f73',
-              fontWeight: activeTab === 'new' ? '700' : '500',
-              borderBottom: activeTab === 'new' ? '2px solid #004e47' : 'none',
-              fontSize: '14px',
-              cursor: 'pointer'
-            }}
-          >
-            New Requests
-            <span style={{
-              backgroundColor: activeTab === 'new' ? '#00685f' : '#e1e2e5',
-              color: activeTab === 'new' ? '#93e4d8' : '#191c1e',
-              padding: '2px 8px',
-              borderRadius: '10px',
-              fontSize: '11px'
-            }}>
-              {pendingCount}
-            </span>
-          </button>
-          <button
-            onClick={() => handleTabChange('review')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '0 4px',
-              border: 'none',
-              background: 'none',
-              color: activeTab === 'review' ? '#004e47' : '#545f73',
-              fontWeight: activeTab === 'review' ? '700' : '500',
-              borderBottom: activeTab === 'review' ? '2px solid #004e47' : 'none',
-              fontSize: '14px',
-              cursor: 'pointer'
-            }}
-          >
-            Declined
-            <span style={{
-              backgroundColor: activeTab === 'review' ? '#00685f' : '#e1e2e5',
-              color: activeTab === 'review' ? '#93e4d8' : '#191c1e',
-              padding: '2px 8px',
-              borderRadius: '10px',
-              fontSize: '11px'
-            }}>
-              {declinedCount}
-            </span>
-          </button>
+          <TabButton tab="new" label="New Requests" count={pendingCount} />
+          <TabButton tab="accepted" label="Accepted" count={acceptedCount} />
+          <TabButton tab="review" label="Declined" count={declinedCount} />
         </div>
-
-        {/* Dropdown to select lab */}
-        {displayedLabs.length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#545f73', fontWeight: '600' }}>Active File:</span>
-            <select
-              value={selectedLab?._id || ''}
-              onChange={(e) => {
-                const lab = displayedLabs.find(l => l._id === e.target.value);
-                if (lab) setSelectedLab(lab);
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #E2E8F0',
-                fontSize: '13px',
-                fontWeight: '600',
-                color: '#0b1c30',
-                backgroundColor: 'white',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              {displayedLabs.map(l => (
-                <option key={l._id} value={l._id}>{l.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        <button
+          onClick={loadLabs}
+          title="Refresh"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#545f73', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+        >
+          <RefreshCw size={15} />
+          Refresh
+        </button>
       </section>
 
-      {/* Main split canvas */}
+      {/* ── Main split canvas ── */}
       {displayedLabs.length === 0 || selectedLab === null ? (
         <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '48px', backgroundColor: '#F8FAFC' }}>
           <ShieldCheck size={64} style={{ color: '#006c4a', marginBottom: '24px' }} />
           <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0b1c30' }}>
-            {activeTab === 'new' ? 'No pending applications' : 'No declined applications'}
+            {activeTab === 'new' ? 'No pending applications' : activeTab === 'accepted' ? 'No accepted partners yet' : 'No declined applications'}
           </h3>
           <p style={{ color: '#545f73', marginTop: '8px' }}>
-            {activeTab === 'new' ? 'All clinical providers have been cleared and verified.' : 'No partner applications have been declined.'}
+            {activeTab === 'new'
+              ? 'All clinical providers have been cleared and verified.'
+              : activeTab === 'accepted'
+              ? 'Approved partners will appear here.'
+              : 'No partner applications have been declined.'}
           </p>
         </div>
       ) : (
         <div style={{ flexGrow: 1, display: 'flex', overflow: 'hidden' }}>
-          
-          {/* Left panel: Document Preview */}
-          <section style={{ width: '50%', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
-            <div style={{
-              padding: '16px 24px',
-              borderBottom: '1px solid #E2E8F0',
-              backgroundColor: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <h4 style={{ fontSize: '12px', fontWeight: '700', color: '#545f73', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Document Preview: MDCN Medical License
-              </h4>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn btn-outline" style={{ padding: '6px', backgroundColor: 'white' }}><ZoomIn size={16} /></button>
-                <button className="btn btn-outline" style={{ padding: '6px', backgroundColor: 'white' }}><Download size={16} /></button>
-                <button className="btn btn-outline" style={{ padding: '6px', backgroundColor: 'white' }}><Maximize size={16} /></button>
-              </div>
+
+          {/* ─── Left panel: scrollable partner list ─── */}
+          <aside style={{
+            width: '260px',
+            flexShrink: 0,
+            borderRight: '1px solid #E2E8F0',
+            backgroundColor: '#f8fafc',
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'auto',
+          }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#fff' }}>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: '#545f73', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {displayedLabs.length} {activeTab === 'new' ? 'Pending' : activeTab === 'accepted' ? 'Approved' : 'Declined'}
+              </span>
             </div>
-            
-            <div style={{ flexGrow: 1, overflowY: 'auto', padding: '32px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-              {/* Document Mock */}
-              <div style={{
-                width: '100%',
-                maxWidth: '460px',
-                minHeight: '620px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                border: '1px solid #E2E8F0',
-                boxShadow: 'var(--shadow-md)',
-                padding: '40px',
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px' }}>
-                  <div style={{ width: '64px', height: '64px', backgroundColor: '#eceef0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#004e47' }}>
-                    <FileText size={36} />
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: '800', textTransform: 'uppercase', color: '#0b1c30' }}>Official Certification</h3>
-                    <span style={{ fontSize: '10px', color: '#545f73' }}>VA-992384-LIC</span>
-                  </div>
-                </div>
-
-                <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '16px' }}>
-                    <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase' }}>CERTIFIED MEDICAL PRACTITIONER</span>
-                    <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#004e47', marginTop: '4px' }}>
-                      {selectedLab.name}
-                    </h2>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase' }}>MDCN REGISTERED LICENSE NUMBER</span>
-                    <p style={{ fontSize: '16px', fontWeight: '700', color: '#0b1c30', marginTop: '2px' }}>
-                      {selectedLab.licenseNumber || 'PENDING SYNC'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase' }}>REGISTERED ADDRESS COORDINATES</span>
-                    <p style={{ fontSize: '13px', color: '#191c1e', marginTop: '2px' }}>
-                      {selectedLab.address}
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
-                    <div>
-                      <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase' }}>ISSUE DATE</span>
-                      <p style={{ fontSize: '13px', fontWeight: '600', color: '#0b1c30' }}>Jan 12, 2020</p>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase' }}>EXPIRATION DATE</span>
-                      <p style={{ fontSize: '13px', fontWeight: '600', color: '#0b1c30' }}>Dec 31, 2030</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ borderTop: '2px solid #004e47', paddingTop: '16px', marginTop: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '10px', color: '#545f73', fontWeight: '600' }}>MEDICAL DENTAL COUNCIL OF NIGERIA</span>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '4px solid rgba(0, 78, 71, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ShieldCheck size={20} style={{ color: '#004e47' }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Right panel: Application Details & Decision */}
-          <section style={{ width: '50%', backgroundColor: '#f2f4f6', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ flexGrow: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Applicant Header */}
-              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(15,23,42,0.02)' }}>
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '24px' }}>
+            {displayedLabs.map((lab) => {
+              const isActive = lab._id === selectedLab._id;
+              const sc = statusColor(lab.status);
+              return (
+                <button
+                  key={lab._id}
+                  onClick={() => setSelectedLab(lab)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '14px 16px',
+                    border: 'none',
+                    borderBottom: '1px solid #E2E8F0',
+                    backgroundColor: isActive ? '#e6f4f2' : 'transparent',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    borderLeft: isActive ? '3px solid #004e47' : '3px solid transparent',
+                    transition: 'background 0.15s',
+                  }}
+                >
                   <div style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '12px',
-                    backgroundColor: '#e6f4f2',
-                    border: '1px solid #E2E8F0',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    backgroundColor: isActive ? '#004e47' : '#e6f4f2',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '24px',
+                    fontSize: '13px',
                     fontWeight: '700',
-                    color: '#004e47'
+                    color: isActive ? '#ffffff' : '#004e47',
+                    flexShrink: 0,
                   }}>
+                    {lab.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ overflow: 'hidden' }}>
+                    <p style={{ fontSize: '13px', fontWeight: '600', color: '#0b1c30', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
+                      {lab.name}
+                    </p>
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      backgroundColor: sc.bg,
+                      color: sc.text,
+                      padding: '1px 6px',
+                      borderRadius: '8px',
+                      textTransform: 'uppercase',
+                    }}>
+                      {lab.status}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </aside>
+
+          {/* ─── Centre panel: Document viewer ─── */}
+          <section style={{ flex: 1, borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC', minWidth: 0 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <h4 style={{ fontSize: '12px', fontWeight: '700', color: '#545f73', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
+                Uploaded Documents — {selectedLab.name}
+              </h4>
+              {docsLoading && (
+                <div style={{ width: '16px', height: '16px', border: '2px solid #E2E8F0', borderTopColor: '#004e47', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              )}
+            </div>
+
+            <div style={{ flexGrow: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {docsError ? (
+                <div style={{ padding: '16px', backgroundColor: '#fee2e2', borderRadius: '8px', color: '#991b1b', fontSize: '13px' }}>
+                  ⚠ {docsError}
+                </div>
+              ) : documents.length === 0 && !docsLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px', color: '#545f73', gap: '12px' }}>
+                  <FileText size={40} style={{ color: '#CBD5E1' }} />
+                  <p style={{ margin: 0, fontSize: '14px' }}>No documents uploaded yet for this partner.</p>
+                </div>
+              ) : (
+                documents.map((doc) => {
+                  const isPdf = doc.mimeType === 'application/pdf';
+                  const isImage = doc.mimeType.startsWith('image/');
+                  return (
+                    <div key={doc.id} style={{ backgroundColor: 'white', borderRadius: '10px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                      {/* Header row */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <FileText size={16} style={{ color: '#004e47' }} />
+                          <div>
+                            <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#0b1c30' }}>{doc.fileName}</p>
+                            <p style={{ margin: 0, fontSize: '11px', color: '#545f73' }}>{doc.mimeType} · {new Date(doc.uploadedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                          </div>
+                        </div>
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: '#004e47', textDecoration: 'none', padding: '6px 12px', border: '1px solid #004e47', borderRadius: '6px' }}
+                        >
+                          <ExternalLink size={13} />
+                          Open
+                        </a>
+                      </div>
+
+                      {/* Preview area */}
+                      <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px', backgroundColor: '#fafafa' }}>
+                        {isPdf ? (
+                          <iframe
+                            src={doc.url}
+                            title={doc.fileName}
+                            style={{ width: '100%', height: '480px', border: 'none', borderRadius: '4px' }}
+                          />
+                        ) : isImage ? (
+                          <img
+                            src={doc.url}
+                            alt={doc.fileName}
+                            style={{ maxWidth: '100%', maxHeight: '480px', borderRadius: '6px', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <div style={{ textAlign: 'center', color: '#545f73', fontSize: '13px' }}>
+                            <FileText size={32} style={{ marginBottom: '8px', color: '#CBD5E1' }} />
+                            <p style={{ margin: 0 }}>Preview not available</p>
+                            <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color: '#004e47', fontWeight: '600' }}>Download to view</a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+
+          {/* ─── Right panel: Application Details & Decision ─── */}
+          <section style={{ width: '340px', flexShrink: 0, backgroundColor: '#f2f4f6', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ flexGrow: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {/* Applicant header */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '12px', backgroundColor: '#e6f4f2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700', color: '#004e47', flexShrink: 0 }}>
                     {selectedLab.name.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0b1c30' }}>{selectedLab.name}</h3>
-                    <p style={{ fontSize: '13px', color: '#545f73', marginTop: '2px' }}>Clinical Diagnostics Partner</p>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#6cf8bb', color: '#00714d', padding: '2px 8px', borderRadius: '12px', textTransform: 'uppercase' }}>
-                        Verified Identity
-                      </span>
-                      <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#eceef0', color: '#545f73', padding: '2px 8px', borderRadius: '12px', textTransform: 'uppercase' }}>
-                        Level 3 Partner
-                      </span>
-                    </div>
+                    <h3 style={{ fontSize: '17px', fontWeight: '700', color: '#0b1c30', margin: 0 }}>{selectedLab.name}</h3>
+                    <p style={{ fontSize: '12px', color: '#545f73', marginTop: '2px', marginBottom: '6px' }}>Clinical Diagnostics Partner</p>
+                    <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: statusColor(selectedLab.status).bg, color: statusColor(selectedLab.status).text, padding: '2px 8px', borderRadius: '12px', textTransform: 'uppercase' }}>
+                      {selectedLab.status}
+                    </span>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', borderTop: '1px solid #E2E8F0', paddingTop: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', borderTop: '1px solid #E2E8F0', paddingTop: '16px' }}>
                   <div>
-                    <span style={{ fontSize: '11px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>BANK SETTLEMENT NAME</span>
-                    <p style={{ fontSize: '13px', color: '#191c1e', fontWeight: '600', marginTop: '2px' }}>{selectedLab.bankDetails?.bankName || 'N/A'}</p>
+                    <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>Bank Name</span>
+                    <p style={{ fontSize: '12px', color: '#191c1e', fontWeight: '600', marginTop: '2px', marginBottom: 0 }}>{selectedLab.bankDetails?.bankName || 'N/A'}</p>
                   </div>
                   <div>
-                    <span style={{ fontSize: '11px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>ACCOUNT NUMBER</span>
-                    <p style={{ fontSize: '13px', color: '#191c1e', fontWeight: '600', marginTop: '2px' }}>{selectedLab.bankDetails?.accountNumber || 'N/A'}</p>
+                    <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>Bank Acct No.</span>
+                    <p style={{ fontSize: '12px', color: '#191c1e', fontWeight: '600', marginTop: '2px', marginBottom: 0 }}>{selectedLab.bankDetails?.accountNumber || 'N/A'}</p>
                   </div>
                   <div>
-                    <span style={{ fontSize: '11px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>OFFERED SERVICES</span>
-                    <p style={{ fontSize: '13px', color: '#191c1e', fontWeight: '600', marginTop: '2px', textTransform: 'capitalize' }}>
-                      {selectedLab.services.join(', ')}
-                    </p>
+                    <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>License No.</span>
+                    <p style={{ fontSize: '12px', color: '#191c1e', fontWeight: '600', marginTop: '2px', marginBottom: 0 }}>{selectedLab.licenseNumber || 'PENDING'}</p>
                   </div>
                   <div>
-                    <span style={{ fontSize: '11px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>STATUS</span>
-                    <p style={{ fontSize: '13px', color: selectedLab.status === 'approved' ? '#10B981' : '#F59E0B', fontWeight: '700', marginTop: '2px', textTransform: 'uppercase' }}>
-                      {selectedLab.status}
-                    </p>
+                    <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>Status</span>
+                    <p style={{ fontSize: '12px', color: statusColor(selectedLab.status).text, fontWeight: '700', marginTop: '2px', marginBottom: 0, textTransform: 'uppercase' }}>{selectedLab.status}</p>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <span style={{ fontSize: '10px', color: '#545f73', textTransform: 'uppercase', fontWeight: '600' }}>Services</span>
+                    <p style={{ fontSize: '12px', color: '#191c1e', fontWeight: '600', marginTop: '2px', marginBottom: 0, textTransform: 'capitalize' }}>{selectedLab.services.join(', ') || 'N/A'}</p>
                   </div>
                 </div>
+
+                {/* TreatRyte Account Number (shows after approval) */}
+                {selectedLab.accountNumber && (
+                  <div style={{ marginTop: '14px', padding: '12px', backgroundColor: '#e6f4f2', borderRadius: '8px', border: '1px solid #99d6cf', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <BadgeCheck size={18} style={{ color: '#004e47', flexShrink: 0 }} />
+                    <div>
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: '#004e47', textTransform: 'uppercase' }}>TreatRyte Account No.</span>
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#003b35', letterSpacing: '0.5px' }}>{selectedLab.accountNumber}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Submission Checklist */}
-              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(15,23,42,0.02)' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#0b1c30', marginBottom: '16px' }}>Submission Checklist</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'rgba(108, 248, 187, 0.1)', border: '1px solid rgba(108, 248, 187, 0.3)', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Check size={16} style={{ color: '#00714d' }} />
-                      <span style={{ fontSize: '13px', color: '#191c1e' }}>State Medical License</span>
+              {/* Checklist */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '700', color: '#0b1c30', marginBottom: '14px', marginTop: 0 }}>Submission Checklist</h4>
+                {[
+                  { label: 'State Medical License', verified: true },
+                  { label: 'Professional Liability Insurance', verified: true },
+                  { label: 'Clinical Board Certification', verified: selectedLab.status === 'approved' },
+                ].map((item) => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', marginBottom: '8px', backgroundColor: item.verified ? 'rgba(108,248,187,0.1)' : '#f8f9fc', border: `1px solid ${item.verified ? 'rgba(108,248,187,0.3)' : '#E2E8F0'}`, borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {item.verified ? <Check size={14} style={{ color: '#00714d' }} /> : <FileText size={14} style={{ color: '#545f73' }} />}
+                      <span style={{ fontSize: '12px', color: '#191c1e' }}>{item.label}</span>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#004e47', fontWeight: '700' }}>Verified</span>
+                    <span style={{ fontSize: '10px', color: item.verified ? '#004e47' : '#545f73', fontWeight: '600' }}>
+                      {item.verified ? 'Verified' : 'Pending'}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '12px', backgroundColor: 'rgba(108, 248, 187, 0.1)', border: '1px solid rgba(108, 248, 187, 0.3)', borderRadius: '8px', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Check size={16} style={{ color: '#00714d' }} />
-                      <span style={{ fontSize: '13px', color: '#191c1e' }}>Professional Liability Insurance</span>
-                    </div>
-                    <span style={{ fontSize: '11px', color: '#004e47', fontWeight: '700' }}>Verified</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '12px', backgroundColor: '#f8f9fc', border: '1px solid #E2E8F0', borderRadius: '8px', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <FileText size={16} style={{ color: '#545f73' }} />
-                      <span style={{ fontSize: '13px', color: '#191c1e' }}>Clinical Board Certification</span>
-                    </div>
-                    <span style={{ fontSize: '11px', color: '#545f73', fontWeight: '600' }}>{selectedLab.status === 'approved' ? 'Approved' : 'Review Now'}</span>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Decision Footer Panel */}
-            <div style={{
-              padding: '24px 32px',
-              backgroundColor: 'white',
-              borderTop: '1px solid #E2E8F0',
-              display: 'flex',
-              gap: '16px',
-              flexShrink: 0
-            }}>
+            {/* Decision footer */}
+            <div style={{ padding: '20px 24px', backgroundColor: 'white', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '12px', flexShrink: 0 }}>
               {selectedLab.status === 'pending' ? (
                 <>
                   <button
                     disabled={submitting}
                     onClick={() => setShowDeclineModal(true)}
                     className="btn btn-outline"
-                    style={{ flexGrow: 1, padding: '14px', fontSize: '14px', fontWeight: '700', color: '#EF4444', borderColor: '#EF4444' }}
+                    style={{ flexGrow: 1, padding: '12px', fontSize: '13px', fontWeight: '700', color: '#EF4444', borderColor: '#EF4444' }}
                   >
-                    Decline with Feedback
+                    Decline
                   </button>
                   <button
                     disabled={submitting}
                     onClick={handleApprove}
                     className="btn btn-primary"
-                    style={{ flexGrow: 2, padding: '14px', fontSize: '14px', fontWeight: '700', backgroundColor: '#004e47' }}
+                    style={{ flexGrow: 2, padding: '12px', fontSize: '13px', fontWeight: '700', backgroundColor: '#004e47' }}
                   >
                     {submitting ? 'Processing...' : 'Approve Partnership'}
                   </button>
                 </>
               ) : (
-                <div style={{ width: '100%', textAlign: 'center', color: '#545f73', fontWeight: '600', fontSize: '14px' }}>
-                  Audited & Cleared: {selectedLab.status.toUpperCase()}
+                <div style={{ width: '100%', textAlign: 'center', color: '#545f73', fontWeight: '600', fontSize: '13px' }}>
+                  Audited &amp; Cleared: {selectedLab.status.toUpperCase()}
                 </div>
               )}
             </div>
           </section>
-
         </div>
       )}
 
-      {/* Decline Response Modal */}
+      {/* ── Decline modal ── */}
       {showDeclineModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(11, 28, 48, 0.6)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '512px',
-            padding: '24px',
-            border: '1px solid #E2E8F0',
-            boxShadow: 'var(--shadow-lg)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0b1c30' }}>Decline Application</h3>
-              <button
-                onClick={() => setShowDeclineModal(false)}
-                style={{ background: 'none', border: 'none', color: '#545f73', cursor: 'pointer' }}
-              >
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(11,28,48,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '512px', padding: '24px', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0b1c30', margin: 0 }}>Decline Application</h3>
+              <button onClick={() => setShowDeclineModal(false)} style={{ background: 'none', border: 'none', color: '#545f73', cursor: 'pointer' }}>
                 <XCircle size={20} />
               </button>
             </div>
-
-            <p style={{ fontSize: '14px', color: '#545f73', marginBottom: '20px' }}>
-              Please select or enter the compliance feedback for declining this partner's registration.
+            <p style={{ fontSize: '13px', color: '#545f73', marginBottom: '16px', marginTop: 0 }}>
+              Select or enter compliance feedback to send to the partner.
             </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#545f73', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
-                  Quick Reasons
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <button
-                    onClick={() => setDeclineText('Incomplete documentation: Medical License was blurred.')}
-                    style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '16px', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: 'pointer' }}
-                  >
-                    Incomplete Docs
-                  </button>
-                  <button
-                    onClick={() => setDeclineText('Certification Expired: Please upload a current Board Certification.')}
-                    style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '16px', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: 'pointer' }}
-                  >
-                    Expired Certs
-                  </button>
-                  <button
-                    onClick={() => setDeclineText('NPI Mismatch: The provided NPI does not match public records.')}
-                    style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '16px', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: 'pointer' }}
-                  >
-                    NPI Error
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#545f73', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
-                  Detailed Feedback
-                </span>
-                <textarea
-                  value={declineReason}
-                  onChange={(e) => setDeclineReason(e.target.value)}
-                  placeholder="Enter detailed reasons here..."
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid #E2E8F0',
-                    fontSize: '13px',
-                    outline: 'none',
-                    resize: 'none'
-                  }}
-                />
-              </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+              {[
+                'Incomplete documentation: Medical License was blurred.',
+                'Certification Expired: Please upload a current Board Certification.',
+                'NPI Mismatch: The provided NPI does not match public records.',
+              ].map((reason) => (
+                <button
+                  key={reason}
+                  onClick={() => setDeclineReason(reason)}
+                  style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '16px', border: '1px solid #E2E8F0', backgroundColor: declineReason === reason ? '#e6f4f2' : 'white', cursor: 'pointer', color: declineReason === reason ? '#004e47' : '#191c1e', fontWeight: declineReason === reason ? '700' : '400' }}
+                >
+                  {reason.split(':')[0]}
+                </button>
+              ))}
             </div>
-
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <button
-                onClick={() => setShowDeclineModal(false)}
-                className="btn btn-outline"
-                style={{ flexGrow: 1, padding: '12px' }}
-              >
+            <textarea
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              placeholder="Enter detailed reasons here..."
+              rows={4}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+              <button onClick={() => setShowDeclineModal(false)} className="btn btn-outline" style={{ flexGrow: 1, padding: '12px' }}>
                 Cancel
               </button>
               <button

@@ -60,22 +60,68 @@ class AuthService {
     return AuthResult(result.user);
   }
 
-  Future<AuthResult> login({required String email, required String password}) async {
+  Future<AuthResult> login({
+    required String email,
+    required String password,
+    bool keepLoggedIn = true,
+  }) async {
     final result = await _api.post(
       '/auth/login',
       _parseAuthResponse,
       body: {'email': email, 'password': password},
     );
     await _storage.saveTokens(accessToken: result.accessToken, refreshToken: result.refreshToken);
+    // Persist the user's session preference so checkSession() knows whether to
+    // restore the session on a future cold start.
+    await _storage.saveKeepLoggedIn(keepLoggedIn);
     return AuthResult(result.user);
   }
 
+  /// Returns the current user if a valid (or refreshable) session exists.
+  ///
+  /// Behaviour:
+  /// - If [keepLoggedIn] is false (session-only), tokens are wiped on a cold
+  ///   start before we even try the network, logging the user out immediately.
+  /// - If the access token has expired (401), we attempt a silent refresh
+  ///   using the stored refresh token before giving up, so the user stays
+  ///   logged in for up to 30 days without re-entering their credentials.
   Future<AppUser?> fetchCurrentUser() async {
+    final keep = await _storage.keepLoggedIn;
+    if (!keep) {
+      // Session-only preference: clear tokens so the user is prompted to log
+      // in again on the next cold start (e.g. after app is fully killed).
+      await _storage.clear();
+      return null;
+    }
+
     final token = await _storage.accessToken;
     if (token == null) return null;
+
     try {
       return await _api.get('/auth/me', (data) => AppUser.fromJson(data['user']));
-    } on ApiException {
+    } on ApiException catch (e) {
+      // 401 means the access token has expired. Try a silent refresh once.
+      if (e.statusCode == 401) {
+        try {
+          final refreshToken = await _storage.refreshToken;
+          if (refreshToken == null) return null;
+
+          final refreshed = await _api.post(
+            '/auth/refresh',
+            _parseAuthResponse,
+            body: {'refreshToken': refreshToken},
+          );
+          await _storage.saveTokens(
+            accessToken: refreshed.accessToken,
+            refreshToken: refreshed.refreshToken,
+          );
+          return refreshed.user;
+        } on ApiException {
+          // Refresh also failed — session is fully expired. Clear credentials.
+          await _storage.clear();
+          return null;
+        }
+      }
       return null;
     }
   }
@@ -91,3 +137,4 @@ class AuthService {
     }
   }
 }
+

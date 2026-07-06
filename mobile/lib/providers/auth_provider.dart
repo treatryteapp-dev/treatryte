@@ -56,8 +56,18 @@ class AuthProvider extends ChangeNotifier {
             accountNumber: accountNumber,
           ));
 
-  Future<bool> login({required String email, required String password}) =>
-      _runAuthAction(() => _authService.login(email: email, password: password));
+  Future<bool> login({
+    required String email,
+    required String password,
+    bool keepLoggedIn = true,
+  }) =>
+      _runAuthAction(
+        () => _authService.login(
+          email: email,
+          password: password,
+          keepLoggedIn: keepLoggedIn,
+        ),
+      );
 
   Future<bool> _runAuthAction(Future<AuthResult> Function() action) async {
     isLoading = true;

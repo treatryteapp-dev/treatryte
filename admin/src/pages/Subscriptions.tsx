@@ -14,8 +14,9 @@ export const Subscriptions: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [tierFilter, setTierFilter] = useState<string>('All');
 
-  // Create Plan Form States
+  // Create / Edit Plan Form States
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [planName, setPlanName] = useState('');
   const [planPrice, setPlanPrice] = useState('');
   const [planType, setPlanType] = useState<'Partner' | 'Individual'>('Partner');
@@ -54,12 +55,40 @@ export const Subscriptions: React.FC = () => {
     }
   };
 
+  // Open modal in "Create" mode (no pre-population)
+  const openCreateModal = () => {
+    setEditingPlan(null);
+    setPlanName('');
+    setPlanPrice('');
+    setPlanType('Partner');
+    setPlanInterval('monthly');
+    setPlanFeatures('');
+    setPlanExcludedFeatures('');
+    setNombaPlanId('');
+    setTransactionSplit('');
+    setShowCreatePlanModal(true);
+  };
+
+  // Open modal in "Edit" mode pre-populated with existing plan data
+  const openEditModal = (plan: Plan) => {
+    setEditingPlan(plan);
+    setPlanName(plan.name);
+    setPlanPrice(String(plan.price));
+    setPlanType(plan.type);
+    setPlanInterval(plan.interval);
+    setPlanFeatures((plan.features || []).join(', '));
+    setPlanExcludedFeatures((plan.excludedFeatures || []).join(', '));
+    setNombaPlanId(plan.nombaPlanId || '');
+    setTransactionSplit(plan.transactionSplit !== undefined ? String(plan.transactionSplit) : '');
+    setShowCreatePlanModal(true);
+  };
+
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!planName.trim() || !planPrice.trim()) return;
     setSubmittingPlan(true);
     try {
-      await api.createPlan({
+      const payload = {
         name: planName,
         price: Number(planPrice),
         type: planType,
@@ -68,17 +97,19 @@ export const Subscriptions: React.FC = () => {
         excludedFeatures: planExcludedFeatures.split(',').map(f => f.trim()).filter(Boolean),
         nombaPlanId: nombaPlanId || undefined,
         transactionSplit: transactionSplit ? Number(transactionSplit) : undefined,
-      });
-      setPlanName('');
-      setPlanPrice('');
-      setPlanFeatures('');
-      setPlanExcludedFeatures('');
-      setNombaPlanId('');
-      setTransactionSplit('');
+      };
+
+      if (editingPlan) {
+        await api.updatePlan(editingPlan._id, payload);
+      } else {
+        await api.createPlan(payload);
+      }
+
       setShowCreatePlanModal(false);
+      setEditingPlan(null);
       loadData();
     } catch (err) {
-      console.error('Failed to create subscription plan', err);
+      console.error('Failed to save subscription plan', err);
     } finally {
       setSubmittingPlan(false);
     }
@@ -585,7 +616,7 @@ export const Subscriptions: React.FC = () => {
               <p style={{ fontSize: '13px', color: '#545f73', marginTop: '2px' }}>Configure subscription tiers and features available for providers and patients.</p>
             </div>
             <button
-              onClick={() => setShowCreatePlanModal(true)}
+              onClick={openCreateModal}
               className="btn btn-primary"
               style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#004e47', padding: '10px 18px' }}
             >
@@ -686,24 +717,42 @@ export const Subscriptions: React.FC = () => {
                   </div>
                 )}
 
-                <button
-                  onClick={() => handleDeletePlan(plan._id)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderColor: '#EF4444',
-                    border: '1px solid #EF4444',
-                    borderRadius: '8px',
-                    color: '#EF4444',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    backgroundColor: 'white',
-                    marginTop: '16px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel Plan
-                </button>
+                {/* Action buttons: Edit + Delete */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                  <button
+                    onClick={() => openEditModal(plan)}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      border: '1px solid #004e47',
+                      borderRadius: '8px',
+                      color: '#004e47',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Edit Plan
+                  </button>
+                  <button
+                    onClick={() => handleDeletePlan(plan._id)}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderColor: '#EF4444',
+                      border: '1px solid #EF4444',
+                      borderRadius: '8px',
+                      color: '#EF4444',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel Plan
+                  </button>
+                </div>
               </div>
             ))}
 
@@ -739,26 +788,29 @@ export const Subscriptions: React.FC = () => {
               borderRadius: '16px',
               width: '100%',
               maxWidth: '512px',
-              padding: '24px',
+              maxHeight: '90vh',
               border: '1px solid #E2E8F0',
               boxShadow: 'var(--shadow-lg)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0b1c30' }}>Create Subscription Plan</h3>
+            {/* Fixed modal header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0b1c30', margin: 0 }}>
+                {editingPlan ? `Edit Plan: ${editingPlan.name}` : 'Create Subscription Plan'}
+              </h3>
               <button
                 type="button"
-                onClick={() => setShowCreatePlanModal(false)}
+                onClick={() => { setShowCreatePlanModal(false); setEditingPlan(null); }}
                 style={{ background: 'none', border: 'none', color: '#545f73', cursor: 'pointer' }}
               >
                 <XCircle size={20} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Scrollable fields area */}
+            <div style={{ overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px', flexGrow: 1 }}>
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Plan Name</label>
                 <input
@@ -857,10 +909,11 @@ export const Subscriptions: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '16px' }}>
+            {/* Fixed modal footer */}
+            <div style={{ display: 'flex', gap: '16px', padding: '16px 24px', borderTop: '1px solid #E2E8F0', flexShrink: 0 }}>
               <button
                 type="button"
-                onClick={() => setShowCreatePlanModal(false)}
+                onClick={() => { setShowCreatePlanModal(false); setEditingPlan(null); }}
                 className="btn btn-outline"
                 style={{ flexGrow: 1, padding: '12px' }}
               >
@@ -872,7 +925,7 @@ export const Subscriptions: React.FC = () => {
                 className="btn btn-primary"
                 style={{ flexGrow: 1, padding: '12px', backgroundColor: '#004e47' }}
               >
-                {submittingPlan ? 'Saving...' : 'Save Plan'}
+                {submittingPlan ? 'Saving...' : editingPlan ? 'Update Plan' : 'Save Plan'}
               </button>
             </div>
           </form>

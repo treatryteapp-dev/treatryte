@@ -33,10 +33,18 @@ function findAll() {
   return collection().find().toArray();
 }
 
+function update(planId, updates) {
+  return collection().updateOne(
+    { _id: planId },
+    { $set: { ...updates, updatedAt: new Date() } }
+  );
+}
+
 module.exports = {
   COLLECTION,
   collection,
   create,
   findActive,
   findAll,
+  update,
 };

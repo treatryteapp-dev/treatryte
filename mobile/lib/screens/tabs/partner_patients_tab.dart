@@ -11,6 +11,7 @@ class PartnerPatientsTab extends StatefulWidget {
 class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
   int _selectedPatientIndex = 0;
   final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   final List<Map<String, dynamic>> _patients = [
     {
@@ -71,6 +72,156 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filteredPatients {
+    if (_searchQuery.isEmpty) return _patients;
+    final q = _searchQuery.toLowerCase();
+    return _patients
+        .where((p) =>
+            (p['name'] as String).toLowerCase().contains(q) ||
+            (p['id'] as String).contains(q))
+        .toList();
+  }
+
+  void _showInvitePatientDialog() {
+    final emailCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Invite Patient'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter the patient\'s TreatRyte ID or email address to link them to your directory.',
+              style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: emailCtrl,
+              autofocus: true,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Patient ID or Email',
+                hintText: 'e.g. patient@email.com or TR-00123',
+                prefixIcon: Icon(Icons.person_search_outlined),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = emailCtrl.text.trim();
+              Navigator.of(ctx).pop();
+              if (value.isEmpty) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Invite sent to $value')),
+              );
+            },
+            child: const Text('Send Invite'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddPrescriptionSheet(Map<String, dynamic> patient) {
+    final medicineCtrl = TextEditingController();
+    final dosageCtrl = TextEditingController();
+    final durationCtrl = TextEditingController();
+    final notesCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+          ),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(AppRadii.full),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  const Icon(Icons.add_reaction_outlined, color: AppColors.primary),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'Add Prescription — ${patient['name']}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: medicineCtrl,
+                decoration: const InputDecoration(labelText: 'Medicine Name', hintText: 'e.g. Lisinopril'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: dosageCtrl,
+                      decoration: const InputDecoration(labelText: 'Dosage', hintText: 'e.g. 10mg'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: TextField(
+                      controller: durationCtrl,
+                      decoration: const InputDecoration(labelText: 'Duration', hintText: 'e.g. 14 days'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: notesCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Notes (optional)', hintText: 'Take after meals...'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.check, size: 18),
+                  label: const Text('Save Prescription'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Prescription saved for ${patient['name']}')),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showShareDialog() {
@@ -186,24 +337,50 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final activePatient = _patients[_selectedPatientIndex];
+    final filtered = _filteredPatients;
+    final activePatient = filtered.isNotEmpty ? filtered[_selectedPatientIndex] : null;
 
     return SafeArea(
       child: Column(
         children: [
-          // Search & Header Area
+          // ── Search & Header ─────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             color: AppColors.surfaceContainerLowest,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Patient Directory', style: textTheme.headlineSmall),
-                const SizedBox(height: 2),
-                Text('Manage and access your patient records.', style: textTheme.bodySmall),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Patient Directory', style: textTheme.headlineSmall),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Manage and access your patient records.',
+                            style: textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    FilledButton.tonalIcon(
+                      icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+                      label: const Text('Invite'),
+                      onPressed: _showInvitePatientDialog,
+                    ),
+                  ],
+                ),
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: _searchController,
+                  onChanged: (value) => setState(() {
+                    _searchQuery = value;
+                    if (_selectedPatientIndex >= _filteredPatients.length) {
+                      _selectedPatientIndex = 0;
+                    }
+                  }),
                   decoration: const InputDecoration(
                     hintText: 'Search by name or ID...',
                     prefixIcon: Icon(Icons.search, color: AppColors.outline),
@@ -213,261 +390,345 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
             ),
           ),
 
-          // Horizontal patient list tabs
-          Container(
+          // ── Patient List Strip ─────────────────────────────────────────
+          SizedBox(
             height: 72,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.2))),
-            ),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              itemCount: _patients.length,
-              itemBuilder: (context, index) {
-                final patient = _patients[index];
-                final isSelected = index == _selectedPatientIndex;
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.sm),
-                  child: ChoiceChip(
-                    avatar: CircleAvatar(
-                      backgroundImage: NetworkImage(patient['imageUrl']),
-                    ),
-                    label: Text(patient['name']),
-                    selected: isSelected,
-                    selectedColor: AppColors.primaryContainer.withValues(alpha: 0.2),
-                    labelStyle: TextStyle(
-                      color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.lg),
-                      side: BorderSide(
-                        color: isSelected ? AppColors.primary : AppColors.outlineVariant,
-                      ),
-                    ),
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _selectedPatientIndex = index);
-                      }
-                    },
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.2),
                   ),
-                );
-              },
+                ),
+              ),
+              child: filtered.isEmpty
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                        child: Text(
+                          'No patients match your search.',
+                          style: TextStyle(color: AppColors.outline),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final patient = filtered[index];
+                        final isSelected = index == _selectedPatientIndex;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: AppSpacing.sm),
+                          child: ChoiceChip(
+                            avatar: CircleAvatar(
+                              backgroundImage:
+                                  NetworkImage(patient['imageUrl'] as String),
+                            ),
+                            label: Text(patient['name'] as String),
+                            selected: isSelected,
+                            selectedColor:
+                                AppColors.primaryContainer.withValues(alpha: 0.2),
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.onSurfaceVariant,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppRadii.lg),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.outlineVariant,
+                              ),
+                            ),
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _selectedPatientIndex = index);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
             ),
           ),
 
-          // Patient details content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Detail Card Header
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 30,
-                                backgroundImage: NetworkImage(activePatient['imageUrl']),
-                              ),
-                              const SizedBox(width: AppSpacing.lg),
-                              Expanded(
-                                child: Column(
+          // ── Patient Details ────────────────────────────────────────────
+          if (activePatient == null)
+            const Expanded(
+              child: Center(
+                child: Text(
+                  'No patient selected.',
+                  style: TextStyle(color: AppColors.outline),
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Patient Card Header
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundImage: NetworkImage(
+                                    activePatient['imageUrl'] as String,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.lg),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        activePatient['name'] as String,
+                                        style: textTheme.headlineSmall,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${activePatient['age']} years old • ${activePatient['gender']}',
+                                        style: textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondaryContainer,
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadii.full),
+                                  ),
+                                  child: Text(
+                                    'Blood Group: ${activePatient['bloodGroup']}',
+                                    style: const TextStyle(
+                                      color: AppColors.onSecondaryContainer,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.errorContainer,
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadii.full),
+                                  ),
+                                  child: Text(
+                                    'Allergy: ${activePatient['allergy']}',
+                                    style: const TextStyle(
+                                      color: AppColors.onErrorContainer,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: AppSpacing.xl),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () =>
+                                        _showAddPrescriptionSheet(activePatient),
+                                    icon: const Icon(Icons.add_reaction, size: 18),
+                                    label: const Text('Add Prescription'),
+                                    style: ElevatedButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(48),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _showShareDialog,
+                                    icon: const Icon(Icons.share, size: 18),
+                                    label: const Text('Share Records'),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(48),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Medical Summary
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.history_edu,
+                                    color: AppColors.primary, size: 20),
+                                const SizedBox(width: AppSpacing.sm),
+                                Text(
+                                  'Medical Summary',
+                                  style: textTheme.headlineSmall
+                                      ?.copyWith(fontSize: 18),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: AppSpacing.lg),
+                            ...(activePatient['medicalSummary'] as List<dynamic>)
+                                .map((item) {
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.only(bottom: AppSpacing.sm),
+                                child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(activePatient['name'], style: textTheme.headlineSmall),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${activePatient['age']} years old • ${activePatient['gender']}',
-                                      style: textTheme.bodySmall,
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceContainer,
+                                        borderRadius:
+                                            BorderRadius.circular(AppRadii.sm),
+                                      ),
+                                      child: const Icon(Icons.monitor_heart,
+                                          color: AppColors.secondary, size: 16),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondaryContainer,
-                                  borderRadius: BorderRadius.circular(AppRadii.full),
-                                ),
-                                child: Text(
-                                  'Blood Group: ${activePatient['bloodGroup']}',
-                                  style: const TextStyle(
-                                    color: AppColors.onSecondaryContainer,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.errorContainer,
-                                  borderRadius: BorderRadius.circular(AppRadii.full),
-                                ),
-                                child: Text(
-                                  'Allergy: ${activePatient['allergy']}',
-                                  style: const TextStyle(
-                                    color: AppColors.onErrorContainer,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: AppSpacing.xl),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Prescription tool is coming soon.')),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.add_reaction, size: 18),
-                                  label: const Text('Add Prescription'),
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(48),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _showShareDialog,
-                                  icon: const Icon(Icons.share, size: 18),
-                                  label: const Text('Share Records'),
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(48),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Medical Summary
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.history_edu, color: AppColors.primary, size: 20),
-                              const SizedBox(width: AppSpacing.sm),
-                              Text('Medical Summary', style: textTheme.headlineSmall?.copyWith(fontSize: 18)),
-                            ],
-                          ),
-                          const Divider(height: AppSpacing.lg),
-                          ...(activePatient['medicalSummary'] as List<dynamic>).map((item) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceContainer,
-                                      borderRadius: BorderRadius.circular(AppRadii.sm),
-                                    ),
-                                    child: const Icon(Icons.monitor_heart, color: AppColors.secondary, size: 16),
-                                  ),
-                                  const SizedBox(width: AppSpacing.md),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(item['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                        Text(item['desc'], style: textTheme.bodySmall),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Recent Reports
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.description, color: AppColors.primary, size: 20),
-                              const SizedBox(width: AppSpacing.sm),
-                              Text('Recent Reports', style: textTheme.headlineSmall?.copyWith(fontSize: 18)),
-                            ],
-                          ),
-                          const Divider(height: AppSpacing.lg),
-                          ...(activePatient['reports'] as List<dynamic>).map((report) {
-                            final isPdf = report['format'] == 'pdf';
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: Container(
-                                padding: const EdgeInsets.all(AppSpacing.sm),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceContainerLow,
-                                  borderRadius: BorderRadius.circular(AppRadii.md),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      isPdf ? Icons.picture_as_pdf : Icons.settings_overscan,
-                                      color: isPdf ? AppColors.error : AppColors.primary,
-                                    ),
-                                    const SizedBox(width: AppSpacing.sm),
+                                    const SizedBox(width: AppSpacing.md),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(report['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                          Text(report['info'], style: textTheme.bodySmall?.copyWith(fontSize: 11)),
+                                          Text(
+                                            item['title'] as String,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14),
+                                          ),
+                                          Text(
+                                            item['desc'] as String,
+                                            style: textTheme.bodySmall,
+                                          ),
                                         ],
                                       ),
                                     ),
-                                    const Icon(Icons.download, size: 18, color: AppColors.outline),
                                   ],
                                 ),
-                              ),
-                            );
-                          }),
-                        ],
+                              );
+                            }),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Recent Reports
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.description,
+                                    color: AppColors.primary, size: 20),
+                                const SizedBox(width: AppSpacing.sm),
+                                Text(
+                                  'Recent Reports',
+                                  style: textTheme.headlineSmall
+                                      ?.copyWith(fontSize: 18),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: AppSpacing.lg),
+                            ...(activePatient['reports'] as List<dynamic>)
+                                .map((report) {
+                              final isPdf = report['format'] == 'pdf';
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.only(bottom: AppSpacing.sm),
+                                child: Container(
+                                  padding: const EdgeInsets.all(AppSpacing.sm),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceContainerLow,
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadii.md),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isPdf
+                                            ? Icons.picture_as_pdf
+                                            : Icons.settings_overscan,
+                                        color: isPdf
+                                            ? AppColors.error
+                                            : AppColors.primary,
+                                      ),
+                                      const SizedBox(width: AppSpacing.sm),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              report['title'] as String,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13),
+                                            ),
+                                            Text(
+                                              report['info'] as String,
+                                              style: textTheme.bodySmall
+                                                  ?.copyWith(fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Icon(Icons.download,
+                                          size: 18, color: AppColors.outline),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

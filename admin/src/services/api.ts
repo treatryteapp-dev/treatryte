@@ -11,7 +11,16 @@ export interface LabProfile {
     accountName?: string;
   };
   status: 'pending' | 'approved' | 'rejected';
+  accountNumber?: string;   // TreatRyte partner account number (assigned on approval)
   createdAt: string;
+}
+
+export interface LabDocument {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  uploadedAt: string;
+  url: string;              // Signed CloudFront URL
 }
 
 export interface OutstandingSettlement {
@@ -244,6 +253,23 @@ export const api = {
   async deletePlan(id: string): Promise<boolean> {
     const res = await authFetch(`${API_BASE}/api/admin/plans/${id}`, { method: 'DELETE' });
     return res.ok;
+  },
+
+  async updatePlan(id: string, plan: Partial<Omit<Plan, '_id' | 'createdAt'>>): Promise<Plan> {
+    const res = await authFetch(`${API_BASE}/api/admin/plans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(plan),
+    });
+    if (!res.ok) throw new Error('Failed to update plan');
+    const data = await res.json();
+    return data.plan;
+  },
+
+  async fetchLabDocuments(labId: string): Promise<LabDocument[]> {
+    const res = await authFetch(`${API_BASE}/api/admin/labs/${labId}/documents`);
+    if (!res.ok) throw new Error('Failed to fetch lab documents');
+    const data = await res.json();
+    return data.documents;
   },
 
   async fetchSettlements(): Promise<{ outstanding: OutstandingSettlement[]; history: SettlementRecord[] }> {

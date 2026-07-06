@@ -16,6 +16,7 @@ import 'tabs/partner_appointments_tab.dart';
 import 'tabs/partner_services_tab.dart';
 import 'tabs/partner_wallet_tab.dart';
 import 'tabs/partner_plans_tab.dart';
+// showIssueRecordSheet is exported from partner_home_tab.dart
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -98,12 +99,9 @@ class _MainShellState extends State<MainShell> {
       body: IndexedStack(index: _tabIndex, children: pages),
       floatingActionButton: isProvider
           ? FloatingActionButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Quick Record modal would open here.')),
-                );
-              },
+              onPressed: () => showIssueRecordSheet(context),
               backgroundColor: AppColors.primary,
+              tooltip: 'Issue Medical Record',
               child: const Icon(Icons.add, color: AppColors.onPrimary),
             )
           : FloatingActionButton(

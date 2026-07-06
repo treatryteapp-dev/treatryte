@@ -18,6 +18,7 @@ router.post('/subscriptions/:id/status', controller.updateSubscriptionStatus);
 router.get('/transactions', controller.listTransactions);
 router.get('/plans', controller.listPlans);
 router.post('/plans', controller.createPlan);
+router.put('/plans/:id', controller.updatePlan);
 router.delete('/plans/:id', controller.deletePlan);
 router.get('/settlements', controller.listSettlements);
 router.post('/settlements/trigger', controller.triggerSettlements);
