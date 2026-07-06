@@ -22,6 +22,11 @@ class ProviderService {
         ),
       );
 
+  /// Puts a rejected application back to 'pending' after the partner has
+  /// re-uploaded verification documents, so admin sees it needs review again.
+  Future<PartnerLab> resubmit() =>
+      _api.post('/provider/resubmit', (data) => PartnerLab.fromJson(data['lab'] as Map<String, dynamic>));
+
   Future<List<PartnerService>> listServices() => _api.get(
         '/provider/services',
         (data) =>

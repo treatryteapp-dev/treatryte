@@ -48,6 +48,19 @@ class PartnerProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> resubmit() async {
+    try {
+      lab = await _service.resubmit();
+      errorMessage = null;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> loadServices() async {
     isLoading = true;
     notifyListeners();

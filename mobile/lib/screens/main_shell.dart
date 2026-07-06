@@ -82,6 +82,7 @@ class _MainShellState extends State<MainShell> {
       if (status != null && status != 'approved') {
         return PartnerStatusScreen(
           status: status,
+          rejectionReason: partner.lab?.rejectionReason,
           onRetry: () => context.read<PartnerProvider>().loadProfile(),
         );
       }

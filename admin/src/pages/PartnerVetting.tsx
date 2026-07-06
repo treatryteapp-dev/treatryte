@@ -85,7 +85,7 @@ export const PartnerVetting: React.FC = () => {
   const handleReject = async () => {
     if (!selectedLab || !declineReason.trim()) return;
     setSubmitting(true);
-    const success = await api.rejectLab(selectedLab._id);
+    const success = await api.rejectLab(selectedLab._id, declineReason.trim());
     setSubmitting(false);
     if (success) {
       setShowDeclineModal(false);

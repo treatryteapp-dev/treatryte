@@ -34,6 +34,20 @@ const getProfile = asyncHandler(async (req, res) => {
   res.json({ lab, plan });
 });
 
+// After a rejected partner re-uploads verification documents, this puts
+// their application back in front of admin instead of leaving it stuck as
+// 'rejected' forever.
+const resubmitApplication = asyncHandler(async (req, res) => {
+  const lab = await getProviderLab(req.userId);
+  if (lab.status !== 'rejected') {
+    throw new ApiError(400, 'Only a rejected application can be resubmitted', 'INVALID_STATE');
+  }
+
+  await labModel.update(lab._id, { status: 'pending', rejectionReason: null });
+  const updated = await labModel.findById(lab._id);
+  res.json({ lab: updated });
+});
+
 const listServices = asyncHandler(async (req, res) => {
   const lab = await getProviderLab(req.userId);
   const services = await testModel.findByLabId(lab._id);
@@ -284,6 +298,7 @@ module.exports = {
   addPrescriptionSchema,
   invitePatientSchema,
   getProfile,
+  resubmitApplication,
   listServices,
   createService,
   updateService,

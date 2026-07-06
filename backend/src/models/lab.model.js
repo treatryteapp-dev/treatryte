@@ -37,6 +37,7 @@ async function create({ userId, name, licenseNumber, address, state, services, b
     isFeatured: false,
     rating: 4.8,
     status: 'pending',
+    rejectionReason: null,
     createdAt: now,
     updatedAt: now,
   };

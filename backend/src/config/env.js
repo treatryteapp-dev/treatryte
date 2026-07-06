@@ -32,6 +32,12 @@ module.exports = {
     cloudfrontPrivateKeyPath: process.env.CLOUDFRONT_PRIVATE_KEY_PATH,
   },
 
+  email: {
+    brevoApiKey: process.env.BREVO_API_KEY,
+    fromAddress: process.env.EMAIL_FROM_ADDRESS,
+    fromName: process.env.EMAIL_FROM_NAME || 'TreatRyte',
+  },
+
   nomba: {
     env: nombaEnv,
     baseUrl: nombaEnv === 'live' ? 'https://api.nomba.com' : 'https://sandbox.nomba.com',

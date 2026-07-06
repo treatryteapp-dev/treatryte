@@ -11,6 +11,7 @@ const settlementService = require('../services/settlement.service');
 const platformSettingsModel = require('../models/platformSettings.model');
 const vaultFileModel = require('../models/vaultFile.model');
 const { signVaultUrl } = require('../cloudfrontSign');
+const emailService = require('../services/email.service');
 const nomba = require('../nomba');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
@@ -86,17 +87,29 @@ const approveLab = asyncHandler(async (req, res) => {
 });
 
 
+const rejectLabSchema = z.object({
+  reason: z.string().trim().max(1000).optional(),
+});
+
 const rejectLab = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);
+  const reason = req.body.reason?.trim() || null;
   const lab = await labModel.collection().findOneAndUpdate(
     { _id: labId },
-    { $set: { status: 'rejected', updatedAt: new Date() } },
+    { $set: { status: 'rejected', rejectionReason: reason, updatedAt: new Date() } },
     { returnDocument: 'after' },
   );
   if (!lab) {
     throw new ApiError(404, 'Laboratory profile not found', 'NOT_FOUND');
   }
   notifyPartnerStatusWebhook(lab, 'rejected');
+
+  const owner = await userModel.findById(lab.userId);
+  if (owner) {
+    const { subject, html, text } = emailService.partnerRejectionEmail({ facilityName: lab.name, reason });
+    emailService.sendEmail({ to: owner.email, toName: owner.fullName, subject, html, text });
+  }
+
   res.json({ success: true });
 });
 
@@ -393,6 +406,7 @@ module.exports = {
   listLabs,
   listLabDocuments,
   approveLab,
+  rejectLabSchema,
   rejectLab,
   getDashboardStats,
   listSubscriptions,

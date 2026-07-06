@@ -206,8 +206,11 @@ export const api = {
     return res.ok;
   },
 
-  async rejectLab(id: string): Promise<boolean> {
-    const res = await authFetch(`${API_BASE}/api/admin/labs/${id}/reject`, { method: 'POST' });
+  async rejectLab(id: string, reason?: string): Promise<boolean> {
+    const res = await authFetch(`${API_BASE}/api/admin/labs/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
     return res.ok;
   },
 

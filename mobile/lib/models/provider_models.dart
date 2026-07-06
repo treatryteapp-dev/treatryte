@@ -6,6 +6,7 @@ class PartnerLab {
     required this.address,
     required this.services,
     required this.status,
+    this.rejectionReason,
   });
 
   factory PartnerLab.fromJson(Map<String, dynamic> json) => PartnerLab(
@@ -15,6 +16,7 @@ class PartnerLab {
         address: json['address'] as String? ?? '',
         services: (json['services'] as List<dynamic>? ?? []).map((s) => s as String).toList(),
         status: json['status'] as String? ?? 'pending',
+        rejectionReason: json['rejectionReason'] as String?,
       );
 
   final String id;
@@ -23,6 +25,7 @@ class PartnerLab {
   final String address;
   final List<String> services;
   final String status; // pending | approved | rejected
+  final String? rejectionReason;
 }
 
 class PartnerService {

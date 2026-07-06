@@ -12,7 +12,7 @@ router.get('/stats', controller.getDashboardStats);
 router.get('/labs', controller.listLabs);
 router.get('/labs/:id/documents', controller.listLabDocuments);
 router.post('/labs/:id/approve', controller.approveLab);
-router.post('/labs/:id/reject', controller.rejectLab);
+router.post('/labs/:id/reject', validateBody(controller.rejectLabSchema), controller.rejectLab);
 router.get('/subscriptions', controller.listSubscriptions);
 router.post('/subscriptions/:id/status', controller.updateSubscriptionStatus);
 router.get('/transactions', controller.listTransactions);
