@@ -52,15 +52,29 @@ const listLabs = asyncHandler(async (req, res) => {
 const listLabDocuments = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);
   const files = await vaultFileModel.findByLabId(labId, 'partner_verification');
-  const documents = files.map((f) => ({
-    id: f._id,
-    fileName: f.fileName,
-    mimeType: f.mimeType,
-    uploadedAt: f.uploadedAt,
-    url: signVaultUrl(f.s3Key),
-  }));
+  const documents = files.map((f) => {
+    // signVaultUrl throws if CloudFront keys aren't configured - catch it
+    // per-file so a single signing failure doesn't 500 the entire endpoint.
+    let url = null;
+    if (f.status === 'uploaded') {
+      try {
+        url = signVaultUrl(f.s3Key);
+      } catch (err) {
+        console.error(`Failed to sign URL for vault file ${f._id}:`, err.message);
+      }
+    }
+    return {
+      id: f._id,
+      fileName: f.fileName,
+      mimeType: f.mimeType,
+      status: f.status,
+      uploadedAt: f.uploadedAt,
+      url,
+    };
+  });
   res.json({ documents });
 });
+
 
 const approveLab = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);

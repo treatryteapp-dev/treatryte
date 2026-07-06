@@ -291,6 +291,7 @@ export const PartnerVetting: React.FC = () => {
                 documents.map((doc) => {
                   const isPdf = doc.mimeType === 'application/pdf';
                   const isImage = doc.mimeType.startsWith('image/');
+                  const isPending = doc.status === 'pending_upload' || !doc.url;
                   return (
                     <div key={doc.id} style={{ backgroundColor: 'white', borderRadius: '10px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                       {/* Header row */}
@@ -299,31 +300,50 @@ export const PartnerVetting: React.FC = () => {
                           <FileText size={16} style={{ color: '#004e47' }} />
                           <div>
                             <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#0b1c30' }}>{doc.fileName}</p>
-                            <p style={{ margin: 0, fontSize: '11px', color: '#545f73' }}>{doc.mimeType} · {new Date(doc.uploadedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                            <p style={{ margin: 0, fontSize: '11px', color: '#545f73' }}>
+                              {doc.mimeType}
+                              {doc.uploadedAt ? ` · ${new Date(doc.uploadedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
+                              {isPending && (
+                                <span style={{ marginLeft: '8px', padding: '1px 6px', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '10px', fontWeight: '700' }}>
+                                  PENDING UPLOAD
+                                </span>
+                              )}
+                            </p>
                           </div>
                         </div>
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: '#004e47', textDecoration: 'none', padding: '6px 12px', border: '1px solid #004e47', borderRadius: '6px' }}
-                        >
-                          <ExternalLink size={13} />
-                          Open
-                        </a>
+                        {doc.url ? (
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: '#004e47', textDecoration: 'none', padding: '6px 12px', border: '1px solid #004e47', borderRadius: '6px' }}
+                          >
+                            <ExternalLink size={13} />
+                            Open
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: '#94a3b8', padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                            Not available
+                          </span>
+                        )}
                       </div>
 
                       {/* Preview area */}
                       <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px', backgroundColor: '#fafafa' }}>
-                        {isPdf ? (
+                        {isPending ? (
+                          <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                            <FileText size={32} style={{ marginBottom: '8px', color: '#CBD5E1' }} />
+                            <p style={{ margin: 0 }}>Upload not confirmed — partner may need to retry</p>
+                          </div>
+                        ) : isPdf ? (
                           <iframe
-                            src={doc.url}
+                            src={doc.url!}
                             title={doc.fileName}
                             style={{ width: '100%', height: '480px', border: 'none', borderRadius: '4px' }}
                           />
                         ) : isImage ? (
                           <img
-                            src={doc.url}
+                            src={doc.url!}
                             alt={doc.fileName}
                             style={{ maxWidth: '100%', maxHeight: '480px', borderRadius: '6px', objectFit: 'contain' }}
                           />
@@ -331,7 +351,7 @@ export const PartnerVetting: React.FC = () => {
                           <div style={{ textAlign: 'center', color: '#545f73', fontSize: '13px' }}>
                             <FileText size={32} style={{ marginBottom: '8px', color: '#CBD5E1' }} />
                             <p style={{ margin: 0 }}>Preview not available</p>
-                            <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color: '#004e47', fontWeight: '600' }}>Download to view</a>
+                            <a href={doc.url!} target="_blank" rel="noopener noreferrer" style={{ color: '#004e47', fontWeight: '600' }}>Download to view</a>
                           </div>
                         )}
                       </div>

@@ -27,7 +27,9 @@ async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key, 
 }
 
 function findByLabId(labId, category) {
-  const query = { labId, status: 'uploaded' };
+  // Include pending_upload so admin can see docs that were attempted
+  // but not yet confirmed (e.g. an upload that failed mid-way).
+  const query = { labId, status: { $in: ['uploaded', 'pending_upload'] } };
   if (category) query.category = category;
   return collection().find(query).sort({ createdAt: -1 }).toArray();
 }

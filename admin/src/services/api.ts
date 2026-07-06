@@ -19,8 +19,9 @@ export interface LabDocument {
   id: string;
   fileName: string;
   mimeType: string;
-  uploadedAt: string;
-  url: string;              // Signed CloudFront URL
+  status: 'uploaded' | 'pending_upload';
+  uploadedAt: string | null;
+  url: string | null;      // Signed CloudFront URL; null if not yet confirmed
 }
 
 export interface OutstandingSettlement {
