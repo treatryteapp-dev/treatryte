@@ -2,8 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/appointment_models.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/partner_provider.dart';
 import '../../theme/app_theme.dart';
+
+// Mirrors the fixed slot list the backend hands out (appointment.service.js
+// TIME_SLOTS) so "Upcoming" can be sorted chronologically within a day -
+// the strings themselves ("09:00 AM" vs "01:30 PM") don't sort correctly
+// alphabetically.
+const _timeSlotOrder = ['09:00 AM', '10:30 AM', '11:00 AM', '01:30 PM', '03:00 PM', '04:30 PM'];
 
 /// Shows the Issue Record bottom sheet. Extracted as a top-level function
 /// so it can be called from both the home tab button and the global FAB
@@ -127,10 +135,83 @@ class PartnerHomeTab extends StatefulWidget {
 }
 
 class _PartnerHomeTabState extends State<PartnerHomeTab> {
+  bool _loaded = false;
+
+  bool _isToday(String? scheduledDate) {
+    if (scheduledDate == null) return false;
+    final date = DateTime.tryParse(scheduledDate);
+    if (date == null) return false;
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  bool _isTodayOrFuture(String? scheduledDate) {
+    if (scheduledDate == null) return false;
+    final date = DateTime.tryParse(scheduledDate);
+    if (date == null) return false;
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    return !date.isBefore(todayStart);
+  }
+
+  List<Appointment> _upcoming(List<Appointment> all) {
+    final upcoming = all
+        .where((a) => a.status != 'cancelled' && _isTodayOrFuture(a.scheduledDate))
+        .toList();
+    upcoming.sort((a, b) {
+      final dateCompare = (a.scheduledDate ?? '').compareTo(b.scheduledDate ?? '');
+      if (dateCompare != 0) return dateCompare;
+      final aIndex = _timeSlotOrder.indexOf(a.scheduledTimeSlot ?? '');
+      final bIndex = _timeSlotOrder.indexOf(b.scheduledTimeSlot ?? '');
+      return aIndex.compareTo(bIndex);
+    });
+    return upcoming.take(3).toList();
+  }
+
+  String _timeAgo(DateTime? dt) {
+    if (dt == null) return '';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min${diff.inMinutes == 1 ? '' : 's'} ago';
+    if (diff.inHours < 24) return '${diff.inHours} hour${diff.inHours == 1 ? '' : 's'} ago';
+    return '${diff.inDays} day${diff.inDays == 1 ? '' : 's'} ago';
+  }
+
+  String _formatNaira(int kobo) => '₦${(kobo / 100).toStringAsFixed(2)}';
+
+  ({IconData icon, Color color, Color bg, String title}) _activityDetails(Appointment apt) {
+    final patient = apt.patientName ?? 'A patient';
+    final service = apt.serviceType ?? 'a service';
+    switch (apt.status) {
+      case 'confirmed':
+        return (icon: Icons.payments, color: AppColors.secondary, bg: AppColors.secondaryContainer, title: '$patient paid for $service');
+      case 'checked_in':
+        return (icon: Icons.login, color: AppColors.primary, bg: AppColors.primary.withValues(alpha: 0.1), title: '$patient checked in for $service');
+      case 'cancelled':
+        return (icon: Icons.cancel, color: AppColors.error, bg: AppColors.errorContainer, title: '$patient cancelled an appointment');
+      default:
+        return (icon: Icons.schedule, color: AppColors.onSurfaceVariant, bg: AppColors.surfaceContainerHigh, title: '$patient booked $service');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().currentUser;
     final textTheme = Theme.of(context).textTheme;
+    final partner = context.watch<PartnerProvider>();
+
+    if (!_loaded) {
+      _loaded = true;
+      final provider = context.read<PartnerProvider>();
+      Future.microtask(() => provider.loadAppointments());
+    }
+
+    final all = partner.appointments;
+    final todays = all.where((a) => _isToday(a.scheduledDate)).toList();
+    final completedToday = todays.where((a) => a.status == 'checked_in').length;
+    final remainingToday = todays.where((a) => a.status != 'checked_in' && a.status != 'cancelled').length;
+    final upcoming = _upcoming(all);
+    final recentActivity = all.take(3).toList();
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -158,10 +239,16 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
                 const SizedBox(width: AppSpacing.sm),
                 GestureDetector(
                   onTap: () => context.push('/profile'),
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 20,
                     backgroundColor: AppColors.primaryContainer,
-                    child: Text('DR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    backgroundImage: user?.avatarUrl != null ? NetworkImage(user!.avatarUrl!) : null,
+                    child: user?.avatarUrl == null
+                        ? Text(
+                            _initials(user?.fullName ?? '?'),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          )
+                        : null,
                   ),
                 ),
               ],
@@ -188,20 +275,20 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
                     style: textTheme.labelSmall?.copyWith(color: Colors.white70, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  const Text(
-                    '12 Appointments',
-                    style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                  Text(
+                    '${todays.length} Appointment${todays.length == 1 ? '' : 's'}',
+                    style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: AppSpacing.xs),
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.check_circle, size: 16, color: Colors.white70),
-                      SizedBox(width: 4),
-                      Text('8 Completed', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                      SizedBox(width: AppSpacing.md),
-                      Icon(Icons.schedule, size: 16, color: Colors.white70),
-                      SizedBox(width: 4),
-                      Text('4 Remaining', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const Icon(Icons.check_circle, size: 16, color: Colors.white70),
+                      const SizedBox(width: 4),
+                      Text('$completedToday Completed', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(width: AppSpacing.md),
+                      const Icon(Icons.schedule, size: 16, color: Colors.white70),
+                      const SizedBox(width: 4),
+                      Text('$remainingToday Remaining', style: const TextStyle(color: Colors.white70, fontSize: 13)),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -236,78 +323,76 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            _buildUpcomingCard(
-              name: 'Chinua Achebe',
-              type: 'General Consultation',
-              time: '14:30',
-              mode: 'In-Person',
-              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCDvQtzYuccfhe1kB4LICRSkt9hLZuuUfGy-U_IFasiG_45SQeaFWp3XX4O20lG0E-KOW-f6A7KPtoNs8YkHCRlMQlzlx9y-400l-834jURPVHHEtuK13VRTjga0QcsJEFZO3Z2ObtrgcIQVCMBw34UNVTZC1lC_LOW1gdxQ8U0EvVCG27MQ0tjRK8aNwKKvTDvH7fBkI8jLdoucnSDZXZdNLvXnuBJoJRaQXRPYL40EnXfpEZ0YbWPaOSrWO1pbYwWrVCY1SA9jqk',
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _buildUpcomingCard(
-              name: 'Amara Okafor',
-              type: 'Lab Results Review',
-              time: '15:15',
-              mode: 'Telehealth',
-              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDy9tF-ls_Qa4P6bASBpj9Y4pf8HjvB7sxZLvMuFAAUyQ3m7xLfe0rD8P5LYxYmT1jjhHtQGU79QY-Rg2gOkmarTXG2Tuc-sktIj66nECguKCUuQ3km2j_FwqftqceVjC48eEYothEuUqwGwaVVimMI7aZ-sNudIOqXAXTlin8r0cbGcF2D2NhMuDjP1gnmLc3WPc02zYK7D1mIgg4_D-Q6TOrn_jycygNN9LTdZ4A24wPE30euPHdodo2PH7TjiOiqmDmj3L0cNOQ',
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _buildUpcomingCard(
-              name: 'Bello Ibrahim',
-              type: 'Follow-up Visit',
-              time: '16:00',
-              mode: 'In-Person',
-              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD251BdOzc__DCck36cVyCwDPcCuKdmk-8_rAWMKxZnox_6qbfNWf8H6STeT0mjzETSzoRUVve_6Nb_4lF2ivrG96m59Y1IXQtQaSr5w-mPxpKmo_fS6k1OM-pIAg-8-jGrrI0s39ndYX1hzjD8mPqgDTaAUqlAQ-xM5dduZRvcrJ_NeMJLqBCWUFSE119w5upKP_WQSmupuXwHfCyVO-ZSt3JdiVPdZgEd3YOLmogJQbUYYrG4xRCw3SRqcKAhimkMqgn1Rc9uS-8',
-            ),
-            const SizedBox(height: AppSpacing.xl),
+            if (partner.isLoadingAppointments && all.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (upcoming.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Text('No upcoming appointments.', style: textTheme.bodySmall),
+              )
+            else
+              for (final apt in upcoming) ...[
+                _buildUpcomingCard(
+                  name: apt.patientName ?? 'Patient',
+                  type: apt.serviceType ?? 'Appointment',
+                  time: apt.scheduledTimeSlot ?? '--',
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+            const SizedBox(height: AppSpacing.md),
 
             // Recent Activity Section
             Text('Recent Activity', style: textTheme.headlineSmall),
             const SizedBox(height: AppSpacing.sm),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: Column(
-                  children: [
-                    _buildActivityTile(
-                      icon: Icons.payments,
-                      iconColor: AppColors.secondary,
-                      iconBg: AppColors.secondaryContainer,
-                      title: 'Emeka Kalu paid for Consultation',
-                      subtitle: '2 mins ago • ₦15,000.00',
-                    ),
-                    const Divider(),
-                    _buildActivityTile(
-                      icon: Icons.description,
-                      iconColor: AppColors.primary,
-                      iconBg: AppColors.primary.withValues(alpha: 0.1),
-                      title: 'Medical Record uploaded for Sarah Bello',
-                      subtitle: '15 mins ago • Radiology Dept.',
-                    ),
-                    const Divider(),
-                    _buildActivityTile(
-                      icon: Icons.cancel,
-                      iconColor: AppColors.error,
-                      iconBg: AppColors.errorContainer,
-                      title: 'Tunde Ade cancelled appointment',
-                      subtitle: '1 hour ago • Dr. Richards',
-                    ),
-                  ],
+            if (recentActivity.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Text('No activity yet.', style: textTheme.bodySmall),
+              )
+            else
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < recentActivity.length; i++) ...[
+                        if (i > 0) const Divider(),
+                        Builder(builder: (context) {
+                          final apt = recentActivity[i];
+                          final details = _activityDetails(apt);
+                          return _buildActivityTile(
+                            icon: details.icon,
+                            iconColor: details.color,
+                            iconBg: details.bg,
+                            title: details.title,
+                            subtitle: '${_timeAgo(apt.createdAt)} • ${_formatNaira(apt.totalKobo)}',
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
+
   Widget _buildUpcomingCard({
     required String name,
     required String type,
     required String time,
-    required String mode,
-    required String imageUrl,
   }) {
     final textTheme = Theme.of(context).textTheme;
     return Card(
@@ -321,8 +406,8 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: AppColors.surfaceContainer,
-              backgroundImage: NetworkImage(imageUrl),
+              backgroundColor: AppColors.primaryContainer,
+              child: Text(_initials(name), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -335,14 +420,7 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
                 ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(time, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                const SizedBox(height: 2),
-                Text(mode, style: textTheme.labelSmall),
-              ],
-            ),
+            Text(time, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary)),
           ],
         ),
       ),

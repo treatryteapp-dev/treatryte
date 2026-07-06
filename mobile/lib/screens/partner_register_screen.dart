@@ -672,11 +672,6 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadii.md),
                 color: AppColors.surfaceContainer,
-                image: const DecorationImage(
-                  image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuChDVWw8NZsyJ2XqiITeQO_ioFk7p_oqsgzgU7K2yWkN-HRaf-5y36OWG58Ihp2acoBMifvQt6X20ES1QFkzD0NVJnJdB_o4sxIavb1_pU_ufsVzD3raiZmTrUBO3_CgTffQhsog3nDlH6frseJiEUj1D4cJX1Op1AMuHG-xFDjSLeij0wPNaB_2KqiH_ZIdTb16x-VIMo4xCToZevZwIEleUSHSLK48sPgWd-409kW-avIS__POv3GbGlZwwC0NS-mXiY6xILMiHU'),
-                  fit: BoxFit.cover,
-                  opacity: 0.6,
-                ),
               ),
               child: const Center(
                 child: Icon(Icons.location_on, color: AppColors.error, size: 36),

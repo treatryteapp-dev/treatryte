@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/transaction.dart';
+import '../../providers/partner_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -27,6 +28,13 @@ class _PartnerWalletTabState extends State<PartnerWalletTab> {
 
     final textTheme = Theme.of(context).textTheme;
     final wallet = context.watch<WalletProvider>();
+    final lab = context.watch<PartnerProvider>().lab;
+    final status = lab?.status;
+    final (statusLabel, statusColor, statusIcon) = switch (status) {
+      'approved' => ('Fully Verified', AppColors.secondary, Icons.verified),
+      'rejected' => ('Verification Rejected', AppColors.error, Icons.error_outline),
+      _ => ('Verification Pending', AppColors.onSurfaceVariant, Icons.hourglass_top),
+    };
 
     return SafeArea(
       child: RefreshIndicator(
@@ -200,7 +208,7 @@ class _PartnerWalletTabState extends State<PartnerWalletTab> {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Row(
                     children: [
-                      const Icon(Icons.verified, color: AppColors.secondary),
+                      Icon(statusIcon, color: statusColor),
                       const SizedBox(width: AppSpacing.md),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,9 +221,9 @@ class _PartnerWalletTabState extends State<PartnerWalletTab> {
                             ),
                           ),
                           Text(
-                            'Fully Verified',
+                            statusLabel,
                             style: textTheme.bodySmall?.copyWith(
-                              color: AppColors.secondary,
+                              color: statusColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

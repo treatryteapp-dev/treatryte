@@ -50,6 +50,7 @@ class Appointment {
     this.serviceType,
     this.scheduledDate,
     this.scheduledTimeSlot,
+    this.createdAt,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
@@ -63,6 +64,7 @@ class Appointment {
         serviceType: json['serviceType'] as String?,
         scheduledDate: json['scheduledDate'] as String?,
         scheduledTimeSlot: json['scheduledTimeSlot'] as String?,
+        createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'] as String) : null,
       );
 
   final String id;
@@ -77,4 +79,5 @@ class Appointment {
   final String? serviceType;
   final String? scheduledDate;
   final String? scheduledTimeSlot;
+  final DateTime? createdAt;
 }
