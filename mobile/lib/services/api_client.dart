@@ -164,10 +164,18 @@ class ApiClient {
       _handle(() => _dio.delete(path, data: body), onSuccess);
 
   Future<void> putRaw(String url, List<int> bytes, {required String contentType}) async {
-    await _dio.put(
-      url,
-      data: bytes,
-      options: Options(headers: {'Content-Type': contentType}),
-    );
+    try {
+      await _dio.put(
+        url,
+        data: bytes,
+        options: Options(headers: {'Content-Type': contentType}),
+      );
+    } on DioException catch (e) {
+      // This goes straight to a presigned storage URL, bypassing _handle() -
+      // without this, a raw DioException (e.g. a CORS-blocked upload on
+      // web) propagates uncaught past every caller's `on ApiException`
+      // catch clause, since it's never actually an ApiException.
+      throw ApiException(statusCode: e.response?.statusCode, message: _networkErrorMessage(e));
+    }
   }
 }

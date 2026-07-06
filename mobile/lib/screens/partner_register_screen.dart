@@ -133,17 +133,24 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
     }
 
     // Account now exists and a session token is set - upload any picked
-    // verification documents against the fresh session.
+    // verification documents against the fresh session. This is best-effort:
+    // the account is already created at this point, so no failure here
+    // (including one this code doesn't specifically anticipate) may ever
+    // block reaching the success screen.
     var uploadFailures = 0;
     final vault = context.read<VaultProvider>();
     for (final file in _pickedFiles) {
-      final uploaded = await vault.uploadFile(
-        fileName: file.name,
-        mimeType: _guessMimeType(file.extension),
-        bytes: file.bytes as Uint8List,
-        category: 'partner_verification',
-      );
-      if (!uploaded) uploadFailures++;
+      try {
+        final uploaded = await vault.uploadFile(
+          fileName: file.name,
+          mimeType: _guessMimeType(file.extension),
+          bytes: file.bytes as Uint8List,
+          category: 'partner_verification',
+        );
+        if (!uploaded) uploadFailures++;
+      } catch (_) {
+        uploadFailures++;
+      }
     }
 
     if (!mounted) return;
