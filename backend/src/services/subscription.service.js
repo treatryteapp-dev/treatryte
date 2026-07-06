@@ -33,7 +33,7 @@ async function initiateUpgrade(userId, planId) {
 
   if (!plan.price || plan.price <= 0) {
     await userModel.update(userId, { planId: plan._id });
-    return { requiresPayment: false, user: userModel.toPublic(await userModel.findById(userId)) };
+    return { requiresPayment: false, user: await userModel.toPublicWithAvatar(await userModel.findById(userId)) };
   }
 
   const amountKobo = Math.round(plan.price * 100);

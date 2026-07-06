@@ -138,5 +138,33 @@ class AuthService {
       // Already logged out locally - a failed remote revoke isn't fatal.
     }
   }
+
+  /// Same presign -> direct S3 PUT -> confirm flow the Vault uses, just
+  /// against a dedicated `avatars/{userId}/...` key so a user can only ever
+  /// overwrite their own avatar.
+  Future<AppUser> updateAvatar({
+    required String fileName,
+    required String mimeType,
+    required List<int> bytes,
+  }) async {
+    final presign = await _api.post(
+      '/auth/me/avatar/presign',
+      (data) => {'uploadUrl': data['uploadUrl'] as String, 's3Key': data['s3Key'] as String},
+      body: {'fileName': fileName, 'mimeType': mimeType},
+    );
+
+    await _api.putRaw(presign['uploadUrl']!, bytes, contentType: mimeType);
+
+    return _api.post(
+      '/auth/me/avatar/confirm',
+      (data) => AppUser.fromJson(data['user']),
+      body: {'s3Key': presign['s3Key']},
+    );
+  }
+
+  Future<void> deleteAccount(String password) async {
+    await _api.delete('/auth/me', (_) => null, body: {'password': password});
+    await _storage.clear();
+  }
 }
 

@@ -59,7 +59,7 @@ const me = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, 'User not found', 'NOT_FOUND');
   }
-  res.json({ user: userModel.toPublic(user) });
+  res.json({ user: await userModel.toPublicWithAvatar(user) });
 });
 
 const updatePlanSchema = z.object({
@@ -101,7 +101,7 @@ const updatePlan = asyncHandler(async (req, res) => {
   }
 
   await userModel.update(req.userId, { planId: plan._id });
-  res.json({ user: userModel.toPublic(await userModel.findById(req.userId)) });
+  res.json({ user: await userModel.toPublicWithAvatar(await userModel.findById(req.userId)) });
 });
 
 // Self-service only: a provider adding a prescription does not touch this -
@@ -120,7 +120,35 @@ const updateMedicalProfile = asyncHandler(async (req, res) => {
   };
 
   await userModel.update(req.userId, { medicalProfile });
-  res.json({ user: userModel.toPublic(await userModel.findById(req.userId)) });
+  res.json({ user: await userModel.toPublicWithAvatar(await userModel.findById(req.userId)) });
+});
+
+const presignAvatarSchema = z.object({
+  fileName: z.string().min(1),
+  mimeType: z.string().min(1),
+});
+
+const presignAvatar = asyncHandler(async (req, res) => {
+  const result = await authService.presignAvatarUpload(req.userId, req.body);
+  res.status(201).json(result);
+});
+
+const confirmAvatarSchema = z.object({
+  s3Key: z.string().min(1),
+});
+
+const confirmAvatar = asyncHandler(async (req, res) => {
+  const user = await authService.confirmAvatarUpload(req.userId, req.body.s3Key);
+  res.json({ user });
+});
+
+const deleteAccountSchema = z.object({
+  password: z.string().min(1),
+});
+
+const deleteAccount = asyncHandler(async (req, res) => {
+  await authService.deleteAccount(req.userId, req.body.password);
+  res.status(204).send();
 });
 
 module.exports = {
@@ -129,6 +157,9 @@ module.exports = {
   refreshSchema,
   updatePlanSchema,
   updateMedicalProfileSchema,
+  presignAvatarSchema,
+  confirmAvatarSchema,
+  deleteAccountSchema,
   register,
   login,
   refresh,
@@ -136,4 +167,7 @@ module.exports = {
   me,
   updatePlan,
   updateMedicalProfile,
+  presignAvatar,
+  confirmAvatar,
+  deleteAccount,
 };

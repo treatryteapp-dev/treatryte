@@ -18,5 +18,23 @@ router.patch(
   validateBody(controller.updateMedicalProfileSchema),
   controller.updateMedicalProfile
 );
+router.post(
+  '/me/avatar/presign',
+  requireAuth,
+  validateBody(controller.presignAvatarSchema),
+  controller.presignAvatar
+);
+router.post(
+  '/me/avatar/confirm',
+  requireAuth,
+  validateBody(controller.confirmAvatarSchema),
+  controller.confirmAvatar
+);
+router.delete(
+  '/me',
+  requireAuth,
+  validateBody(controller.deleteAccountSchema),
+  controller.deleteAccount
+);
 
 module.exports = router;

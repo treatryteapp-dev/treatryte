@@ -96,4 +96,36 @@ class AuthProvider extends ChangeNotifier {
     status = AuthStatus.unauthenticated;
     notifyListeners();
   }
+
+  Future<bool> updateAvatar({
+    required String fileName,
+    required String mimeType,
+    required List<int> bytes,
+  }) async {
+    try {
+      currentUser = await _authService.updateAvatar(fileName: fileName, mimeType: mimeType, bytes: bytes);
+      errorMessage = null;
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      return false;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteAccount(String password) async {
+    try {
+      await _authService.deleteAccount(password);
+      currentUser = null;
+      status = AuthStatus.unauthenticated;
+      errorMessage = null;
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      return false;
+    } finally {
+      notifyListeners();
+    }
+  }
 }

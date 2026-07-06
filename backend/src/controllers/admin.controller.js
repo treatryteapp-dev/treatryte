@@ -369,7 +369,7 @@ const updateProfile = asyncHandler(async (req, res) => {
 
   await userModel.update(req.userId, { fullName, email: normalizedEmail });
   const updated = await userModel.findById(req.userId);
-  res.json({ user: userModel.toPublic(updated) });
+  res.json({ user: await userModel.toPublicWithAvatar(updated) });
 });
 
 const listPlatformSettings = asyncHandler(async (req, res) => {

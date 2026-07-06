@@ -75,6 +75,15 @@ function cancel(subscriptionId) {
   );
 }
 
+// Unlike cancel() (which just stops renewal at period end), this ends the
+// subscription right away - used when the account itself is being deleted.
+function cancelImmediately(subscriptionId) {
+  return collection().updateOne(
+    { _id: subscriptionId },
+    { $set: { status: 'canceled', cancelAtPeriodEnd: true, updatedAt: new Date() } },
+  );
+}
+
 /**
  * Returns subscriptions whose currentPeriodEnd falls at or before
  * `windowEnd` - i.e. already expired, or entering the reminder window.
@@ -94,5 +103,6 @@ module.exports = {
   activate,
   markPastDue,
   cancel,
+  cancelImmediately,
   listDueForRenewal,
 };
