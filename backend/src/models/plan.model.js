@@ -24,8 +24,10 @@ async function create({ name, price, interval, type, features, excludedFeatures,
   return { ...doc, _id: result.insertedId };
 }
 
-function findActive() {
-  return collection().find({ status: 'active' }).toArray();
+function findActive(type) {
+  const query = { status: 'active' };
+  if (type) query.type = type;
+  return collection().find(query).toArray();
 }
 
 function findAll() {

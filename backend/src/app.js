@@ -48,7 +48,8 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 
 app.get('/api/plans', async (req, res, next) => {
   try {
-    const plans = await require('./models/plan.model').findActive();
+    const type = ['Individual', 'Partner'].includes(req.query.type) ? req.query.type : undefined;
+    const plans = await require('./models/plan.model').findActive(type);
     res.json({ plans });
   } catch (e) {
     next(e);
