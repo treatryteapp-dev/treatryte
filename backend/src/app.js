@@ -15,11 +15,27 @@ const notificationRoutes = require('./routes/notifications.routes');
 const activityRoutes = require('./routes/activities.routes');
 const providerRoutes = require('./routes/provider.routes');
 const adminRoutes = require('./routes/admin.routes');
+const subscriptionsRoutes = require('./routes/subscriptions.routes');
 
 const app = express();
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      // No Origin header (native mobile apps, curl, server-to-server) - allow.
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error('Not allowed by CORS'));
+    },
+  })
+);
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Webhook routes need the raw body for signature verification, so they're
@@ -49,6 +65,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/provider', providerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
 
 const path = require('path');
 const fs = require('fs');

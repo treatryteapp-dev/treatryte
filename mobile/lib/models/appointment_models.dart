@@ -31,6 +31,11 @@ class Appointment {
     required this.subtotalKobo,
     required this.serviceFeeKobo,
     required this.totalKobo,
+    this.patientId,
+    this.patientName,
+    this.serviceType,
+    this.scheduledDate,
+    this.scheduledTimeSlot,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
@@ -39,6 +44,11 @@ class Appointment {
         subtotalKobo: json['subtotal'] as int,
         serviceFeeKobo: json['serviceFee'] as int,
         totalKobo: json['total'] as int,
+        patientId: json['userId'] as String?,
+        patientName: json['patientName'] as String?,
+        serviceType: json['serviceType'] as String?,
+        scheduledDate: json['scheduledDate'] as String?,
+        scheduledTimeSlot: json['scheduledTimeSlot'] as String?,
       );
 
   final String id;
@@ -46,4 +56,11 @@ class Appointment {
   final int subtotalKobo;
   final int serviceFeeKobo;
   final int totalKobo;
+  // Provider-side (partner appointments tab) fields only - null on the
+  // patient-side booking flow's response shape.
+  final String? patientId;
+  final String? patientName;
+  final String? serviceType;
+  final String? scheduledDate;
+  final String? scheduledTimeSlot;
 }

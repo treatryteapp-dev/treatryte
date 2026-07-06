@@ -8,6 +8,15 @@ const { getDb, getClient } = require('../db');
  *          activities, medications, vault files, notifications, appointments
  */
 async function reset() {
+  // This script deletes essentially all user-generated data - running it
+  // against production would be catastrophic if triggered accidentally.
+  if (process.env.NODE_ENV === 'production' && !process.env.FORCE_SEED) {
+    throw new Error(
+      'Refusing to run resetData.js against production (NODE_ENV=production). ' +
+      'Set FORCE_SEED=1 if you really intend to wipe all user-generated data.'
+    );
+  }
+
   const db = getDb();
 
   console.log('\n╔══════════════════════════════════════════════════╗');

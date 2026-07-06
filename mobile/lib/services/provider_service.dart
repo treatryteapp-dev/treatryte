@@ -1,3 +1,4 @@
+import '../models/patient_models.dart';
 import '../models/plan_models.dart';
 import '../models/provider_models.dart';
 import 'api_client.dart';
@@ -41,4 +42,34 @@ class ProviderService {
       );
 
   Future<void> deleteService(String id) => _api.delete('/provider/services/$id', (_) => null);
+
+  Future<List<PartnerPatient>> listPatients() => _api.get(
+        '/provider/patients',
+        (data) =>
+            (data['patients'] as List<dynamic>).map((p) => PartnerPatient.fromJson(p as Map<String, dynamic>)).toList(),
+      );
+
+  Future<PatientDetail> getPatientDetail(String patientId) =>
+      _api.get('/provider/patients/$patientId', (data) => PatientDetail.fromJson(data as Map<String, dynamic>));
+
+  Future<void> addPrescription(
+    String patientId, {
+    required String medicineName,
+    required String dosage,
+    required String duration,
+    String? notes,
+  }) =>
+      _api.post(
+        '/provider/patients/$patientId/prescriptions',
+        (_) => null,
+        body: {
+          'medicineName': medicineName,
+          'dosage': dosage,
+          'duration': duration,
+          if (notes != null) 'notes': notes,
+        },
+      );
+
+  Future<void> invitePatient(String email) =>
+      _api.post('/provider/patients/invite', (_) => null, body: {'email': email});
 }

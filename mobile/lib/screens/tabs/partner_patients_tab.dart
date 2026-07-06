@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/patient_models.dart';
+import '../../providers/partner_provider.dart';
 import '../../theme/app_theme.dart';
 
 class PartnerPatientsTab extends StatefulWidget {
@@ -9,64 +13,10 @@ class PartnerPatientsTab extends StatefulWidget {
 }
 
 class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
-  int _selectedPatientIndex = 0;
+  bool _loaded = false;
+  String? _selectedPatientId;
   final _searchController = TextEditingController();
   String _searchQuery = '';
-
-  final List<Map<String, dynamic>> _patients = [
-    {
-      'id': '8821',
-      'name': 'Aisha Bello',
-      'age': 64,
-      'gender': 'Female',
-      'bloodGroup': 'O+',
-      'allergy': 'Penicillin',
-      'lastVisit': '2 days ago',
-      'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDC_CXif-olCP9UfLc9AEMBzxMuAEd7ipj6SvPaksY9nTCtJokSJTTnpbQlhaqhgeVX6uODZQFiLRybJ-eE5zj5Xt_d_1TClzd8sWCr-uX77Ld9H-spTgyrEtwA5U6QvuqsEMnqbkdxLvdvWYw7LedkShV6vaWGb1PipTibSgP-MYI7wMAEKwBISwIVCtDOvEnG-x_mDNzdtYGNYAYm3l4iNAWVFv7iTXwGceQQZhzud_Vh6t3p4BnYgc-nqlTy_yNdfbIuGWwE0BE',
-      'medicalSummary': [
-        {'title': 'Hypertension', 'desc': 'Diagnosed 2018. Managed with Lisinopril 10mg daily.'},
-        {'title': 'Type 2 Diabetes', 'desc': 'HBA1c: 6.8% (Stable). Dietary management active.'},
-        {'title': 'Cataract Surgery', 'desc': 'Left eye, successful outcome in Nov 2023.'},
-      ],
-      'reports': [
-        {'title': 'Blood Panel Results', 'info': 'Jan 12, 2024 • 1.2 MB', 'format': 'pdf'},
-        {'title': 'Chest X-Ray DICOM', 'info': 'Dec 20, 2023 • 45 MB', 'format': 'dicom'},
-        {'title': 'ECG Recording', 'info': 'Dec 15, 2023 • 0.8 MB', 'format': 'ecg'},
-      ],
-    },
-    {
-      'id': '9012',
-      'name': 'Chidi Okafor',
-      'age': 45,
-      'gender': 'Male',
-      'bloodGroup': 'A+',
-      'allergy': 'Sulfa drugs',
-      'lastVisit': '1 week ago',
-      'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuBVNCvtm8DeMxMTysikAJpe8VpiyqBnjzr6q2uNcQwBcZVc0FktlheGJiU58qztz-HKhsZ0jznpOzvP5-t-7uzfJKhGIa1_VfDAkmjr4TAMnBCYa-uNyvbUfQFzV8D8gdfchTJyZQ5Z7zGAlsfXTltZEkVJARIGcYpyoEo0bG31JKeNYpYx5nroy3peqowzsI3hAVa6wFCX7uVl7XCTK60IgNclmx1LlizNLpCNcl-vAIJelhXwXsmCSS2uGrj3aMj5-cAGdE0tyQI',
-      'medicalSummary': [
-        {'title': 'Allergic Rhinitis', 'desc': 'Seasonal. Uses Cetirizine as needed.'},
-      ],
-      'reports': [
-        {'title': 'Urinalysis Report', 'info': 'Mar 01, 2024 • 0.5 MB', 'format': 'pdf'},
-      ],
-    },
-    {
-      'id': '7741',
-      'name': 'Funmi Adeyemi',
-      'age': 28,
-      'gender': 'Female',
-      'bloodGroup': 'B-',
-      'allergy': 'None',
-      'lastVisit': '3 weeks ago',
-      'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuALfwaiG7Yy_Bx6r8ZAReWpNdNfBNesILuj4Yx9e9W45MZey-2JuKCDNMzDUwlNzT2OtA1fUt4BK4otRCOAmfBEhz6OSBkKKXE2haTXgpcuhbPCRuWaQWRUpI5sbNaOvbsJHAjH_80yUa7U-I2oteNiE6ybXcC2jJjCCoUe-deVQ9z1AvowNKWkpkHbdNumn0KpE4cvfDxRb00OqDTfbrxE4G07A6NiasxvgUMY69WPFbrzpx4Zj-DZcgHQXz-xvW3Tgd_YYR5d0Ws',
-      'medicalSummary': [
-        {'title': 'Asthma', 'desc': 'Mild intermittent. Uses Albuterol inhaler.'},
-      ],
-      'reports': [
-        {'title': 'Pulmonary Function Test', 'info': 'Feb 10, 2024 • 1.5 MB', 'format': 'pdf'},
-      ],
-    }
-  ];
 
   @override
   void dispose() {
@@ -74,19 +24,22 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
     super.dispose();
   }
 
-  List<Map<String, dynamic>> get _filteredPatients {
-    if (_searchQuery.isEmpty) return _patients;
+  List<PartnerPatient> _filtered(List<PartnerPatient> all) {
+    if (_searchQuery.isEmpty) return all;
     final q = _searchQuery.toLowerCase();
-    return _patients
-        .where((p) =>
-            (p['name'] as String).toLowerCase().contains(q) ||
-            (p['id'] as String).contains(q))
-        .toList();
+    return all.where((p) => p.fullName.toLowerCase().contains(q)).toList();
   }
 
-  void _showInvitePatientDialog() {
+  void _selectPatient(String id) {
+    setState(() => _selectedPatientId = id);
+    context.read<PartnerProvider>().loadPatientDetail(id);
+  }
+
+  Future<void> _showInvitePatientDialog() async {
     final emailCtrl = TextEditingController();
-    showDialog(
+    final partner = context.read<PartnerProvider>();
+
+    final email = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Invite Patient'),
@@ -95,7 +48,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Enter the patient\'s TreatRyte ID or email address to link them to your directory.',
+              'Enter the patient\'s TreatRyte account email to link them to your directory.',
               style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -104,41 +57,39 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
-                labelText: 'Patient ID or Email',
-                hintText: 'e.g. patient@email.com or TR-00123',
+                labelText: 'Patient Email',
+                hintText: 'e.g. patient@email.com',
                 prefixIcon: Icon(Icons.person_search_outlined),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
           FilledButton(
-            onPressed: () {
-              final value = emailCtrl.text.trim();
-              Navigator.of(ctx).pop();
-              if (value.isEmpty) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Invite sent to $value')),
-              );
-            },
+            onPressed: () => Navigator.of(ctx).pop(emailCtrl.text.trim()),
             child: const Text('Send Invite'),
           ),
         ],
       ),
     );
+
+    if (email == null || email.isEmpty) return;
+    final ok = await partner.invitePatient(email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? 'Invite sent to $email' : partner.patientsError ?? 'Failed to send invite.')),
+    );
   }
 
-  void _showAddPrescriptionSheet(Map<String, dynamic> patient) {
+  Future<void> _showAddPrescriptionSheet(PartnerPatient patient) async {
     final medicineCtrl = TextEditingController();
     final dosageCtrl = TextEditingController();
     final durationCtrl = TextEditingController();
     final notesCtrl = TextEditingController();
+    final partner = context.read<PartnerProvider>();
 
-    showModalBottomSheet(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -169,7 +120,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                   const Icon(Icons.add_reaction_outlined, color: AppColors.primary),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
-                    'Add Prescription — ${patient['name']}',
+                    'Add Prescription — ${patient.fullName}',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ],
@@ -209,11 +160,18 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                 child: FilledButton.icon(
                   icon: const Icon(Icons.check, size: 18),
                   label: const Text('Save Prescription'),
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Prescription saved for ${patient['name']}')),
+                  onPressed: () async {
+                    if (medicineCtrl.text.trim().isEmpty || dosageCtrl.text.trim().isEmpty || durationCtrl.text.trim().isEmpty) {
+                      return;
+                    }
+                    final ok = await partner.addPrescription(
+                      patient.id,
+                      medicineName: medicineCtrl.text.trim(),
+                      dosage: dosageCtrl.text.trim(),
+                      duration: durationCtrl.text.trim(),
+                      notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
                     );
+                    if (ctx.mounted) Navigator.of(ctx).pop(ok);
                   },
                 ),
               ),
@@ -222,128 +180,46 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
         ),
       ),
     );
+
+    if (!mounted || saved == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(saved ? 'Prescription saved for ${patient.fullName}' : 'Failed to save prescription.')),
+    );
   }
 
-  void _showShareDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final textTheme = Theme.of(context).textTheme;
-        return AlertDialog(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Share Records', style: textTheme.headlineSmall),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Send via QR
-              InkWell(
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Generating sharing QR code...')),
-                  );
-                },
-                borderRadius: BorderRadius.circular(AppRadii.lg),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(AppRadii.lg),
-                    border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.qr_code_2, size: 64, color: AppColors.primary),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text('Send via QR', style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Patient scans this to receive their report instantly.',
-                        style: textTheme.bodySmall,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const Row(
-                children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    child: Text('OR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.outline)),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              // Send via ID
-              InkWell(
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Search patient ID to share...')),
-                  );
-                },
-                borderRadius: BorderRadius.circular(AppRadii.lg),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(AppRadii.lg),
-                    border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.fingerprint, color: AppColors.secondary),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Send via ID', style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text('Enter patient\'s TreatRyte ID', style: TextStyle(color: AppColors.outline, fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right, color: AppColors.outline),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  int _ageFromDob(DateTime? dob) {
+    if (dob == null) return 0;
+    final now = DateTime.now();
+    var age = now.year - dob.year;
+    if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) age--;
+    return age;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_loaded) {
+      _loaded = true;
+      final provider = context.read<PartnerProvider>();
+      Future.microtask(() => provider.loadPatients());
+    }
+
     final textTheme = Theme.of(context).textTheme;
-    final filtered = _filteredPatients;
-    final activePatient = filtered.isNotEmpty ? filtered[_selectedPatientIndex] : null;
+    final partner = context.watch<PartnerProvider>();
+    final filtered = _filtered(partner.patients);
+    _selectedPatientId ??= filtered.isNotEmpty ? filtered.first.id : null;
+    if (_selectedPatientId != null &&
+        filtered.isNotEmpty &&
+        !filtered.any((p) => p.id == _selectedPatientId) &&
+        filtered.isNotEmpty) {
+      _selectedPatientId = filtered.first.id;
+    }
+
+    final detail = partner.selectedPatientDetail;
+    final showDetail = detail != null && detail.id == _selectedPatientId;
 
     return SafeArea(
       child: Column(
         children: [
-          // ── Search & Header ─────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             color: AppColors.surfaceContainerLowest,
@@ -375,14 +251,9 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: _searchController,
-                  onChanged: (value) => setState(() {
-                    _searchQuery = value;
-                    if (_selectedPatientIndex >= _filteredPatients.length) {
-                      _selectedPatientIndex = 0;
-                    }
-                  }),
+                  onChanged: (value) => setState(() => _searchQuery = value),
                   decoration: const InputDecoration(
-                    hintText: 'Search by name or ID...',
+                    hintText: 'Search by name...',
                     prefixIcon: Icon(Icons.search, color: AppColors.outline),
                   ),
                 ),
@@ -390,345 +261,289 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
             ),
           ),
 
-          // ── Patient List Strip ─────────────────────────────────────────
-          SizedBox(
-            height: 72,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: AppColors.outlineVariant.withValues(alpha: 0.2),
+          if (partner.isLoadingPatients && partner.patients.isEmpty)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else ...[
+            SizedBox(
+              height: 72,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
                   ),
                 ),
-              ),
-              child: filtered.isEmpty
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                        child: Text(
-                          'No patients match your search.',
-                          style: TextStyle(color: AppColors.outline),
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final patient = filtered[index];
-                        final isSelected = index == _selectedPatientIndex;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: AppSpacing.sm),
-                          child: ChoiceChip(
-                            avatar: CircleAvatar(
-                              backgroundImage:
-                                  NetworkImage(patient['imageUrl'] as String),
-                            ),
-                            label: Text(patient['name'] as String),
-                            selected: isSelected,
-                            selectedColor:
-                                AppColors.primaryContainer.withValues(alpha: 0.2),
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.onSurfaceVariant,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadii.lg),
-                              side: BorderSide(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.outlineVariant,
-                              ),
-                            ),
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() => _selectedPatientIndex = index);
-                              }
-                            },
+                child: filtered.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                          child: Text(
+                            'No patients yet. Invite one to get started.',
+                            style: TextStyle(color: AppColors.outline),
                           ),
-                        );
-                      },
-                    ),
-            ),
-          ),
-
-          // ── Patient Details ────────────────────────────────────────────
-          if (activePatient == null)
-            const Expanded(
-              child: Center(
-                child: Text(
-                  'No patient selected.',
-                  style: TextStyle(color: AppColors.outline),
-                ),
+                        ),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final patient = filtered[index];
+                          final isSelected = patient.id == _selectedPatientId;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: AppSpacing.sm),
+                            child: ChoiceChip(
+                              avatar: CircleAvatar(
+                                child: Text(patient.fullName.isNotEmpty ? patient.fullName[0].toUpperCase() : '?'),
+                              ),
+                              label: Text(patient.fullName),
+                              selected: isSelected,
+                              selectedColor: AppColors.primaryContainer.withValues(alpha: 0.2),
+                              labelStyle: TextStyle(
+                                color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.lg),
+                                side: BorderSide(color: isSelected ? AppColors.primary : AppColors.outlineVariant),
+                              ),
+                              onSelected: (selected) {
+                                if (selected) _selectPatient(patient.id);
+                              },
+                            ),
+                          );
+                        },
+                      ),
               ),
-            )
-          else
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Patient Card Header
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 30,
-                                  backgroundImage: NetworkImage(
-                                    activePatient['imageUrl'] as String,
+            ),
+
+            if (_selectedPatientId == null)
+              const Expanded(
+                child: Center(child: Text('No patient selected.', style: TextStyle(color: AppColors.outline))),
+              )
+            else if (partner.isLoadingPatientDetail && !showDetail)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (!showDetail)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    partner.patientDetailError ?? 'Could not load patient details.',
+                    style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 30,
+                                    child: Text(
+                                      detail.fullName.isNotEmpty ? detail.fullName[0].toUpperCase() : '?',
+                                      style: const TextStyle(fontSize: 20),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: AppSpacing.lg),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        activePatient['name'] as String,
-                                        style: textTheme.headlineSmall,
+                                  const SizedBox(width: AppSpacing.lg),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(detail.fullName, style: textTheme.headlineSmall),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${_ageFromDob(detail.dateOfBirth)} years old • ${detail.gender ?? 'Unknown'}',
+                                          style: textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              Wrap(
+                                spacing: AppSpacing.sm,
+                                runSpacing: AppSpacing.sm,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.secondaryContainer,
+                                      borderRadius: BorderRadius.circular(AppRadii.full),
+                                    ),
+                                    child: Text(
+                                      'Blood Group: ${detail.medicalProfile.bloodGroup ?? 'Unknown'}',
+                                      style: const TextStyle(
+                                        color: AppColors.onSecondaryContainer,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${activePatient['age']} years old • ${activePatient['gender']}',
-                                        style: textTheme.bodySmall,
+                                    ),
+                                  ),
+                                  if (detail.medicalProfile.allergies.isEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.errorContainer,
+                                        borderRadius: BorderRadius.circular(AppRadii.full),
                                       ),
-                                    ],
+                                      child: const Text(
+                                        'Allergy: None recorded',
+                                        style: TextStyle(
+                                          color: AppColors.onErrorContainer,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    for (final allergy in detail.medicalProfile.allergies)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.errorContainer,
+                                          borderRadius: BorderRadius.circular(AppRadii.full),
+                                        ),
+                                        child: Text(
+                                          'Allergy: $allergy',
+                                          style: const TextStyle(
+                                            color: AppColors.onErrorContainer,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                ],
+                              ),
+                              const Divider(height: AppSpacing.xl),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _showAddPrescriptionSheet(
+                                    filtered.firstWhere((p) => p.id == detail.id),
                                   ),
+                                  icon: const Icon(Icons.add_reaction, size: 18),
+                                  label: const Text('Add Prescription'),
+                                  style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.md,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondaryContainer,
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadii.full),
-                                  ),
-                                  child: Text(
-                                    'Blood Group: ${activePatient['bloodGroup']}',
-                                    style: const TextStyle(
-                                      color: AppColors.onSecondaryContainer,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.md,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.errorContainer,
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadii.full),
-                                  ),
-                                  child: Text(
-                                    'Allergy: ${activePatient['allergy']}',
-                                    style: const TextStyle(
-                                      color: AppColors.onErrorContainer,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: AppSpacing.xl),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () =>
-                                        _showAddPrescriptionSheet(activePatient),
-                                    icon: const Icon(Icons.add_reaction, size: 18),
-                                    label: const Text('Add Prescription'),
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size.fromHeight(48),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: _showShareDialog,
-                                    icon: const Icon(Icons.share, size: 18),
-                                    label: const Text('Share Records'),
-                                    style: OutlinedButton.styleFrom(
-                                      minimumSize: const Size.fromHeight(48),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.lg),
 
-                    // Medical Summary
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.history_edu,
-                                    color: AppColors.primary, size: 20),
-                                const SizedBox(width: AppSpacing.sm),
-                                Text(
-                                  'Medical Summary',
-                                  style: textTheme.headlineSmall
-                                      ?.copyWith(fontSize: 18),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: AppSpacing.lg),
-                            ...(activePatient['medicalSummary'] as List<dynamic>)
-                                .map((item) {
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.only(bottom: AppSpacing.sm),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.surfaceContainer,
-                                        borderRadius:
-                                            BorderRadius.circular(AppRadii.sm),
-                                      ),
-                                      child: const Icon(Icons.monitor_heart,
-                                          color: AppColors.secondary, size: 16),
-                                    ),
-                                    const SizedBox(width: AppSpacing.md),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            item['title'] as String,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.history_edu, color: AppColors.primary, size: 20),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Text('Prescriptions', style: textTheme.headlineSmall?.copyWith(fontSize: 18)),
+                                ],
+                              ),
+                              const Divider(height: AppSpacing.lg),
+                              if (detail.prescriptions.isEmpty)
+                                Text('No prescriptions recorded yet.', style: textTheme.bodySmall)
+                              else
+                                for (final rx in detail.prescriptions)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surfaceContainer,
+                                            borderRadius: BorderRadius.circular(AppRadii.sm),
                                           ),
-                                          Text(
-                                            item['desc'] as String,
-                                            style: textTheme.bodySmall,
+                                          child: const Icon(Icons.monitor_heart, color: AppColors.secondary, size: 16),
+                                        ),
+                                        const SizedBox(width: AppSpacing.md),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '${rx.medicineName} (${rx.dosage})',
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                              ),
+                                              Text('${rx.duration}${rx.notes.isNotEmpty ? ' • ${rx.notes}' : ''}',
+                                                  style: textTheme.bodySmall),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.description, color: AppColors.primary, size: 20),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Text('Recent Reports', style: textTheme.headlineSmall?.copyWith(fontSize: 18)),
+                                ],
+                              ),
+                              const Divider(height: AppSpacing.lg),
+                              if (detail.reports.isEmpty)
+                                Text('No reports uploaded for this patient yet.', style: textTheme.bodySmall)
+                              else
+                                for (final report in detail.reports)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(AppSpacing.sm),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceContainerLow,
+                                        borderRadius: BorderRadius.circular(AppRadii.md),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.picture_as_pdf, color: AppColors.error),
+                                          const SizedBox(width: AppSpacing.sm),
+                                          Expanded(
+                                            child: Text(
+                                              report.fileName,
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
+                                  ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Recent Reports
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.description,
-                                    color: AppColors.primary, size: 20),
-                                const SizedBox(width: AppSpacing.sm),
-                                Text(
-                                  'Recent Reports',
-                                  style: textTheme.headlineSmall
-                                      ?.copyWith(fontSize: 18),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: AppSpacing.lg),
-                            ...(activePatient['reports'] as List<dynamic>)
-                                .map((report) {
-                              final isPdf = report['format'] == 'pdf';
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.only(bottom: AppSpacing.sm),
-                                child: Container(
-                                  padding: const EdgeInsets.all(AppSpacing.sm),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surfaceContainerLow,
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadii.md),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        isPdf
-                                            ? Icons.picture_as_pdf
-                                            : Icons.settings_overscan,
-                                        color: isPdf
-                                            ? AppColors.error
-                                            : AppColors.primary,
-                                      ),
-                                      const SizedBox(width: AppSpacing.sm),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              report['title'] as String,
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13),
-                                            ),
-                                            Text(
-                                              report['info'] as String,
-                                              style: textTheme.bodySmall
-                                                  ?.copyWith(fontSize: 11),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Icon(Icons.download,
-                                          size: 18, color: AppColors.outline),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+          ],
         ],
       ),
     );

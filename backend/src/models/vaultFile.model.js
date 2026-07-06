@@ -31,6 +31,13 @@ function findByLabId(labId, category) {
   return collection().find(query).sort({ createdAt: -1 }).toArray();
 }
 
+function findByLabIdAndUserId(labId, userId) {
+  return collection()
+    .find({ labId, userId, status: 'uploaded' })
+    .sort({ createdAt: -1 })
+    .toArray();
+}
+
 function findById(userId, fileId) {
   return collection().findOne({ _id: fileId, userId });
 }
@@ -72,6 +79,7 @@ module.exports = {
   create,
   findById,
   findByLabId,
+  findByLabIdAndUserId,
   markUploaded,
   list,
   categoryCounts,

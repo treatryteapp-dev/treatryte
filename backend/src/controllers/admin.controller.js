@@ -258,7 +258,7 @@ const listPlans = asyncHandler(async (req, res) => {
 });
 
 const createPlan = asyncHandler(async (req, res) => {
-  const { name, price, interval, type, features, excludedFeatures, nombaPlanId, transactionSplit } = req.body;
+  const { name, price, interval, type, features, excludedFeatures, transactionSplit } = req.body;
   if (!name || price === undefined || price === null) {
     throw new ApiError(400, 'Name and price are required', 'BAD_REQUEST');
   }
@@ -269,7 +269,6 @@ const createPlan = asyncHandler(async (req, res) => {
     type,
     features,
     excludedFeatures,
-    nombaPlanId,
     transactionSplit
   });
   res.status(201).json({ plan });
@@ -283,7 +282,7 @@ const deletePlan = asyncHandler(async (req, res) => {
 
 const updatePlan = asyncHandler(async (req, res) => {
   const planId = parseObjectId(req.params.id);
-  const { name, price, interval, type, features, excludedFeatures, nombaPlanId, transactionSplit } = req.body;
+  const { name, price, interval, type, features, excludedFeatures, transactionSplit } = req.body;
   const updates = {};
   if (name !== undefined) updates.name = name;
   if (price !== undefined) updates.price = Number(price);
@@ -291,7 +290,6 @@ const updatePlan = asyncHandler(async (req, res) => {
   if (type !== undefined) updates.type = type;
   if (features !== undefined) updates.features = features;
   if (excludedFeatures !== undefined) updates.excludedFeatures = excludedFeatures;
-  if (nombaPlanId !== undefined) updates.nombaPlanId = nombaPlanId;
   if (transactionSplit !== undefined) updates.transactionSplit = Number(transactionSplit);
 
   const result = await planModel.update(planId, updates);

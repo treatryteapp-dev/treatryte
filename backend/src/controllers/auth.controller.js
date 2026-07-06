@@ -6,6 +6,7 @@ const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
+const { ROLE_TO_PLAN_TYPE } = require('../utils/planAccess');
 
 const registerSchema = z.object({
   fullName: z.string().min(1),
@@ -64,11 +65,15 @@ const updatePlanSchema = z.object({
   planId: z.string().min(1),
 });
 
-const ROLE_TO_PLAN_TYPE = { provider: 'Partner', patient: 'Individual' };
+const updateMedicalProfileSchema = z.object({
+  bloodGroup: z.string().min(1).optional().nullable(),
+  allergies: z.array(z.string()).optional(),
+  conditions: z.array(z.string()).optional(),
+});
 
-// Self-service only: sets planId directly with no payment charge, same as
-// registration already does today. Real recurring billing for paid plans
-// is a separate project.
+// Self-service, free plans only: sets planId directly with no payment
+// charge. Paid plans must go through POST /api/subscriptions/upgrade so a
+// real Nomba charge is confirmed before the plan takes effect.
 const updatePlan = asyncHandler(async (req, res) => {
   const user = await userModel.findById(req.userId);
   if (!user) {
@@ -90,8 +95,30 @@ const updatePlan = asyncHandler(async (req, res) => {
   if (plan.type !== expectedType) {
     throw new ApiError(400, `This plan is not available for ${user.role} accounts`, 'PLAN_TYPE_MISMATCH');
   }
+  if (plan.price > 0) {
+    throw new ApiError(400, 'Use POST /api/subscriptions/upgrade to switch to a paid plan', 'PAID_PLAN_REQUIRES_UPGRADE');
+  }
 
   await userModel.update(req.userId, { planId: plan._id });
+  res.json({ user: userModel.toPublic(await userModel.findById(req.userId)) });
+});
+
+// Self-service only: a provider adding a prescription does not touch this -
+// patients own their own blood group/allergies/conditions.
+const updateMedicalProfile = asyncHandler(async (req, res) => {
+  const user = await userModel.findById(req.userId);
+  if (!user) {
+    throw new ApiError(404, 'User not found', 'NOT_FOUND');
+  }
+
+  const current = user.medicalProfile || { bloodGroup: null, allergies: [], conditions: [] };
+  const medicalProfile = {
+    bloodGroup: req.body.bloodGroup !== undefined ? req.body.bloodGroup : current.bloodGroup,
+    allergies: req.body.allergies !== undefined ? req.body.allergies : current.allergies,
+    conditions: req.body.conditions !== undefined ? req.body.conditions : current.conditions,
+  };
+
+  await userModel.update(req.userId, { medicalProfile });
   res.json({ user: userModel.toPublic(await userModel.findById(req.userId)) });
 });
 
@@ -100,10 +127,12 @@ module.exports = {
   loginSchema,
   refreshSchema,
   updatePlanSchema,
+  updateMedicalProfileSchema,
   register,
   login,
   refresh,
   logout,
   me,
   updatePlan,
+  updateMedicalProfile,
 };

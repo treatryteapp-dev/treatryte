@@ -28,6 +28,7 @@ async function create({ fullName, dateOfBirth, gender, address, email, passwordH
     planId: planId ? new ObjectId(planId) : null,
     nombaCustomerId: null,
     biometricLockEnabled: false,
+    medicalProfile: { bloodGroup: null, allergies: [], conditions: [] },
     createdAt: now,
     updatedAt: now,
   };
@@ -54,6 +55,7 @@ function toPublic(user) {
     role: user.role,
     planId: user.planId ? user.planId.toString() : null,
     biometricLockEnabled: user.biometricLockEnabled,
+    medicalProfile: user.medicalProfile || { bloodGroup: null, allergies: [], conditions: [] },
   };
 }
 

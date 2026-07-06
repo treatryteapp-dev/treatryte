@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/appointment_models.dart';
+import '../../providers/partner_provider.dart';
 import '../../theme/app_theme.dart';
 
 class PartnerAppointmentsTab extends StatefulWidget {
@@ -9,62 +13,23 @@ class PartnerAppointmentsTab extends StatefulWidget {
 }
 
 class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
-  DateTime _focusedDate = DateTime.now();
+  bool _loaded = false;
   String _activeFilter = 'All';
 
-  // Mock appointments — in a real implementation these would come from a provider.
-  final List<Map<String, dynamic>> _allAppointments = const [
-    {
-      'time': '09:00',
-      'patient': 'Adewale Thompson',
-      'type': 'General Consultation',
-      'status': 'Confirmed',
-    },
-    {
-      'time': '10:30',
-      'patient': 'Chinense Okere',
-      'type': 'Cardiology Follow-up',
-      'status': 'Pending',
-    },
-    {
-      'time': '11:45',
-      'patient': 'Fatima Yusuf',
-      'type': 'Lab Results Review',
-      'status': 'Confirmed',
-    },
-    {
-      'time': '13:00',
-      'patient': 'Emeka Nwosu',
-      'type': 'Annual Checkup',
-      'status': 'Pending',
-    },
-  ];
+  static const _statusLabels = {
+    'pending_payment': 'Pending',
+    'confirmed': 'Confirmed',
+    'checked_in': 'Checked In',
+    'cancelled': 'Cancelled',
+  };
 
-  List<Map<String, dynamic>> get _filteredAppointments {
-    if (_activeFilter == 'All') return _allAppointments;
-    return _allAppointments
-        .where((a) => a['status'] == _activeFilter)
-        .toList();
+  List<Appointment> _filtered(List<Appointment> all) {
+    if (_activeFilter == 'All') return all;
+    return all.where((a) => _statusLabels[a.status] == _activeFilter).toList();
   }
 
-  /// Build the 6-day strip centred around [_focusedDate].
-  List<DateTime> get _calendarWeek {
-    // Show Mon-Sat of the current week containing _focusedDate.
-    final monday = _focusedDate.subtract(
-      Duration(days: _focusedDate.weekday - 1),
-    );
-    return List.generate(6, (i) => monday.add(Duration(days: i)));
-  }
-
-  String _monthLabel(DateTime d) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return '${months[d.month - 1]} ${d.year}';
-  }
-
-  void _showCheckInSheet(Map<String, dynamic> apt) {
+  void _showActionSheet(Appointment apt) {
+    final partner = context.read<PartnerProvider>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -80,7 +45,6 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Drag handle
             Center(
               child: Container(
                 width: 40, height: 4,
@@ -92,11 +56,11 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              apt['patient'] as String,
+              apt.patientName ?? 'Patient',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             Text(
-              '${apt['type']}  •  ${apt['time']}',
+              '${apt.serviceType ?? 'Appointment'}  •  ${apt.scheduledTimeSlot ?? ''}',
               style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -106,10 +70,12 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                   child: FilledButton.icon(
                     icon: const Icon(Icons.login, size: 18),
                     label: const Text('Check In'),
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.of(ctx).pop();
+                      final ok = await partner.checkIn(apt.id);
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${apt['patient']} checked in.')),
+                        SnackBar(content: Text(ok ? '${apt.patientName ?? 'Patient'} checked in.' : 'Failed to check in.')),
                       );
                     },
                   ),
@@ -121,9 +87,7 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                     label: const Text('Reschedule'),
                     onPressed: () {
                       Navigator.of(ctx).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Reschedule flow coming soon.')),
-                      );
+                      _showRescheduleDialog(apt);
                     },
                   ),
                 ),
@@ -138,10 +102,12 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                   'Cancel Appointment',
                   style: TextStyle(color: AppColors.error),
                 ),
-                onPressed: () {
+                onPressed: () async {
                   Navigator.of(ctx).pop();
+                  final ok = await partner.cancelAppointment(apt.id);
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${apt['patient']}\'s appointment cancelled.')),
+                    SnackBar(content: Text(ok ? '${apt.patientName ?? 'Appointment'} cancelled.' : 'Failed to cancel.')),
                   );
                 },
               ),
@@ -152,183 +118,128 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final week = _calendarWeek;
-    final confirmed = _allAppointments.where((a) => a['status'] == 'Confirmed').length;
-    final pending = _allAppointments.where((a) => a['status'] == 'Pending').length;
+  Future<void> _showRescheduleDialog(Appointment apt) async {
+    final dateController = TextEditingController(text: apt.scheduledDate ?? '');
+    final slotController = TextEditingController(text: apt.scheduledTimeSlot ?? '');
+    final partner = context.read<PartnerProvider>();
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reschedule Appointment'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Appointments Scheduler', style: textTheme.headlineSmall),
-            const SizedBox(height: 2),
-            Text(
-              'Manage daily patient flow and medical consultations.',
-              style: textTheme.bodySmall,
+            TextField(
+              controller: dateController,
+              decoration: const InputDecoration(labelText: 'Date (YYYY-MM-DD)'),
             ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // ── Calendar Strip ──────────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(AppRadii.lg),
-                border: Border.all(
-                  color: AppColors.outlineVariant.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _monthLabel(_focusedDate),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left, size: 20),
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () => setState(() {
-                              _focusedDate = _focusedDate.subtract(
-                                const Duration(days: 7),
-                              );
-                            }),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right, size: 20),
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () => setState(() {
-                              _focusedDate = _focusedDate.add(
-                                const Duration(days: 7),
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(height: AppSpacing.lg),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: week.map((day) {
-                      const weekdays = ['M', 'T', 'W', 'T', 'F', 'S'];
-                      final label = weekdays[day.weekday - 1];
-                      final isToday = day.day == DateTime.now().day &&
-                          day.month == DateTime.now().month &&
-                          day.year == DateTime.now().year;
-                      final isSelected = day.day == _focusedDate.day &&
-                          day.month == _focusedDate.month;
-                      return GestureDetector(
-                        onTap: () => setState(() => _focusedDate = day),
-                        child: _buildCalDay(
-                          day.day.toString(),
-                          label,
-                          selected: isSelected,
-                          isToday: isToday,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: slotController,
+              decoration: const InputDecoration(labelText: 'Time Slot'),
             ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // ── Filter Chips ───────────────────────────────────────────────
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('All (${_allAppointments.length})', 'All'),
-                  const SizedBox(width: AppSpacing.sm),
-                  _buildFilterChip('Confirmed ($confirmed)', 'Confirmed'),
-                  const SizedBox(width: AppSpacing.sm),
-                  _buildFilterChip('Pending ($pending)', 'Pending'),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // ── Appointment List ───────────────────────────────────────────
-            if (_filteredAppointments.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                  child: Text(
-                    'No $_activeFilter appointments today.',
-                    style: textTheme.bodySmall,
-                  ),
-                ),
-              )
-            else
-              Card(
-                child: Column(
-                  children: [
-                    for (int i = 0; i < _filteredAppointments.length; i++) ...[
-                      if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
-                      _buildAppointmentRow(_filteredAppointments[i]),
-                    ],
-                  ],
-                ),
-              ),
           ],
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Save')),
+        ],
       ),
+    );
+
+    if (confirmed != true) return;
+    final ok = await partner.reschedule(
+      apt.id,
+      scheduledDate: dateController.text.trim(),
+      scheduledTimeSlot: slotController.text.trim(),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? 'Appointment rescheduled.' : 'Failed to reschedule.')),
     );
   }
 
-  Widget _buildCalDay(
-    String day,
-    String weekday, {
-    bool selected = false,
-    bool isToday = false,
-  }) {
-    return Column(
-      children: [
-        Text(
-          weekday,
-          style: TextStyle(
-            fontSize: 11,
-            color: selected ? AppColors.primary : AppColors.outline,
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.primary
-                : isToday
-                    ? AppColors.primaryContainer.withValues(alpha: 0.3)
-                    : Colors.transparent,
-            shape: BoxShape.circle,
-            border: isToday && !selected
-                ? Border.all(color: AppColors.primary, width: 1.5)
-                : null,
-          ),
-          child: Center(
-            child: Text(
-              day,
-              style: TextStyle(
-                color: selected ? Colors.white : AppColors.onBackground,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) {
+      _loaded = true;
+      final provider = context.read<PartnerProvider>();
+      Future.microtask(() => provider.loadAppointments());
+    }
+
+    final textTheme = Theme.of(context).textTheme;
+    final partner = context.watch<PartnerProvider>();
+    final all = partner.appointments;
+    final filtered = _filtered(all);
+    final confirmed = all.where((a) => a.status == 'confirmed').length;
+    final pending = all.where((a) => a.status == 'pending_payment').length;
+
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: () => context.read<PartnerProvider>().loadAppointments(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Appointments Scheduler', style: textTheme.headlineSmall),
+              const SizedBox(height: 2),
+              Text(
+                'Manage daily patient flow and medical consultations.',
+                style: textTheme.bodySmall,
               ),
-            ),
+              const SizedBox(height: AppSpacing.lg),
+
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('All (${all.length})', 'All'),
+                    const SizedBox(width: AppSpacing.sm),
+                    _buildFilterChip('Confirmed ($confirmed)', 'Confirmed'),
+                    const SizedBox(width: AppSpacing.sm),
+                    _buildFilterChip('Pending ($pending)', 'Pending'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              if (partner.isLoadingAppointments && all.isEmpty)
+                const Center(
+                  child: Padding(padding: EdgeInsets.all(AppSpacing.xl), child: CircularProgressIndicator()),
+                )
+              else if (partner.appointmentsError != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                  child: Text(partner.appointmentsError!, style: textTheme.bodySmall?.copyWith(color: AppColors.error)),
+                )
+              else if (filtered.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                    child: Text(
+                      'No $_activeFilter appointments.',
+                      style: textTheme.bodySmall,
+                    ),
+                  ),
+                )
+              else
+                Card(
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < filtered.length; i++) ...[
+                        if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
+                        _buildAppointmentRow(filtered[i]),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -359,13 +270,14 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
     );
   }
 
-  Widget _buildAppointmentRow(Map<String, dynamic> apt) {
+  Widget _buildAppointmentRow(Appointment apt) {
     final textTheme = Theme.of(context).textTheme;
-    final isConfirmed = apt['status'] == 'Confirmed';
+    final isConfirmed = apt.status == 'confirmed' || apt.status == 'checked_in';
     final statusColor = isConfirmed ? AppColors.secondary : AppColors.primary;
+    final statusLabel = _statusLabels[apt.status] ?? apt.status;
 
     return InkWell(
-      onTap: () => _showCheckInSheet(apt),
+      onTap: () => _showActionSheet(apt),
       borderRadius: BorderRadius.circular(AppRadii.md),
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -376,7 +288,7 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              apt['time'] as String,
+              apt.scheduledTimeSlot ?? '--',
               style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
@@ -388,10 +300,10 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    apt['patient'] as String,
+                    apt.patientName ?? 'Patient',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text(apt['type'] as String, style: textTheme.bodySmall),
+                  Text(apt.serviceType ?? 'Appointment', style: textTheme.bodySmall),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -405,7 +317,7 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        apt['status'] as String,
+                        statusLabel,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,

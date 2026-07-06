@@ -12,5 +12,11 @@ router.post('/refresh', validateBody(controller.refreshSchema), controller.refre
 router.post('/logout', validateBody(controller.refreshSchema), controller.logout);
 router.get('/me', requireAuth, controller.me);
 router.patch('/me/plan', requireAuth, validateBody(controller.updatePlanSchema), controller.updatePlan);
+router.patch(
+  '/me/medical-profile',
+  requireAuth,
+  validateBody(controller.updateMedicalProfileSchema),
+  controller.updateMedicalProfile
+);
 
 module.exports = router;

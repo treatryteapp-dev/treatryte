@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/plan_models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/plan_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../theme/app_theme.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
@@ -43,7 +45,13 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       body: SafeArea(
         child: planProvider.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
+            : RefreshIndicator(
+                onRefresh: () async {
+                  await context.read<PlanProvider>().loadPlans(type: 'Individual');
+                  await context.read<AuthProvider>().checkSession();
+                },
+                child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,21 +119,56 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                   ],
                 ),
               ),
+              ),
       ),
     );
   }
 
   Future<void> _confirmSelection() async {
     if (_selectedPlanId == null) return;
+    final planProvider = context.read<PlanProvider>();
+    final selectedPlan = planProvider.plans.firstWhere((p) => p.id == _selectedPlanId);
+
     setState(() => _switching = true);
-    final ok = await context.read<PlanProvider>().selectPlan(_selectedPlanId!);
-    if (ok) {
-      await context.read<AuthProvider>().checkSession();
+
+    if (selectedPlan.price <= 0) {
+      final ok = await planProvider.selectPlan(_selectedPlanId!);
+      if (ok) {
+        await context.read<AuthProvider>().checkSession();
+      }
+      if (!mounted) return;
+      setState(() => _switching = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ok ? 'Plan updated.' : 'Failed to update your plan.')),
+      );
+      return;
     }
+
+    final checkoutLink = await context.read<SubscriptionProvider>().upgrade(_selectedPlanId!);
     if (!mounted) return;
     setState(() => _switching = false);
+
+    if (checkoutLink == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to start checkout for this plan.')),
+      );
+      return;
+    }
+
+    final uri = Uri.parse(checkoutLink);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!mounted) return;
+    if (!opened) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the payment page.')),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Plan updated.' : 'Failed to update your plan.')),
+      const SnackBar(
+        content: Text('Complete payment in the browser, then come back and pull to refresh.'),
+      ),
     );
   }
 }

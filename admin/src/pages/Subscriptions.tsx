@@ -23,7 +23,6 @@ export const Subscriptions: React.FC = () => {
   const [planInterval, setPlanInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [planFeatures, setPlanFeatures] = useState('');
   const [planExcludedFeatures, setPlanExcludedFeatures] = useState('');
-  const [nombaPlanId, setNombaPlanId] = useState('');
   const [transactionSplit, setTransactionSplit] = useState('');
   const [submittingPlan, setSubmittingPlan] = useState(false);
 
@@ -64,7 +63,6 @@ export const Subscriptions: React.FC = () => {
     setPlanInterval('monthly');
     setPlanFeatures('');
     setPlanExcludedFeatures('');
-    setNombaPlanId('');
     setTransactionSplit('');
     setShowCreatePlanModal(true);
   };
@@ -78,7 +76,6 @@ export const Subscriptions: React.FC = () => {
     setPlanInterval(plan.interval);
     setPlanFeatures((plan.features || []).join(', '));
     setPlanExcludedFeatures((plan.excludedFeatures || []).join(', '));
-    setNombaPlanId(plan.nombaPlanId || '');
     setTransactionSplit(plan.transactionSplit !== undefined ? String(plan.transactionSplit) : '');
     setShowCreatePlanModal(true);
   };
@@ -95,7 +92,6 @@ export const Subscriptions: React.FC = () => {
         interval: planInterval,
         features: planFeatures.split(',').map(f => f.trim()).filter(Boolean),
         excludedFeatures: planExcludedFeatures.split(',').map(f => f.trim()).filter(Boolean),
-        nombaPlanId: nombaPlanId || undefined,
         transactionSplit: transactionSplit ? Number(transactionSplit) : undefined,
       };
 
@@ -674,11 +670,6 @@ export const Subscriptions: React.FC = () => {
                       Nomba Split Fee: <span style={{ fontWeight: '700' }}>{plan.transactionSplit}%</span>
                     </div>
                   )}
-                  {plan.nombaPlanId && (
-                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#545f73', fontFamily: 'monospace' }}>
-                      Nomba Code: {plan.nombaPlanId}
-                    </div>
-                  )}
                 </div>
 
                 {/* Features List */}
@@ -860,17 +851,7 @@ export const Subscriptions: React.FC = () => {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Nomba Plan ID (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. plan_nomba_growth"
-                    value={nombaPlanId}
-                    onChange={(e) => setNombaPlanId(e.target.value)}
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px' }}
-                  />
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Nomba Split Platform Fee (%)</label>
                   <input

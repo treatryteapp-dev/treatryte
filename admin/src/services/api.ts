@@ -94,7 +94,6 @@ export interface Plan {
   type: 'Partner' | 'Individual';
   features: string[];
   excludedFeatures?: string[];
-  nombaPlanId?: string;
   transactionSplit?: number;
   status: 'active' | 'inactive';
   createdAt: string;

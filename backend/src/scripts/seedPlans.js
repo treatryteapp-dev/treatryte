@@ -23,7 +23,6 @@ const defaultPlans = [
       "Family Account Linking: Manage up to 4 sub-profiles",
       "Smart Insights: AI-translated record summaries"
     ],
-    nombaPlanId: "",
     transactionSplit: 0,
     status: "active",
     createdAt: new Date(),
@@ -45,7 +44,6 @@ const defaultPlans = [
       "Family Account Linking: Manage up to 4 sub-profiles",
       "Smart Insights: AI-translated record summaries"
     ],
-    nombaPlanId: "plan_nomba_health_plus",
     transactionSplit: 0,
     status: "active",
     createdAt: new Date(),
@@ -64,7 +62,6 @@ const defaultPlans = [
       "Smart Insights: AI-translated record summaries"
     ],
     excludedFeatures: [],
-    nombaPlanId: "plan_nomba_health_premium",
     transactionSplit: 0,
     status: "active",
     createdAt: new Date(),
@@ -91,7 +88,6 @@ const defaultPlans = [
       "Multi-Branch Management: Track performance across up to 5 separate branches",
       "Priority API Integration: Direct Webhook support for LIMS systems"
     ],
-    nombaPlanId: "",
     transactionSplit: 2.5,
     status: "active",
     createdAt: new Date(),
@@ -115,7 +111,6 @@ const defaultPlans = [
       "Multi-Branch Management: Track performance across up to 5 separate branches",
       "Priority API Integration: Direct Webhook support for LIMS systems"
     ],
-    nombaPlanId: "plan_nomba_growth_suite",
     transactionSplit: 1.5,
     status: "active",
     createdAt: new Date(),
@@ -135,7 +130,6 @@ const defaultPlans = [
       "Priority API Integration: Direct Webhook support for LIMS systems"
     ],
     excludedFeatures: [],
-    nombaPlanId: "plan_nomba_enterprise_health_suite",
     transactionSplit: 1.0,
     status: "active",
     createdAt: new Date(),
@@ -144,6 +138,15 @@ const defaultPlans = [
 ];
 
 async function main() {
+  // This script wipes and replaces the entire plans collection - running it
+  // against production would destroy any live-adjusted pricing/plan data.
+  if (process.env.NODE_ENV === 'production' && !process.env.FORCE_SEED) {
+    throw new Error(
+      'Refusing to run seedPlans.js against production (NODE_ENV=production). ' +
+      'Set FORCE_SEED=1 if you really intend to wipe and reseed plans.'
+    );
+  }
+
   const db = getDb();
   const collection = db.collection('plans');
 

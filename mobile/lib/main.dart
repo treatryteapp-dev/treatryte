@@ -11,6 +11,7 @@ import 'providers/medication_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/partner_provider.dart';
 import 'providers/plan_provider.dart';
+import 'providers/subscription_provider.dart';
 import 'providers/vault_provider.dart';
 import 'providers/wallet_provider.dart';
 import 'routing/app_router.dart';
@@ -24,6 +25,7 @@ import 'services/notification_service.dart';
 import 'services/plan_service.dart';
 import 'services/provider_service.dart';
 import 'services/secure_storage_service.dart';
+import 'services/subscription_service.dart';
 import 'services/vault_service.dart';
 import 'services/wallet_service.dart';
 import 'theme/app_theme.dart';
@@ -70,7 +72,10 @@ class _TreatRyteAppState extends State<TreatRyteApp> {
         ChangeNotifierProvider(create: (_) => MedicationProvider(MedicationService(_apiClient))),
         ChangeNotifierProvider(create: (_) => NotificationProvider(NotificationService(_apiClient))),
         ChangeNotifierProvider(create: (_) => PlanProvider(PlanService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => PartnerProvider(ProviderService(_apiClient))),
+        ChangeNotifierProvider(create: (_) => SubscriptionProvider(SubscriptionService(_apiClient))),
+        ChangeNotifierProvider(
+          create: (_) => PartnerProvider(ProviderService(_apiClient), AppointmentService(_apiClient)),
+        ),
       ],
       child: MaterialApp.router(
         title: 'TreatRyte',

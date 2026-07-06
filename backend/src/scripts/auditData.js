@@ -60,9 +60,7 @@ async function audit() {
   console.log(`📦 PLANS COLLECTION (${plans.length} records)`);
   console.log('─'.repeat(60));
   plans.forEach(p => {
-    const hasNombaId = p.nombaPlanId && p.nombaPlanId !== '' && !p.nombaPlanId.startsWith('plan_nomba_');
-    const tag = hasNombaId ? '🟢 LIVE NOMBA' : '🟡 SEEDED TEMPLATE';
-    console.log(`  ${tag} | ${p.name} | ₦${p.price}/${p.interval} | type:${p.type} | nombaId:${p.nombaPlanId || 'none'}`);
+    console.log(`  ${p.name} | ₦${p.price}/${p.interval} | type:${p.type}`);
   });
 
   // ─── 5. TRANSACTIONS ─────────────────────────────────────────────────────

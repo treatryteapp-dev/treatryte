@@ -1,20 +1,36 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/appointment_models.dart';
+import '../models/patient_models.dart';
 import '../models/plan_models.dart';
 import '../models/provider_models.dart';
 import '../services/api_client.dart';
+import '../services/appointment_service.dart';
 import '../services/provider_service.dart';
 
 class PartnerProvider extends ChangeNotifier {
-  PartnerProvider(this._service);
+  PartnerProvider(this._service, this._appointmentService);
 
   final ProviderService _service;
+  final AppointmentService _appointmentService;
 
   PartnerLab? lab;
   Plan? plan;
   List<PartnerService> services = [];
   bool isLoading = false;
   String? errorMessage;
+
+  List<Appointment> appointments = [];
+  bool isLoadingAppointments = false;
+  String? appointmentsError;
+
+  List<PartnerPatient> patients = [];
+  bool isLoadingPatients = false;
+  String? patientsError;
+
+  PatientDetail? selectedPatientDetail;
+  bool isLoadingPatientDetail = false;
+  String? patientDetailError;
 
   Future<void> loadProfile() async {
     isLoading = true;
@@ -77,6 +93,117 @@ class PartnerProvider extends ChangeNotifier {
       return true;
     } on ApiException catch (e) {
       errorMessage = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> loadAppointments() async {
+    isLoadingAppointments = true;
+    notifyListeners();
+    try {
+      appointments = await _appointmentService.listForProvider();
+      appointmentsError = null;
+    } on ApiException catch (e) {
+      appointmentsError = e.message;
+    } finally {
+      isLoadingAppointments = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> checkIn(String appointmentId) async {
+    try {
+      await _appointmentService.checkIn(appointmentId);
+      await loadAppointments();
+      return true;
+    } on ApiException catch (e) {
+      appointmentsError = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> reschedule(String appointmentId, {required String scheduledDate, required String scheduledTimeSlot}) async {
+    try {
+      await _appointmentService.reschedule(
+        appointmentId,
+        scheduledDate: scheduledDate,
+        scheduledTimeSlot: scheduledTimeSlot,
+      );
+      await loadAppointments();
+      return true;
+    } on ApiException catch (e) {
+      appointmentsError = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> cancelAppointment(String appointmentId) async {
+    try {
+      await _appointmentService.cancel(appointmentId);
+      await loadAppointments();
+      return true;
+    } on ApiException catch (e) {
+      appointmentsError = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> loadPatients() async {
+    isLoadingPatients = true;
+    notifyListeners();
+    try {
+      patients = await _service.listPatients();
+      patientsError = null;
+    } on ApiException catch (e) {
+      patientsError = e.message;
+    } finally {
+      isLoadingPatients = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadPatientDetail(String patientId) async {
+    isLoadingPatientDetail = true;
+    notifyListeners();
+    try {
+      selectedPatientDetail = await _service.getPatientDetail(patientId);
+      patientDetailError = null;
+    } on ApiException catch (e) {
+      patientDetailError = e.message;
+    } finally {
+      isLoadingPatientDetail = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> addPrescription(
+    String patientId, {
+    required String medicineName,
+    required String dosage,
+    required String duration,
+    String? notes,
+  }) async {
+    try {
+      await _service.addPrescription(patientId, medicineName: medicineName, dosage: dosage, duration: duration, notes: notes);
+      await loadPatientDetail(patientId);
+      return true;
+    } on ApiException catch (e) {
+      patientDetailError = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> invitePatient(String email) async {
+    try {
+      await _service.invitePatient(email);
+      return true;
+    } on ApiException catch (e) {
+      patientsError = e.message;
       notifyListeners();
       return false;
     }

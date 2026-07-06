@@ -17,5 +17,12 @@ router.delete('/services/:id', controller.deleteService);
 
 router.get('/appointments', controller.listAppointments);
 router.post('/appointments/:id/checkin', controller.checkInAppointment);
+router.post('/appointments/:id/reschedule', validateBody(controller.rescheduleSchema), controller.rescheduleAppointment);
+router.post('/appointments/:id/cancel', controller.cancelAppointment);
+
+router.get('/patients', controller.listPatients);
+router.post('/patients/invite', validateBody(controller.invitePatientSchema), controller.invitePatient);
+router.get('/patients/:id', controller.getPatientDetail);
+router.post('/patients/:id/prescriptions', validateBody(controller.addPrescriptionSchema), controller.addPrescription);
 
 module.exports = router;

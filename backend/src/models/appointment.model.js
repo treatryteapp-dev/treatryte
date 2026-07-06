@@ -62,6 +62,29 @@ function updateStatus(appointmentId, status) {
   );
 }
 
+function updateSchedule(appointmentId, { scheduledDate, scheduledTimeSlot }) {
+  return collection().updateOne(
+    { _id: appointmentId },
+    { $set: { scheduledDate, scheduledTimeSlot, updatedAt: new Date() } }
+  );
+}
+
+/**
+ * Distinct patients seen at a lab, derived from appointment history (there
+ * is no first-class provider-patient linkage collection) - most recent
+ * appointment first.
+ */
+function listDistinctPatientsByLabId(labId) {
+  return collection()
+    .aggregate([
+      { $match: { labId } },
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: '$userId', lastVisit: { $first: '$createdAt' } } },
+      { $sort: { lastVisit: -1 } },
+    ])
+    .toArray();
+}
+
 function listUnsettledConfirmed() {
   return collection().find({ status: 'confirmed', settlementId: null }).toArray();
 }
@@ -83,6 +106,8 @@ module.exports = {
   list,
   listByLabId,
   updateStatus,
+  updateSchedule,
+  listDistinctPatientsByLabId,
   listUnsettledConfirmed,
   markSettled,
 };
