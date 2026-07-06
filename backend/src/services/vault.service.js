@@ -6,15 +6,81 @@ const env = require('../config/env');
 const { getS3Client } = require('../aws');
 const { signVaultUrl } = require('../cloudfrontSign');
 const vaultFileModel = require('../models/vaultFile.model');
+const vaultFolderModel = require('../models/vaultFolder.model');
+const userModel = require('../models/user.model');
+const planModel = require('../models/plan.model');
 const activityService = require('./activity.service');
 const { ApiError } = require('../middleware/errorHandler');
 
 const PRESIGN_TTL_SECONDS = 300;
+// Baseline for a patient with no plan assigned yet, matching the Free
+// Tier's advertised "Max 5 medical records across 2 folders".
+const DEFAULT_MAX_VAULT_FOLDERS = 2;
+const DEFAULT_MAX_VAULT_FILES = 5;
 
-async function presignUpload(userId, { fileName, mimeType, sizeBytes, category, labId }) {
+async function getVaultLimits(userId) {
+  const user = await userModel.findById(userId);
+  const plan = user?.planId ? await planModel.collection().findOne({ _id: user.planId }) : null;
+  return {
+    maxVaultFolders: plan && 'maxVaultFolders' in plan ? plan.maxVaultFolders : DEFAULT_MAX_VAULT_FOLDERS,
+    maxVaultFiles: plan && 'maxVaultFiles' in plan ? plan.maxVaultFiles : DEFAULT_MAX_VAULT_FILES,
+  };
+}
+
+async function createFolder(userId, name) {
+  const limits = await getVaultLimits(userId);
+  if (limits.maxVaultFolders !== null) {
+    const count = await vaultFolderModel.countByUserId(userId);
+    if (count >= limits.maxVaultFolders) {
+      throw new ApiError(
+        403,
+        `Your plan allows up to ${limits.maxVaultFolders} folders. Upgrade your plan to add more.`,
+        'FOLDER_LIMIT_REACHED',
+      );
+    }
+  }
+  return vaultFolderModel.create({ userId, name });
+}
+
+async function listFolders(userId) {
+  const [folders, counts] = await Promise.all([
+    vaultFolderModel.findByUserId(userId),
+    vaultFileModel.folderCounts(userId),
+  ]);
+  const countsById = new Map(counts.map((c) => [c._id.toString(), c.count]));
+  return folders.map((f) => ({ ...f, fileCount: countsById.get(f._id.toString()) || 0 }));
+}
+
+// [labId] means this is a partner-verification upload (registration/
+// resubmission docs), which isn't part of a patient's own folder system and
+// isn't subject to vault plan limits - those only gate a patient's personal
+// records.
+async function presignUpload(userId, { fileName, mimeType, sizeBytes, category, labId, folderId }) {
+  if (!labId) {
+    if (!folderId) {
+      throw new ApiError(400, 'A folder is required to upload a document', 'FOLDER_REQUIRED');
+    }
+    const folder = await vaultFolderModel.findById(userId, folderId);
+    if (!folder) {
+      throw new ApiError(404, 'Folder not found', 'FOLDER_NOT_FOUND');
+    }
+
+    const limits = await getVaultLimits(userId);
+    if (limits.maxVaultFiles !== null) {
+      const [stats] = await vaultFileModel.storageStats(userId);
+      if ((stats?.fileCount || 0) >= limits.maxVaultFiles) {
+        throw new ApiError(
+          403,
+          `Your plan allows up to ${limits.maxVaultFiles} records. Upgrade your plan to add more.`,
+          'FILE_LIMIT_REACHED',
+        );
+      }
+    }
+  }
+
   const s3Key = `vault/${userId.toString()}/${crypto.randomUUID()}-${fileName}`;
 
-  const file = await vaultFileModel.create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId });
+  const file = await vaultFileModel.create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId, folderId });
 
   const uploadUrl = await getS3SignedUrl(
     getS3Client(),
@@ -59,8 +125,8 @@ async function getFile(userId, fileId) {
   return { ...file, url: signVaultUrl(file.s3Key) };
 }
 
-async function listFiles(userId, category) {
-  return vaultFileModel.list(userId, category);
+async function listFiles(userId, category, folderId) {
+  return vaultFileModel.list(userId, category, folderId);
 }
 
 async function getCategories(userId) {
@@ -68,15 +134,24 @@ async function getCategories(userId) {
 }
 
 async function getStats(userId) {
-  const [stats] = await vaultFileModel.storageStats(userId);
+  const [[stats], limits, folderCount] = await Promise.all([
+    vaultFileModel.storageStats(userId),
+    getVaultLimits(userId),
+    vaultFolderModel.countByUserId(userId),
+  ]);
   return {
     usedBytes: stats?.usedBytes || 0,
     fileCount: stats?.fileCount || 0,
     quotaBytes: env.vaultQuotaBytes,
+    folderCount,
+    maxVaultFolders: limits.maxVaultFolders,
+    maxVaultFiles: limits.maxVaultFiles,
   };
 }
 
 module.exports = {
+  createFolder,
+  listFolders,
   presignUpload,
   confirmUpload,
   getFile,

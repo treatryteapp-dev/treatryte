@@ -24,6 +24,8 @@ const defaultPlans = [
       "Smart Insights: AI-translated record summaries"
     ],
     transactionSplit: 0,
+    maxVaultFolders: 2,
+    maxVaultFiles: 5,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()
@@ -45,6 +47,8 @@ const defaultPlans = [
       "Smart Insights: AI-translated record summaries"
     ],
     transactionSplit: 0,
+    maxVaultFolders: 10,
+    maxVaultFiles: 100,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()
@@ -63,6 +67,8 @@ const defaultPlans = [
     ],
     excludedFeatures: [],
     transactionSplit: 0,
+    maxVaultFolders: null,
+    maxVaultFiles: null,
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date()

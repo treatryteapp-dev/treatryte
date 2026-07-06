@@ -22,6 +22,9 @@ class AppointmentProvider extends ChangeNotifier {
       final result = await _service.getAvailability(labId);
       availability = result.days;
       serviceFeeKobo = result.serviceFeeKobo;
+      errorMessage = null;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
     } finally {
       isLoading = false;
       notifyListeners();

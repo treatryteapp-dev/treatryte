@@ -24,6 +24,8 @@ export const Subscriptions: React.FC = () => {
   const [planFeatures, setPlanFeatures] = useState('');
   const [planExcludedFeatures, setPlanExcludedFeatures] = useState('');
   const [transactionSplit, setTransactionSplit] = useState('');
+  const [maxVaultFolders, setMaxVaultFolders] = useState('');
+  const [maxVaultFiles, setMaxVaultFiles] = useState('');
   const [submittingPlan, setSubmittingPlan] = useState(false);
 
   const loadData = () => {
@@ -64,6 +66,8 @@ export const Subscriptions: React.FC = () => {
     setPlanFeatures('');
     setPlanExcludedFeatures('');
     setTransactionSplit('');
+    setMaxVaultFolders('');
+    setMaxVaultFiles('');
     setShowCreatePlanModal(true);
   };
 
@@ -77,6 +81,8 @@ export const Subscriptions: React.FC = () => {
     setPlanFeatures((plan.features || []).join(', '));
     setPlanExcludedFeatures((plan.excludedFeatures || []).join(', '));
     setTransactionSplit(plan.transactionSplit !== undefined ? String(plan.transactionSplit) : '');
+    setMaxVaultFolders(plan.maxVaultFolders != null ? String(plan.maxVaultFolders) : '');
+    setMaxVaultFiles(plan.maxVaultFiles != null ? String(plan.maxVaultFiles) : '');
     setShowCreatePlanModal(true);
   };
 
@@ -93,6 +99,8 @@ export const Subscriptions: React.FC = () => {
         features: planFeatures.split(',').map(f => f.trim()).filter(Boolean),
         excludedFeatures: planExcludedFeatures.split(',').map(f => f.trim()).filter(Boolean),
         transactionSplit: transactionSplit ? Number(transactionSplit) : undefined,
+        maxVaultFolders: maxVaultFolders ? Number(maxVaultFolders) : null,
+        maxVaultFiles: maxVaultFiles ? Number(maxVaultFiles) : null,
       };
 
       if (editingPlan) {
@@ -864,6 +872,33 @@ export const Subscriptions: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {planType === 'Individual' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Max Vault Folders</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Blank = unlimited"
+                      value={maxVaultFolders}
+                      onChange={(e) => setMaxVaultFolders(e.target.value)}
+                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Max Vault Records</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Blank = unlimited"
+                      value={maxVaultFiles}
+                      onChange={(e) => setMaxVaultFiles(e.target.value)}
+                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px' }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Plan Features</label>

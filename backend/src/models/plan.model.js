@@ -6,7 +6,17 @@ function collection() {
   return getDb().collection(COLLECTION);
 }
 
-async function create({ name, price, interval, type, features, excludedFeatures, transactionSplit }) {
+async function create({
+  name,
+  price,
+  interval,
+  type,
+  features,
+  excludedFeatures,
+  transactionSplit,
+  maxVaultFolders,
+  maxVaultFiles,
+}) {
   const now = new Date();
   const doc = {
     name,
@@ -16,6 +26,10 @@ async function create({ name, price, interval, type, features, excludedFeatures,
     features: features || [],
     excludedFeatures: excludedFeatures || [],
     transactionSplit: Number(transactionSplit || 0),
+    // Vault limits only apply to Individual (patient) plans - null means
+    // unlimited. Unset on Partner plans, who don't use the patient vault.
+    maxVaultFolders: maxVaultFolders === undefined || maxVaultFolders === null ? null : Number(maxVaultFolders),
+    maxVaultFiles: maxVaultFiles === undefined || maxVaultFiles === null ? null : Number(maxVaultFiles),
     status: 'active',
     createdAt: now,
     updatedAt: now,

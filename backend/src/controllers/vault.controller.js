@@ -6,19 +6,34 @@ const labModel = require('../models/lab.model');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 
-const presignSchema = z.object({
-  fileName: z.string().min(1),
-  mimeType: z.string().min(1),
-  sizeBytes: z.number().int().positive(),
-  category: z.string().min(1),
-});
-
 function parseObjectId(id) {
   if (!ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid id', 'INVALID_ID');
   }
   return new ObjectId(id);
 }
+
+const createFolderSchema = z.object({
+  name: z.string().min(1),
+});
+
+const createFolder = asyncHandler(async (req, res) => {
+  const folder = await vaultService.createFolder(req.userId, req.body.name);
+  res.status(201).json({ folder });
+});
+
+const listFolders = asyncHandler(async (req, res) => {
+  const folders = await vaultService.listFolders(req.userId);
+  res.json({ folders });
+});
+
+const presignSchema = z.object({
+  fileName: z.string().min(1),
+  mimeType: z.string().min(1),
+  sizeBytes: z.number().int().positive(),
+  category: z.string().min(1),
+  folderId: z.string().optional(),
+});
 
 const presign = asyncHandler(async (req, res) => {
   let labId;
@@ -33,7 +48,8 @@ const presign = asyncHandler(async (req, res) => {
     labId = lab._id;
   }
 
-  const result = await vaultService.presignUpload(req.userId, { ...req.body, labId });
+  const folderId = req.body.folderId ? parseObjectId(req.body.folderId) : undefined;
+  const result = await vaultService.presignUpload(req.userId, { ...req.body, labId, folderId });
   res.status(201).json(result);
 });
 
@@ -48,7 +64,8 @@ const getFile = asyncHandler(async (req, res) => {
 });
 
 const listFiles = asyncHandler(async (req, res) => {
-  const files = await vaultService.listFiles(req.userId, req.query.category);
+  const folderId = req.query.folderId ? parseObjectId(req.query.folderId) : undefined;
+  const files = await vaultService.listFiles(req.userId, req.query.category, folderId);
   res.json({ files });
 });
 
@@ -63,6 +80,9 @@ const stats = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  createFolderSchema,
+  createFolder,
+  listFolders,
   presignSchema,
   presign,
   confirm,

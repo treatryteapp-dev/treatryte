@@ -271,7 +271,8 @@ const listPlans = asyncHandler(async (req, res) => {
 });
 
 const createPlan = asyncHandler(async (req, res) => {
-  const { name, price, interval, type, features, excludedFeatures, transactionSplit } = req.body;
+  const { name, price, interval, type, features, excludedFeatures, transactionSplit, maxVaultFolders, maxVaultFiles } =
+    req.body;
   if (!name || price === undefined || price === null) {
     throw new ApiError(400, 'Name and price are required', 'BAD_REQUEST');
   }
@@ -282,7 +283,9 @@ const createPlan = asyncHandler(async (req, res) => {
     type,
     features,
     excludedFeatures,
-    transactionSplit
+    transactionSplit,
+    maxVaultFolders,
+    maxVaultFiles,
   });
   res.status(201).json({ plan });
 });
@@ -295,7 +298,8 @@ const deletePlan = asyncHandler(async (req, res) => {
 
 const updatePlan = asyncHandler(async (req, res) => {
   const planId = parseObjectId(req.params.id);
-  const { name, price, interval, type, features, excludedFeatures, transactionSplit } = req.body;
+  const { name, price, interval, type, features, excludedFeatures, transactionSplit, maxVaultFolders, maxVaultFiles } =
+    req.body;
   const updates = {};
   if (name !== undefined) updates.name = name;
   if (price !== undefined) updates.price = Number(price);
@@ -304,6 +308,8 @@ const updatePlan = asyncHandler(async (req, res) => {
   if (features !== undefined) updates.features = features;
   if (excludedFeatures !== undefined) updates.excludedFeatures = excludedFeatures;
   if (transactionSplit !== undefined) updates.transactionSplit = Number(transactionSplit);
+  if (maxVaultFolders !== undefined) updates.maxVaultFolders = maxVaultFolders === null ? null : Number(maxVaultFolders);
+  if (maxVaultFiles !== undefined) updates.maxVaultFiles = maxVaultFiles === null ? null : Number(maxVaultFiles);
 
   const result = await planModel.update(planId, updates);
   if (result.matchedCount === 0) {

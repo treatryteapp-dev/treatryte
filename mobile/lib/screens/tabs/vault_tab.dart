@@ -1,29 +1,11 @@
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/vault_models.dart';
+import '../../providers/connection_provider.dart';
 import '../../providers/vault_provider.dart';
 import '../../theme/app_theme.dart';
-
-const _categoryOptions = ['cardiology', 'diagnostics', 'prescriptions', 'eye_clinic', 'other'];
-
-const _categoryIcons = {
-  'cardiology': Icons.favorite_border,
-  'diagnostics': Icons.science_outlined,
-  'prescriptions': Icons.medication_outlined,
-  'eye_clinic': Icons.remove_red_eye_outlined,
-};
-
-String _categoryLabel(String category) {
-  return category
-      .split('_')
-      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-      .join(' ');
-}
 
 class VaultTab extends StatefulWidget {
   const VaultTab({super.key});
@@ -33,102 +15,48 @@ class VaultTab extends StatefulWidget {
 }
 
 class _VaultTabState extends State<VaultTab> {
-  bool _uploading = false;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<VaultProvider>().refresh();
+      context.read<ConnectionProvider>().refresh();
     });
   }
 
-  Future<void> _showScanOrUploadOptions() async {
-    final action = await showModalBottomSheet<String>(
+  Future<void> _showCreateFolderDialog() async {
+    final nameCtrl = TextEditingController();
+    final vault = context.read<VaultProvider>();
+
+    final name = await showDialog<String>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(AppSpacing.md),
-              child: Text('Choose an Option', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
-              title: const Text('Scan Document (Camera)'),
-              onTap: () => Navigator.of(context).pop('scan'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.upload_file, color: AppColors.primary),
-              title: const Text('Upload File (Gallery/Local)'),
-              onTap: () => Navigator.of(context).pop('upload'),
-            ),
-          ],
+      builder: (ctx) => AlertDialog(
+        title: const Text('New Folder'),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Folder Name',
+            hintText: 'e.g. Lab Results',
+          ),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()),
+            child: const Text('Create'),
+          ),
+        ],
       ),
     );
 
+    if (name == null || name.isEmpty) return;
+    final folder = await vault.createFolder(name);
     if (!mounted) return;
-    if (action == 'scan') {
-      context.push('/scan-upload');
-    } else if (action == 'upload') {
-      _pickAndUpload();
-    }
-  }
-
-  Future<void> _pickAndUpload() async {
-    final category = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(AppSpacing.md),
-              child: Text('Select a category'),
-            ),
-            for (final option in _categoryOptions)
-              ListTile(
-                title: Text(_categoryLabel(option)),
-                onTap: () => Navigator.of(context).pop(option),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (category == null) return;
-
-    final result = await FilePicker.platform.pickFiles(withData: true);
-    final file = result?.files.single;
-    if (file?.bytes == null) return;
-
-    setState(() => _uploading = true);
-    final success = await context.read<VaultProvider>().uploadFile(
-          fileName: file!.name,
-          mimeType: _guessMimeType(file.extension),
-          bytes: file.bytes as Uint8List,
-          category: category,
-        );
-    if (!mounted) return;
-    setState(() => _uploading = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(success ? 'Document uploaded successfully.' : 'Upload failed.')),
-    );
-  }
-
-  String _guessMimeType(String? extension) {
-    switch (extension?.toLowerCase()) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'png':
-        return 'image/png';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      default:
-        return 'application/octet-stream';
+    if (folder == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(vault.errorMessage ?? 'Failed to create folder.')),
+      );
     }
   }
 
@@ -136,6 +64,9 @@ class _VaultTabState extends State<VaultTab> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final vault = context.watch<VaultProvider>();
+    final stats = vault.stats;
+    final folderLimitReached = stats?.maxVaultFolders != null && vault.folders.length >= stats!.maxVaultFolders!;
+    final pendingInvites = context.watch<ConnectionProvider>().pending;
 
     return SafeArea(
       child: RefreshIndicator(
@@ -153,45 +84,54 @@ class _VaultTabState extends State<VaultTab> {
             children: [
               Text('Medical Vault', style: textTheme.headlineMedium),
               const SizedBox(height: AppSpacing.md),
-              const TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search medical records, diagnosis...',
-                  prefixIcon: Icon(Icons.search),
+              if (pendingInvites.isNotEmpty)
+                Card(
+                  color: AppColors.secondaryContainer.withValues(alpha: 0.4),
+                  margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: ListTile(
+                    leading: const Icon(Icons.mail_outline, color: AppColors.secondary),
+                    title: Text('${pendingInvites.length} pending invitation${pendingInvites.length == 1 ? '' : 's'}'),
+                    subtitle: const Text('Review which partners can see your records.'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/invitations'),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              _StorageBanner(stats: vault.stats),
+              _StorageBanner(stats: stats),
               const SizedBox(height: AppSpacing.xl),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Directories', style: textTheme.headlineSmall),
+                  Text('Folders', style: textTheme.headlineSmall),
                   TextButton.icon(
-                    onPressed: _uploading ? null : _showScanOrUploadOptions,
-                    icon: _uploading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.upload_file, size: 18),
-                    label: Text(_uploading ? 'Uploading…' : 'Scan / Upload'),
+                    onPressed: folderLimitReached ? null : _showCreateFolderDialog,
+                    icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+                    label: const Text('New Folder'),
                   ),
                 ],
               ),
+              if (stats != null)
+                Text(
+                  stats.maxVaultFolders != null
+                      ? '${vault.folders.length} / ${stats.maxVaultFolders} folders used'
+                      : '${vault.folders.length} folders',
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
+                ),
               const SizedBox(height: AppSpacing.sm),
-              if (vault.isLoading && vault.categories.isEmpty)
+              if (vault.isLoading && vault.folders.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
                   child: Center(child: CircularProgressIndicator()),
                 )
-              else if (vault.categories.isEmpty)
+              else if (vault.folders.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  child: Text('No documents yet — upload your first file.', style: textTheme.bodySmall),
+                  child: Text(
+                    'No folders yet — create one to start organizing your records.',
+                    style: textTheme.bodySmall,
+                  ),
                 )
               else
-                for (final directory in vault.categories)
+                for (final folder in vault.folders)
                   Card(
                     margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: ListTile(
@@ -206,23 +146,28 @@ class _VaultTabState extends State<VaultTab> {
                           color: AppColors.secondaryContainer,
                           borderRadius: BorderRadius.circular(AppRadii.md),
                         ),
-                        child: Icon(
-                          _categoryIcons[directory.category] ?? Icons.folder_outlined,
-                          size: 20,
-                          color: AppColors.onSecondaryContainer,
-                        ),
+                        child: const Icon(Icons.folder_outlined, size: 20, color: AppColors.onSecondaryContainer),
                       ),
                       title: Text(
-                        _categoryLabel(directory.category),
+                        folder.name,
                         style: textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppColors.onSurface,
                         ),
                       ),
-                      subtitle: Text('${directory.count} Files', style: textTheme.bodySmall),
+                      subtitle: Text('${folder.fileCount} Files', style: textTheme.bodySmall),
                       trailing: const Icon(Icons.chevron_right, color: AppColors.outline),
+                      onTap: () => context.push('/vault-folder', extra: folder),
                     ),
                   ),
+              if (folderLimitReached)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    'Folder limit reached for your plan. Upgrade to add more.',
+                    style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+                  ),
+                ),
             ],
           ),
         ),
@@ -243,6 +188,8 @@ class _StorageBanner extends StatelessWidget {
     final fraction = (usedBytes / quotaBytes).clamp(0.0, 1.0);
     final usedGb = (usedBytes / (1024 * 1024 * 1024)).toStringAsFixed(1);
     final quotaGb = (quotaBytes / (1024 * 1024 * 1024)).toStringAsFixed(0);
+    final maxFiles = stats?.maxVaultFiles;
+    final fileCount = stats?.fileCount ?? 0;
 
     return Container(
       width: double.infinity,
@@ -289,7 +236,7 @@ class _StorageBanner extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            '$usedGb GB / $quotaGb GB • ${stats?.fileCount ?? 0} Files',
+            '$usedGb GB / $quotaGb GB • $fileCount${maxFiles != null ? ' / $maxFiles' : ''} Files',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
@@ -297,4 +244,3 @@ class _StorageBanner extends StatelessWidget {
     );
   }
 }
-

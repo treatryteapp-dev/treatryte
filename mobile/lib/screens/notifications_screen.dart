@@ -137,7 +137,10 @@ class _NotificationTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        onTap: () => context.read<NotificationProvider>().markAllRead(),
+        onTap: () {
+          context.read<NotificationProvider>().markAllRead();
+          if (notification.type == 'invite') context.push('/invitations');
+        },
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(

@@ -10,6 +10,7 @@ const vaultFileModel = require('../models/vaultFile.model');
 const prescriptionModel = require('../models/prescription.model');
 const patientModel = require('../models/patient.model');
 const medicalRecordModel = require('../models/medicalRecord.model');
+const connectionModel = require('../models/connection.model');
 const notificationService = require('../services/notification.service');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
@@ -249,8 +250,20 @@ const getPatientDetail = asyncHandler(async (req, res) => {
 
   const linkedUser = patient.linkedUserId ? await userModel.findById(patient.linkedUserId) : null;
 
-  const [reports, prescriptions, medicalRecords] = await Promise.all([
-    linkedUser ? vaultFileModel.findByLabIdAndUserId(lab._id, patient.linkedUserId) : [],
+  // A patient's vault is only visible here once they've explicitly accepted
+  // a share request, and only for the folders (or "all") they granted -
+  // being a registered patient of this lab is not enough on its own.
+  let reports = [];
+  if (linkedUser) {
+    const connection = await connectionModel.findByLabAndPatient(lab._id, patient.linkedUserId);
+    if (connection?.status === 'accepted') {
+      reports = connection.shareAll
+        ? await vaultFileModel.findByUserId(patient.linkedUserId)
+        : await vaultFileModel.findByUserIdAndFolderIds(patient.linkedUserId, connection.sharedFolderIds || []);
+    }
+  }
+
+  const [prescriptions, medicalRecords] = await Promise.all([
     prescriptionModel.findByLabIdAndPatientId(lab._id, patientId),
     medicalRecordModel.findByLabIdAndPatientId(lab._id, patientId),
   ]);
@@ -341,6 +354,10 @@ const invitePatient = asyncHandler(async (req, res) => {
   if (!invitee) {
     throw new ApiError(404, 'No TreatRyte account found for this email', 'USER_NOT_FOUND');
   }
+
+  // Idempotent - re-inviting an already-pending/accepted patient doesn't
+  // create a duplicate connection.
+  await connectionModel.findOrCreatePending(lab._id, invitee._id);
 
   await notificationService.notify(invitee._id, {
     type: 'invite',

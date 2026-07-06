@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'providers/activity_provider.dart';
 import 'providers/appointment_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/connection_provider.dart';
 import 'providers/directory_provider.dart';
 import 'providers/main_tab_provider.dart';
 import 'providers/medication_provider.dart';
@@ -20,6 +21,7 @@ import 'services/activity_service.dart';
 import 'services/api_client.dart';
 import 'services/appointment_service.dart';
 import 'services/auth_service.dart';
+import 'services/connection_service.dart';
 import 'services/directory_service.dart';
 import 'services/medication_service.dart';
 import 'services/notification_service.dart';
@@ -68,6 +70,7 @@ class _TreatRyteAppState extends State<TreatRyteApp> {
         ChangeNotifierProvider(create: (_) => MainTabProvider()),
         ChangeNotifierProvider(create: (_) => WalletProvider(WalletService(_apiClient))),
         ChangeNotifierProvider(create: (_) => ActivityProvider(ActivityService(_apiClient))),
+        ChangeNotifierProvider(create: (_) => ConnectionProvider(ConnectionService(_apiClient))),
         ChangeNotifierProvider(create: (_) => VaultProvider(VaultService(_apiClient))),
         ChangeNotifierProvider(create: (_) => DirectoryProvider(DirectoryService(_apiClient))),
         ChangeNotifierProvider(create: (_) => AppointmentProvider(AppointmentService(_apiClient))),

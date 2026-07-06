@@ -161,6 +161,24 @@ class _BookTestScreenState extends State<BookTestScreen> {
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
                   child: Center(child: CircularProgressIndicator()),
                 )
+              else if (appointments.availability.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        appointments.errorMessage ?? 'Could not load available appointment slots.',
+                        style: textTheme.bodyMedium?.copyWith(color: AppColors.error),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      OutlinedButton(
+                        onPressed: () => context.read<AppointmentProvider>().loadAvailability(widget.booking.labId),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
               else ...[
                 SizedBox(
                   height: 80,

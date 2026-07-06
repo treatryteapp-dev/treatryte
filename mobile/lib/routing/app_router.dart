@@ -1,10 +1,12 @@
 import 'package:go_router/go_router.dart';
 
 import '../models/directory_models.dart';
+import '../models/vault_models.dart';
 import '../providers/auth_provider.dart';
 import '../screens/book_test_screen.dart';
 import '../screens/fund_wallet_screen.dart';
 import '../screens/get_started_screen.dart';
+import '../screens/invitations_screen.dart';
 import '../screens/join_screen.dart';
 import '../screens/lab_detail_screen.dart';
 import '../screens/login_screen.dart';
@@ -14,6 +16,7 @@ import '../screens/register_screen.dart';
 import '../screens/partner_register_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/subscription_plans_screen.dart';
+import '../screens/vault_folder_screen.dart';
 import '../screens/withdraw_pay_screen.dart';
 import '../screens/scan_upload_screen.dart';
 
@@ -89,6 +92,16 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/scan-upload',
         builder: (context, state) => const ScanUploadScreen(),
+      ),
+      GoRoute(
+        path: '/vault-folder',
+        builder: (context, state) => VaultFolderScreen(
+          folder: state.extra as VaultFolder,
+        ),
+      ),
+      GoRoute(
+        path: '/invitations',
+        builder: (context, state) => const InvitationsScreen(),
       ),
     ],
   );

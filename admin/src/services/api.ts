@@ -96,6 +96,9 @@ export interface Plan {
   features: string[];
   excludedFeatures?: string[];
   transactionSplit?: number;
+  // Individual (patient) plans only - null/undefined means unlimited.
+  maxVaultFolders?: number | null;
+  maxVaultFiles?: number | null;
   status: 'active' | 'inactive';
   createdAt: string;
 }

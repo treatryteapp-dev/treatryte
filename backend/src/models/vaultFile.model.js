@@ -6,11 +6,12 @@ function collection() {
   return getDb().collection(COLLECTION);
 }
 
-async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId }) {
+async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId, folderId }) {
   const now = new Date();
   const doc = {
     userId,
     category,
+    folderId: folderId || null,
     fileName,
     mimeType,
     sizeBytes,
@@ -49,10 +50,25 @@ function markUploaded(fileId) {
   );
 }
 
-function list(userId, category) {
+function list(userId, category, folderId) {
   const query = { userId, status: 'uploaded' };
   if (category) query.category = category;
+  if (folderId) query.folderId = folderId;
   return collection().find(query).sort({ createdAt: -1 }).toArray();
+}
+
+// A patient's whole vault (all folders) or a specific subset of folders -
+// used when a partner has been granted sharing access, since that access
+// is granted per-folder (or "all folders"), not per-file.
+function findByUserId(userId) {
+  return collection().find({ userId, status: 'uploaded' }).sort({ createdAt: -1 }).toArray();
+}
+
+function findByUserIdAndFolderIds(userId, folderIds) {
+  return collection()
+    .find({ userId, folderId: { $in: folderIds }, status: 'uploaded' })
+    .sort({ createdAt: -1 })
+    .toArray();
 }
 
 function categoryCounts(userId) {
@@ -60,6 +76,15 @@ function categoryCounts(userId) {
     .aggregate([
       { $match: { userId, status: 'uploaded' } },
       { $group: { _id: '$category', count: { $sum: 1 } } },
+    ])
+    .toArray();
+}
+
+function folderCounts(userId) {
+  return collection()
+    .aggregate([
+      { $match: { userId, status: 'uploaded', folderId: { $ne: null } } },
+      { $group: { _id: '$folderId', count: { $sum: 1 } } },
     ])
     .toArray();
 }
@@ -80,8 +105,11 @@ module.exports = {
   findById,
   findByLabId,
   findByLabIdAndUserId,
+  findByUserId,
+  findByUserIdAndFolderIds,
   markUploaded,
   list,
   categoryCounts,
+  folderCounts,
   storageStats,
 };
