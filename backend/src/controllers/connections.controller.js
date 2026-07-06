@@ -5,6 +5,7 @@ const connectionModel = require('../models/connection.model');
 const labModel = require('../models/lab.model');
 const vaultFolderModel = require('../models/vaultFolder.model');
 const patientModel = require('../models/patient.model');
+const userModel = require('../models/user.model');
 const medicalRecordModel = require('../models/medicalRecord.model');
 const prescriptionModel = require('../models/prescription.model');
 const { asyncHandler } = require('../middleware/asyncHandler');
@@ -62,6 +63,13 @@ const acceptConnection = asyncHandler(async (req, res) => {
   }
 
   await connectionModel.accept(connection._id, { shareAll: !!req.body.shareAll, sharedFolderIds: folderIds });
+  
+  // Link any manual patient record that the lab created for this user's email
+  const user = await userModel.findById(req.userId);
+  if (user) {
+    await patientModel.findOrCreateForUser(connection.labId, user);
+  }
+
   res.json({ success: true });
 });
 

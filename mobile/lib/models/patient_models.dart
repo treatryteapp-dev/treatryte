@@ -108,6 +108,7 @@ class PatientDetail {
     required this.email,
     required this.dateOfBirth,
     required this.gender,
+    required this.linkedUserId,
     required this.medicalProfile,
     required this.reports,
     required this.prescriptions,
@@ -125,6 +126,7 @@ class PatientDetail {
       (json['patient'] as Map<String, dynamic>)['dateOfBirth'] as String? ?? '',
     ),
     gender: (json['patient'] as Map<String, dynamic>)['gender'] as String?,
+    linkedUserId: (json['patient'] as Map<String, dynamic>)['linkedUserId'] as String?,
     medicalProfile: MedicalProfile.fromJson(
       (json['patient'] as Map<String, dynamic>)['medicalProfile']
           as Map<String, dynamic>,
@@ -146,6 +148,7 @@ class PatientDetail {
   final String email;
   final DateTime? dateOfBirth;
   final String? gender;
+  final String? linkedUserId;
   final MedicalProfile medicalProfile;
   final List<VaultFile> reports;
   final List<Prescription> prescriptions;

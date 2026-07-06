@@ -240,8 +240,8 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
     );
   }
 
-  Future<void> _showInvitePatientDialog() async {
-    final emailCtrl = TextEditingController();
+  Future<void> _showInvitePatientDialog([String? initialEmail]) async {
+    final emailCtrl = TextEditingController(text: initialEmail);
     final partner = context.read<PartnerProvider>();
 
     final email = await showDialog<String>(
@@ -527,37 +527,45 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Patient Directory',
-                            style: textTheme.headlineSmall,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Manage and access your patient records.',
-                            style: textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Patient Directory',
+                          style: textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Manage and access your patient records.',
+                          style: textTheme.bodySmall,
+                        ),
+                      ],
                     ),
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.person_add_outlined, size: 16),
-                      label: const Text('New'),
-                      onPressed: _showAddPatientDialog,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    FilledButton.tonalIcon(
-                      icon: const Icon(
-                        Icons.person_add_alt_1_outlined,
-                        size: 16,
-                      ),
-                      label: const Text('Invite'),
-                      onPressed: _showInvitePatientDialog,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.person_add_outlined, size: 16),
+                          label: const Text('New'),
+                          onPressed: _showAddPatientDialog,
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        FilledButton.tonalIcon(
+                          icon: const Icon(
+                            Icons.person_add_alt_1_outlined,
+                            size: 16,
+                          ),
+                          label: const Text('Invite'),
+                          onPressed: _showInvitePatientDialog,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -840,6 +848,20 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                   ),
                                 ],
                               ),
+                              if (detail.linkedUserId == null) ...[
+                                const SizedBox(height: AppSpacing.sm),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton.tonalIcon(
+                                    onPressed: () => _showInvitePatientDialog(detail.email),
+                                    icon: const Icon(Icons.person_add_alt_1, size: 18),
+                                    label: const Text('Invite to Connect'),
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(48),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
