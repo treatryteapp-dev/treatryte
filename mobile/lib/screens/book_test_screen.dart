@@ -7,22 +7,28 @@ import '../providers/appointment_provider.dart';
 import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
 
+class SelectedService {
+  const SelectedService({required this.id, required this.name, required this.priceKobo});
+
+  final String id;
+  final String name;
+  final int priceKobo;
+}
+
 class BookTestArgs {
   const BookTestArgs({
     required this.labId,
     required this.labName,
     required this.labAddress,
-    required this.testId,
-    required this.testName,
-    required this.priceKobo,
+    required this.services,
   });
 
   final String labId;
   final String labName;
   final String labAddress;
-  final String testId;
-  final String testName;
-  final int priceKobo;
+  // One or more services booked together as a single appointment - one
+  // slot, one service fee, one payment.
+  final List<SelectedService> services;
 }
 
 class BookTestScreen extends StatefulWidget {
@@ -60,7 +66,7 @@ class _BookTestScreenState extends State<BookTestScreen> {
     setState(() => _paying = true);
     final success = await appointments.bookAndPay(
       labId: widget.booking.labId,
-      testId: widget.booking.testId,
+      testIds: widget.booking.services.map((s) => s.id).toList(),
       scheduledDate: DateFormat('yyyy-MM-dd').format(day.date),
       scheduledTimeSlot: time.time,
     );
@@ -84,7 +90,8 @@ class _BookTestScreenState extends State<BookTestScreen> {
     final textTheme = Theme.of(context).textTheme;
     final appointments = context.watch<AppointmentProvider>();
     final wallet = context.watch<WalletProvider>();
-    final subtotal = widget.booking.priceKobo;
+    final services = widget.booking.services;
+    final subtotal = services.fold<int>(0, (sum, s) => sum + s.priceKobo);
     final serviceFee = appointments.serviceFeeKobo;
     final total = subtotal + serviceFee;
 
@@ -112,9 +119,29 @@ class _BookTestScreenState extends State<BookTestScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('SELECTED SERVICE', style: textTheme.labelSmall),
+                    Text(
+                      services.length > 1 ? 'SELECTED SERVICES (${services.length})' : 'SELECTED SERVICE',
+                      style: textTheme.labelSmall,
+                    ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(widget.booking.testName, style: textTheme.headlineSmall),
+                    for (final service in services)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                service.name,
+                                style: services.length > 1
+                                    ? textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)
+                                    : textTheme.headlineSmall,
+                              ),
+                            ),
+                            Text(_formatNaira(service.priceKobo), style: textTheme.bodyMedium),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 2),
                     Row(
                       children: [

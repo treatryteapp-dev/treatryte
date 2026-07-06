@@ -95,19 +95,17 @@ const deleteService = asyncHandler(async (req, res) => {
 
 async function joinAppointmentDetails(appointments) {
   const patientIds = [...new Set(appointments.map((a) => a.userId.toString()))];
-  const testIds = [...new Set(appointments.filter((a) => a.testId).map((a) => a.testId.toString()))];
 
-  const [patients, tests] = await Promise.all([
-    userModel.collection().find({ _id: { $in: patientIds.map((id) => new ObjectId(id)) } }).toArray(),
-    testModel.collection().find({ _id: { $in: testIds.map((id) => new ObjectId(id)) } }).toArray(),
-  ]);
+  const patients = await userModel.collection().find({ _id: { $in: patientIds.map((id) => new ObjectId(id)) } }).toArray();
   const patientsById = new Map(patients.map((p) => [p._id.toString(), p]));
-  const testsById = new Map(tests.map((t) => [t._id.toString(), t]));
 
   return appointments.map((a) => ({
     ...a,
     patientName: patientsById.get(a.userId.toString())?.fullName || 'Unknown Patient',
-    serviceType: a.testId ? testsById.get(a.testId.toString())?.name || null : null,
+    // Service names are a snapshot taken at booking time (appointment.items),
+    // not re-joined against the live tests collection - a partner editing or
+    // deleting a service afterward must not change historical appointments.
+    serviceType: a.items?.length ? a.items.map((item) => item.name).join(', ') : null,
   }));
 }
 

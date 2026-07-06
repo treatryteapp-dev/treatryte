@@ -1,10 +1,12 @@
 import 'package:go_router/go_router.dart';
 
+import '../models/directory_models.dart';
 import '../providers/auth_provider.dart';
 import '../screens/book_test_screen.dart';
 import '../screens/fund_wallet_screen.dart';
 import '../screens/get_started_screen.dart';
 import '../screens/join_screen.dart';
+import '../screens/lab_detail_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/notifications_screen.dart';
@@ -72,6 +74,12 @@ GoRouter createAppRouter(AuthProvider authProvider) {
         path: '/book-test',
         builder: (context, state) => BookTestScreen(
           booking: state.extra as BookTestArgs,
+        ),
+      ),
+      GoRoute(
+        path: '/lab-detail',
+        builder: (context, state) => LabDetailScreen(
+          lab: state.extra as Lab,
         ),
       ),
       GoRoute(

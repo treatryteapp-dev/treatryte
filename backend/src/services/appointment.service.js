@@ -49,10 +49,20 @@ async function getServiceFee(userId) {
   return settings.serviceFeeKobo;
 }
 
-async function createAppointment(userId, { labId, testId, scheduledDate, scheduledTimeSlot }) {
-  const test = await testModel.findById(testId);
-  if (!test) {
-    throw new ApiError(404, 'Test not found', 'TEST_NOT_FOUND');
+// A patient can book several of a partner's services for the same slot as
+// one appointment (one service fee, one payment) instead of repeating the
+// whole flow per service.
+async function createAppointment(userId, { labId, testIds, scheduledDate, scheduledTimeSlot }) {
+  if (!testIds.length) {
+    throw new ApiError(400, 'Select at least one service', 'NO_SERVICES_SELECTED');
+  }
+
+  const tests = await Promise.all(testIds.map((id) => testModel.findById(id)));
+  if (tests.some((test) => !test)) {
+    throw new ApiError(404, 'One or more selected services could not be found', 'TEST_NOT_FOUND');
+  }
+  if (tests.some((test) => test.labId.toString() !== labId.toString())) {
+    throw new ApiError(400, 'Selected services must all belong to the same partner', 'SERVICE_LAB_MISMATCH');
   }
 
   const date = dateOnly(scheduledDate);
@@ -61,14 +71,15 @@ async function createAppointment(userId, { labId, testId, scheduledDate, schedul
     throw new ApiError(409, 'This time slot is no longer available', 'SLOT_UNAVAILABLE');
   }
 
-  const subtotal = test.price;
+  const items = tests.map((test) => ({ testId: test._id, name: test.name, price: test.price }));
+  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
   const serviceFee = await getServiceFee(userId);
   const total = subtotal + serviceFee;
 
   return appointmentModel.create({
     userId,
     labId,
-    testId,
+    items,
     scheduledDate: date,
     scheduledTimeSlot,
     subtotal,

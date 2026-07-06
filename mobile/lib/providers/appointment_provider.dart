@@ -30,14 +30,14 @@ class AppointmentProvider extends ChangeNotifier {
 
   Future<bool> bookAndPay({
     required String labId,
-    required String testId,
+    required List<String> testIds,
     required String scheduledDate,
     required String scheduledTimeSlot,
   }) async {
     try {
       final appointment = await _service.create(
         labId: labId,
-        testId: testId,
+        testIds: testIds,
         scheduledDate: scheduledDate,
         scheduledTimeSlot: scheduledTimeSlot,
       );

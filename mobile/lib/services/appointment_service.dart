@@ -12,9 +12,12 @@ class AppointmentService {
         query: {'labId': labId},
       );
 
+  /// One appointment can bundle several of a partner's services (e.g. a
+  /// patient booking 5 tests at once) - the backend charges one service fee
+  /// for the whole booking rather than once per service.
   Future<Appointment> create({
     required String labId,
-    required String testId,
+    required List<String> testIds,
     required String scheduledDate,
     required String scheduledTimeSlot,
   }) =>
@@ -23,7 +26,7 @@ class AppointmentService {
         (data) => Appointment.fromJson(data['appointment']),
         body: {
           'labId': labId,
-          'testId': testId,
+          'testIds': testIds,
           'scheduledDate': scheduledDate,
           'scheduledTimeSlot': scheduledTimeSlot,
         },

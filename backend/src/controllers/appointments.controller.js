@@ -7,7 +7,7 @@ const { ApiError } = require('../middleware/errorHandler');
 
 const createSchema = z.object({
   labId: z.string().min(1),
-  testId: z.string().min(1),
+  testIds: z.array(z.string().min(1)).min(1),
   scheduledDate: z.string().min(1),
   scheduledTimeSlot: z.string().min(1),
 });
@@ -28,7 +28,7 @@ const availability = asyncHandler(async (req, res) => {
 const create = asyncHandler(async (req, res) => {
   const appointment = await appointmentService.createAppointment(req.userId, {
     labId: parseObjectId(req.body.labId),
-    testId: parseObjectId(req.body.testId),
+    testIds: req.body.testIds.map(parseObjectId),
     scheduledDate: req.body.scheduledDate,
     scheduledTimeSlot: req.body.scheduledTimeSlot,
   });

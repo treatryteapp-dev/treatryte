@@ -15,12 +15,17 @@ function countBooked(labId, scheduledDate, scheduledTimeSlot) {
   });
 }
 
-async function create({ userId, labId, testId, scheduledDate, scheduledTimeSlot, subtotal, serviceFee, total }) {
+// [items] is a snapshot of the tests selected at booking time
+// ({testId, name, price}) - since a partner can edit or delete a test later,
+// the appointment must keep its own copy rather than re-joining testIds
+// against the live tests collection.
+async function create({ userId, labId, items, scheduledDate, scheduledTimeSlot, subtotal, serviceFee, total }) {
   const now = new Date();
   const doc = {
     userId,
     labId,
-    testId,
+    testIds: items.map((item) => item.testId),
+    items,
     scheduledDate,
     scheduledTimeSlot,
     status: 'pending_payment',
