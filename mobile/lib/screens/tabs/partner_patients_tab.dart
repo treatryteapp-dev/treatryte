@@ -28,10 +28,12 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
     if (_searchQuery.isEmpty) return all;
     final q = _searchQuery.toLowerCase();
     return all
-        .where((p) =>
-            p.fullName.toLowerCase().contains(q) ||
-            p.email.toLowerCase().contains(q) ||
-            p.patientCode.toLowerCase().contains(q))
+        .where(
+          (p) =>
+              p.fullName.toLowerCase().contains(q) ||
+              p.email.toLowerCase().contains(q) ||
+              p.patientCode.toLowerCase().contains(q),
+        )
         .toList();
   }
 
@@ -79,7 +81,10 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Add Patient'),
@@ -125,20 +130,32 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           child: Container(
             decoration: const BoxDecoration(
               color: AppColors.surfaceContainerLowest,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppRadii.xl),
+              ),
             ),
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.lg,
+              AppSpacing.xl,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Issue Medical Record — ${patient.fullName}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 InputDecorator(
@@ -147,15 +164,27 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                     value: selectedVisitType,
                     underline: const SizedBox.shrink(),
                     isExpanded: true,
-                    items: visitTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t))).toList(),
-                    onChanged: (val) => setSheetState(() => selectedVisitType = val ?? selectedVisitType),
+                    items: visitTypes
+                        .map(
+                          (t) => DropdownMenuItem<String>(
+                            value: t,
+                            child: Text(t),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) => setSheetState(
+                      () => selectedVisitType = val ?? selectedVisitType,
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 TextField(
                   controller: notesCtrl,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Clinical Notes', alignLabelWithHint: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Clinical Notes',
+                    alignLabelWithHint: true,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 SizedBox(
@@ -167,7 +196,9 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                       final ok = await partner.issueMedicalRecord(
                         patient.id,
                         visitType: selectedVisitType,
-                        notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+                        notes: notesCtrl.text.trim().isEmpty
+                            ? null
+                            : notesCtrl.text.trim(),
                       );
                       if (ctx.mounted) Navigator.of(ctx).pop(ok);
                     },
@@ -182,7 +213,13 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
 
     if (!mounted || saved == null) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(saved ? 'Record saved for ${patient.fullName}' : 'Failed to save record.')),
+      SnackBar(
+        content: Text(
+          saved
+              ? 'Record saved for ${patient.fullName}'
+              : 'Failed to save record.',
+        ),
+      ),
     );
   }
 
@@ -216,7 +253,10 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(emailCtrl.text.trim()),
             child: const Text('Send Invite'),
@@ -229,7 +269,13 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
     final ok = await partner.invitePatient(email);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Invite sent to $email' : partner.patientsError ?? 'Failed to send invite.')),
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Invite sent to $email'
+              : partner.patientsError ?? 'Failed to send invite.',
+        ),
+      ),
     );
   }
 
@@ -249,16 +295,24 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
         child: Container(
           decoration: const BoxDecoration(
             color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppRadii.xl),
+            ),
           ),
-          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.xl,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
                 child: Container(
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: AppColors.outlineVariant,
                     borderRadius: BorderRadius.circular(AppRadii.full),
@@ -268,18 +322,27 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
               const SizedBox(height: AppSpacing.md),
               Row(
                 children: [
-                  const Icon(Icons.add_reaction_outlined, color: AppColors.primary),
+                  const Icon(
+                    Icons.add_reaction_outlined,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     'Add Prescription — ${patient.fullName}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: medicineCtrl,
-                decoration: const InputDecoration(labelText: 'Medicine Name', hintText: 'e.g. Lisinopril'),
+                decoration: const InputDecoration(
+                  labelText: 'Medicine Name',
+                  hintText: 'e.g. Lisinopril',
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Row(
@@ -287,14 +350,20 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                   Expanded(
                     child: TextField(
                       controller: dosageCtrl,
-                      decoration: const InputDecoration(labelText: 'Dosage', hintText: 'e.g. 10mg'),
+                      decoration: const InputDecoration(
+                        labelText: 'Dosage',
+                        hintText: 'e.g. 10mg',
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: TextField(
                       controller: durationCtrl,
-                      decoration: const InputDecoration(labelText: 'Duration', hintText: 'e.g. 14 days'),
+                      decoration: const InputDecoration(
+                        labelText: 'Duration',
+                        hintText: 'e.g. 14 days',
+                      ),
                     ),
                   ),
                 ],
@@ -303,7 +372,10 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
               TextField(
                 controller: notesCtrl,
                 maxLines: 2,
-                decoration: const InputDecoration(labelText: 'Notes (optional)', hintText: 'Take after meals...'),
+                decoration: const InputDecoration(
+                  labelText: 'Notes (optional)',
+                  hintText: 'Take after meals...',
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               SizedBox(
@@ -312,7 +384,9 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                   icon: const Icon(Icons.check, size: 18),
                   label: const Text('Save Prescription'),
                   onPressed: () async {
-                    if (medicineCtrl.text.trim().isEmpty || dosageCtrl.text.trim().isEmpty || durationCtrl.text.trim().isEmpty) {
+                    if (medicineCtrl.text.trim().isEmpty ||
+                        dosageCtrl.text.trim().isEmpty ||
+                        durationCtrl.text.trim().isEmpty) {
                       return;
                     }
                     final ok = await partner.addPrescription(
@@ -320,7 +394,9 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                       medicineName: medicineCtrl.text.trim(),
                       dosage: dosageCtrl.text.trim(),
                       duration: durationCtrl.text.trim(),
-                      notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+                      notes: notesCtrl.text.trim().isEmpty
+                          ? null
+                          : notesCtrl.text.trim(),
                     );
                     if (ctx.mounted) Navigator.of(ctx).pop(ok);
                   },
@@ -334,7 +410,13 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
 
     if (!mounted || saved == null) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(saved ? 'Prescription saved for ${patient.fullName}' : 'Failed to save prescription.')),
+      SnackBar(
+        content: Text(
+          saved
+              ? 'Prescription saved for ${patient.fullName}'
+              : 'Failed to save prescription.',
+        ),
+      ),
     );
   }
 
@@ -342,8 +424,38 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
     if (dob == null) return 0;
     final now = DateTime.now();
     var age = now.year - dob.year;
-    if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) age--;
+    if (now.month < dob.month || (now.month == dob.month && now.day < dob.day))
+      age--;
     return age;
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0 && now.day == date.day) {
+      return 'Today at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (difference.inDays == 1 ||
+        (difference.inDays == 0 && now.day != date.day)) {
+      return 'Yesterday at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } else {
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${date.day} ${months[date.month - 1]} ${date.year}';
+    }
   }
 
   @override
@@ -377,42 +489,46 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text('Patient Directory', style: textTheme.headlineSmall),
+                const SizedBox(height: 2),
+                Text(
+                  'Manage and access your patient records.',
+                  style: textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Patient Directory', style: textTheme.headlineSmall),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Manage and access your patient records.',
-                            style: textTheme.bodySmall,
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        decoration: const InputDecoration(
+                          hintText: 'Search by name, email or ID...',
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: AppColors.outline,
                           ),
-                        ],
+                          isDense: true,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: AppSpacing.sm),
                     OutlinedButton.icon(
-                      icon: const Icon(Icons.person_add_outlined, size: 18),
+                      icon: const Icon(Icons.person_add_outlined, size: 16),
                       label: const Text('New'),
                       onPressed: _showAddPatientDialog,
                     ),
-                    const SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: AppSpacing.xs),
                     FilledButton.tonalIcon(
-                      icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+                      icon: const Icon(
+                        Icons.person_add_alt_1_outlined,
+                        size: 16,
+                      ),
                       label: const Text('Invite'),
                       onPressed: _showInvitePatientDialog,
                     ),
                   ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                TextField(
-                  controller: _searchController,
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  decoration: const InputDecoration(
-                    hintText: 'Search by name, email, or patient ID...',
-                    prefixIcon: Icon(Icons.search, color: AppColors.outline),
-                  ),
                 ),
               ],
             ),
@@ -422,46 +538,71 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
             const Expanded(child: Center(child: CircularProgressIndicator()))
           else ...[
             SizedBox(
-              height: 72,
+              height: 88,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
+                    bottom: BorderSide(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.2),
+                    ),
                   ),
                 ),
                 child: filtered.isEmpty
                     ? const Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                          ),
                           child: Text(
                             'No patients yet. Add a new patient or send an invite to get started.',
                             style: TextStyle(color: AppColors.outline),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       )
                     : ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.sm,
+                        ),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
                           final patient = filtered[index];
                           final isSelected = patient.id == _selectedPatientId;
                           return Padding(
-                            padding: const EdgeInsets.only(right: AppSpacing.sm),
+                            padding: const EdgeInsets.only(
+                              right: AppSpacing.sm,
+                            ),
                             child: ChoiceChip(
                               avatar: CircleAvatar(
-                                child: Text(patient.fullName.isNotEmpty ? patient.fullName[0].toUpperCase() : '?'),
+                                child: Text(
+                                  patient.fullName.isNotEmpty
+                                      ? patient.fullName[0].toUpperCase()
+                                      : '?',
+                                ),
                               ),
                               label: Text(patient.fullName),
                               selected: isSelected,
-                              selectedColor: AppColors.primaryContainer.withValues(alpha: 0.2),
+                              selectedColor: AppColors.primaryContainer
+                                  .withValues(alpha: 0.2),
                               labelStyle: TextStyle(
-                                color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.onSurfaceVariant,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadii.lg),
-                                side: BorderSide(color: isSelected ? AppColors.primary : AppColors.outlineVariant),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadii.lg,
+                                ),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.outlineVariant,
+                                ),
                               ),
                               onSelected: (selected) {
                                 if (selected) _selectPatient(patient.id);
@@ -475,7 +616,12 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
 
             if (_selectedPatientId == null)
               const Expanded(
-                child: Center(child: Text('No patient selected.', style: TextStyle(color: AppColors.outline))),
+                child: Center(
+                  child: Text(
+                    'No patient selected.',
+                    style: TextStyle(color: AppColors.outline),
+                  ),
+                ),
               )
             else if (partner.isLoadingPatientDetail && !showDetail)
               const Expanded(child: Center(child: CircularProgressIndicator()))
@@ -483,8 +629,11 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
               Expanded(
                 child: Center(
                   child: Text(
-                    partner.patientDetailError ?? 'Could not load patient details.',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+                    partner.patientDetailError ??
+                        'Could not load patient details.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.error,
+                    ),
                   ),
                 ),
               )
@@ -505,16 +654,22 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                   CircleAvatar(
                                     radius: 30,
                                     child: Text(
-                                      detail.fullName.isNotEmpty ? detail.fullName[0].toUpperCase() : '?',
+                                      detail.fullName.isNotEmpty
+                                          ? detail.fullName[0].toUpperCase()
+                                          : '?',
                                       style: const TextStyle(fontSize: 20),
                                     ),
                                   ),
                                   const SizedBox(width: AppSpacing.lg),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(detail.fullName, style: textTheme.headlineSmall),
+                                        Text(
+                                          detail.fullName,
+                                          style: textTheme.headlineSmall,
+                                        ),
                                         const SizedBox(height: 2),
                                         Text(
                                           '${_ageFromDob(detail.dateOfBirth)} years old • ${detail.gender ?? 'Unknown'}',
@@ -523,7 +678,9 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                         const SizedBox(height: 2),
                                         Text(
                                           '${detail.patientCode} • ${detail.email}',
-                                          style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: AppColors.outline,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -536,10 +693,15 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                 runSpacing: AppSpacing.sm,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.md,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: AppColors.secondaryContainer,
-                                      borderRadius: BorderRadius.circular(AppRadii.full),
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadii.full,
+                                      ),
                                     ),
                                     child: Text(
                                       'Blood Group: ${detail.medicalProfile.bloodGroup ?? 'Unknown'}',
@@ -552,10 +714,15 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                   ),
                                   if (detail.medicalProfile.allergies.isEmpty)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.md,
+                                        vertical: 6,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: AppColors.errorContainer,
-                                        borderRadius: BorderRadius.circular(AppRadii.full),
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadii.full,
+                                        ),
                                       ),
                                       child: const Text(
                                         'Allergy: None recorded',
@@ -567,12 +734,18 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                       ),
                                     )
                                   else
-                                    for (final allergy in detail.medicalProfile.allergies)
+                                    for (final allergy
+                                        in detail.medicalProfile.allergies)
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppSpacing.md,
+                                          vertical: 6,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: AppColors.errorContainer,
-                                          borderRadius: BorderRadius.circular(AppRadii.full),
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadii.full,
+                                          ),
                                         ),
                                         child: Text(
                                           'Allergy: $allergy',
@@ -591,22 +764,37 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                   Expanded(
                                     child: OutlinedButton.icon(
                                       onPressed: () => _showIssueRecordSheet(
-                                        filtered.firstWhere((p) => p.id == detail.id),
+                                        filtered.firstWhere(
+                                          (p) => p.id == detail.id,
+                                        ),
                                       ),
-                                      icon: const Icon(Icons.assignment_outlined, size: 18),
+                                      icon: const Icon(
+                                        Icons.assignment_outlined,
+                                        size: 18,
+                                      ),
                                       label: const Text('Issue Record'),
-                                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                                      style: OutlinedButton.styleFrom(
+                                        minimumSize: const Size.fromHeight(48),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: AppSpacing.sm),
                                   Expanded(
                                     child: ElevatedButton.icon(
-                                      onPressed: () => _showAddPrescriptionSheet(
-                                        filtered.firstWhere((p) => p.id == detail.id),
+                                      onPressed: () =>
+                                          _showAddPrescriptionSheet(
+                                            filtered.firstWhere(
+                                              (p) => p.id == detail.id,
+                                            ),
+                                          ),
+                                      icon: const Icon(
+                                        Icons.add_reaction,
+                                        size: 18,
                                       ),
-                                      icon: const Icon(Icons.add_reaction, size: 18),
                                       label: const Text('Add Prescription'),
-                                      style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size.fromHeight(48),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -625,44 +813,94 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.folder_shared_outlined, color: AppColors.primary, size: 20),
+                                  const Icon(
+                                    Icons.folder_shared_outlined,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: AppSpacing.sm),
-                                  Text('Medical Records', style: textTheme.headlineSmall?.copyWith(fontSize: 18)),
+                                  Text(
+                                    'Medical Records',
+                                    style: textTheme.headlineSmall?.copyWith(
+                                      fontSize: 18,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const Divider(height: AppSpacing.lg),
                               if (detail.medicalRecords.isEmpty)
-                                Text('No medical records issued yet.', style: textTheme.bodySmall)
+                                Text(
+                                  'No medical records issued yet.',
+                                  style: textTheme.bodySmall,
+                                )
                               else
                                 for (final record in detail.medicalRecords)
                                   Padding(
-                                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.surfaceContainer,
-                                            borderRadius: BorderRadius.circular(AppRadii.sm),
-                                          ),
-                                          child: const Icon(Icons.assignment_outlined, color: AppColors.primary, size: 16),
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppSpacing.sm,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(
+                                        AppSpacing.sm,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceContainerLow,
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadii.md,
                                         ),
-                                        const SizedBox(width: AppSpacing.md),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                record.visitType,
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                              ),
-                                              if (record.notes.isNotEmpty)
-                                                Text(record.notes, style: textTheme.bodySmall),
-                                            ],
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.surfaceContainer,
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    AppRadii.sm,
+                                                  ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.assignment_outlined,
+                                              color: AppColors.primary,
+                                              size: 16,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(width: AppSpacing.md),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  record.visitType,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                if (record.notes.isNotEmpty)
+                                                  Text(
+                                                    record.notes,
+                                                    style: textTheme.bodySmall,
+                                                  ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  _formatDate(record.createdAt),
+                                                  style: textTheme.bodySmall
+                                                      ?.copyWith(
+                                                        color:
+                                                            AppColors.outline,
+                                                        fontSize: 11,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                             ],
@@ -679,40 +917,67 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.history_edu, color: AppColors.primary, size: 20),
+                                  const Icon(
+                                    Icons.history_edu,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: AppSpacing.sm),
-                                  Text('Prescriptions', style: textTheme.headlineSmall?.copyWith(fontSize: 18)),
+                                  Text(
+                                    'Prescriptions',
+                                    style: textTheme.headlineSmall?.copyWith(
+                                      fontSize: 18,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const Divider(height: AppSpacing.lg),
                               if (detail.prescriptions.isEmpty)
-                                Text('No prescriptions recorded yet.', style: textTheme.bodySmall)
+                                Text(
+                                  'No prescriptions recorded yet.',
+                                  style: textTheme.bodySmall,
+                                )
                               else
                                 for (final rx in detail.prescriptions)
                                   Padding(
-                                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppSpacing.sm,
+                                    ),
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
                                             color: AppColors.surfaceContainer,
-                                            borderRadius: BorderRadius.circular(AppRadii.sm),
+                                            borderRadius: BorderRadius.circular(
+                                              AppRadii.sm,
+                                            ),
                                           ),
-                                          child: const Icon(Icons.monitor_heart, color: AppColors.secondary, size: 16),
+                                          child: const Icon(
+                                            Icons.monitor_heart,
+                                            color: AppColors.secondary,
+                                            size: 16,
+                                          ),
                                         ),
                                         const SizedBox(width: AppSpacing.md),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 '${rx.medicineName} (${rx.dosage})',
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
                                               ),
-                                              Text('${rx.duration}${rx.notes.isNotEmpty ? ' • ${rx.notes}' : ''}',
-                                                  style: textTheme.bodySmall),
+                                              Text(
+                                                '${rx.duration}${rx.notes.isNotEmpty ? ' • ${rx.notes}' : ''}',
+                                                style: textTheme.bodySmall,
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -733,32 +998,56 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.description, color: AppColors.primary, size: 20),
+                                  const Icon(
+                                    Icons.description,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: AppSpacing.sm),
-                                  Text('Recent Reports', style: textTheme.headlineSmall?.copyWith(fontSize: 18)),
+                                  Text(
+                                    'Recent Reports',
+                                    style: textTheme.headlineSmall?.copyWith(
+                                      fontSize: 18,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const Divider(height: AppSpacing.lg),
                               if (detail.reports.isEmpty)
-                                Text('No reports uploaded for this patient yet.', style: textTheme.bodySmall)
+                                Text(
+                                  'No reports uploaded for this patient yet.',
+                                  style: textTheme.bodySmall,
+                                )
                               else
                                 for (final report in detail.reports)
                                   Padding(
-                                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppSpacing.sm,
+                                    ),
                                     child: Container(
-                                      padding: const EdgeInsets.all(AppSpacing.sm),
+                                      padding: const EdgeInsets.all(
+                                        AppSpacing.sm,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: AppColors.surfaceContainerLow,
-                                        borderRadius: BorderRadius.circular(AppRadii.md),
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadii.md,
+                                        ),
                                       ),
                                       child: Row(
                                         children: [
-                                          const Icon(Icons.picture_as_pdf, color: AppColors.error),
+                                          const Icon(
+                                            Icons.picture_as_pdf,
+                                            color: AppColors.error,
+                                          ),
                                           const SizedBox(width: AppSpacing.sm),
                                           Expanded(
                                             child: Text(
                                               report.fileName,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
                                             ),
                                           ),
                                         ],
