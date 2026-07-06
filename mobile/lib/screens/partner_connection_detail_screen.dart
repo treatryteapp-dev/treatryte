@@ -159,10 +159,10 @@ class _PartnerConnectionDetailScreenState
   }
 
   Widget _buildAccessControlSection(TextTheme textTheme, VaultProvider vault) {
-    final hasChanges =
-        _shareAll != _detail!.connection.shareAll ||
-        !_selectedFolderIds.containsAll(_detail!.connection.sharedFolderIds) ||
-        !_detail!.connection.sharedFolderIds.containsAll(_selectedFolderIds);
+    final sharedFolderIdsSet = _detail!.connection.sharedFolderIds.toSet();
+    final hasChanges = _shareAll != _detail!.connection.shareAll ||
+        !_selectedFolderIds.containsAll(sharedFolderIdsSet) ||
+        !sharedFolderIdsSet.containsAll(_selectedFolderIds);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
