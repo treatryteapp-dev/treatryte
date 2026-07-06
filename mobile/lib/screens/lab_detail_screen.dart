@@ -100,6 +100,8 @@ class _LabDetailScreenState extends State<LabDetailScreen> {
                       ? 'Select one or more services'
                       : '${_selectedIds.length} selected • ${_formatNaira(_totalKobo)}',
                   style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               ElevatedButton(

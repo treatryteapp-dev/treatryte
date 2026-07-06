@@ -251,7 +251,9 @@ class _BookTestScreenState extends State<BookTestScreen> {
               Text('Payment Summary', style: textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.sm),
               _SummaryRow(label: 'Subtotal', value: _formatNaira(subtotal)),
-              _SummaryRow(label: 'Service Fee', value: _formatNaira(serviceFee)),
+              // Subscribers pay zero service fee - showing a redundant "₦0"
+              // line just raises questions, so omit it entirely for them.
+              if (serviceFee > 0) _SummaryRow(label: 'Service Fee', value: _formatNaira(serviceFee)),
               const Divider(height: AppSpacing.lg),
               _SummaryRow(
                 label: 'Total',
