@@ -21,14 +21,17 @@ class LabDetailScreen extends StatefulWidget {
 class _LabDetailScreenState extends State<LabDetailScreen> {
   final Set<String> _selectedIds = {};
 
-  String _formatNaira(int kobo) => '₦${(kobo / 100).toStringAsFixed(kobo % 100 == 0 ? 0 : 2)}';
+  String _formatNaira(int kobo) =>
+      '₦${(kobo / 100).toStringAsFixed(kobo % 100 == 0 ? 0 : 2)}';
 
   int get _totalKobo => widget.lab.tests
       .where((t) => _selectedIds.contains(t.id))
       .fold(0, (sum, t) => sum + (t.priceKobo ?? 0));
 
   void _continue() {
-    final selected = widget.lab.tests.where((t) => _selectedIds.contains(t.id)).toList();
+    final selected = widget.lab.tests
+        .where((t) => _selectedIds.contains(t.id))
+        .toList();
     context.push(
       '/book-test',
       extra: BookTestArgs(
@@ -37,7 +40,11 @@ class _LabDetailScreenState extends State<LabDetailScreen> {
         labAddress: widget.lab.address,
         services: [
           for (final test in selected)
-            SelectedService(id: test.id, name: test.name, priceKobo: test.priceKobo ?? 0),
+            SelectedService(
+              id: test.id,
+              name: test.name,
+              priceKobo: test.priceKobo ?? 0,
+            ),
         ],
       ),
     );
@@ -59,7 +66,10 @@ class _LabDetailScreenState extends State<LabDetailScreen> {
       body: SafeArea(
         child: lab.tests.isEmpty
             ? Center(
-                child: Text('No services listed yet.', style: textTheme.bodyMedium),
+                child: Text(
+                  'No services listed yet.',
+                  style: textTheme.bodyMedium,
+                ),
               )
             : ListView.separated(
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -79,11 +89,23 @@ class _LabDetailScreenState extends State<LabDetailScreen> {
                     }),
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(test.name, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                    subtitle: test.duration != null ? Text(test.duration!) : null,
+                    title: Text(
+                      test.name,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: test.duration != null
+                        ? Text(test.duration!)
+                        : null,
                     secondary: Text(
-                      test.priceKobo != null ? _formatNaira(test.priceKobo!) : '',
-                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: AppColors.primary),
+                      test.priceKobo != null
+                          ? _formatNaira(test.priceKobo!)
+                          : '',
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
                     ),
                   );
                 },
@@ -99,7 +121,9 @@ class _LabDetailScreenState extends State<LabDetailScreen> {
                   _selectedIds.isEmpty
                       ? 'Select one or more services'
                       : '${_selectedIds.length} selected • ${_formatNaira(_totalKobo)}',
-                  style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

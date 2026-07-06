@@ -36,7 +36,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _AcceptSheet(connection: connection, folders: vault.folders),
+      builder: (ctx) =>
+          _AcceptSheet(connection: connection, folders: vault.folders),
     );
 
     if (action == null) return;
@@ -44,7 +45,11 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
       final ok = await connections.decline(connection.id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ok ? '${connection.labName} declined.' : 'Failed to decline.')),
+        SnackBar(
+          content: Text(
+            ok ? '${connection.labName} declined.' : 'Failed to decline.',
+          ),
+        ),
       );
     }
   }
@@ -69,52 +74,58 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
           child: connections.isLoading && pending.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : pending.isEmpty
-                  ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(AppSpacing.xl),
-                          child: Text(
-                            'No pending invitations.',
-                            style: textTheme.bodyMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    )
-                  : ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      itemCount: pending.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (context, index) {
-                        final connection = pending[index];
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(connection.labName, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Wants to connect and view shared medical records.',
-                                  style: textTheme.bodySmall,
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: () => _respond(connection),
-                                    child: const Text('Review Request'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'No pending invitations.',
+                        style: textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
+                  ],
+                )
+              : ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  itemCount: pending.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpacing.sm),
+                  itemBuilder: (context, index) {
+                    final connection = pending[index];
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              connection.labName,
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Wants to connect and view shared medical records.',
+                              style: textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () => _respond(connection),
+                                child: const Text('Review Request'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ),
     );
@@ -139,15 +150,19 @@ class _AcceptSheetState extends State<_AcceptSheet> {
   Future<void> _accept() async {
     setState(() => _submitting = true);
     final ok = await context.read<ConnectionProvider>().accept(
-          widget.connection.id,
-          shareAll: _shareAll,
-          folderIds: _shareAll ? null : _selectedFolderIds.toList(),
-        );
+      widget.connection.id,
+      shareAll: _shareAll,
+      folderIds: _shareAll ? null : _selectedFolderIds.toList(),
+    );
     if (!mounted) return;
     setState(() => _submitting = false);
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? '${widget.connection.labName} accepted.' : 'Failed to accept.')),
+      SnackBar(
+        content: Text(
+          ok ? '${widget.connection.labName} accepted.' : 'Failed to accept.',
+        ),
+      ),
     );
   }
 
@@ -156,13 +171,22 @@ class _AcceptSheetState extends State<_AcceptSheet> {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadii.xl),
+          ),
         ),
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.xl,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,7 +219,10 @@ class _AcceptSheetState extends State<_AcceptSheet> {
               if (widget.folders.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: Text('You have no folders yet.', style: textTheme.bodySmall),
+                  child: Text(
+                    'You have no folders yet.',
+                    style: textTheme.bodySmall,
+                  ),
                 )
               else
                 for (final folder in widget.folders)
@@ -222,19 +249,31 @@ class _AcceptSheetState extends State<_AcceptSheet> {
                         : () {
                             Navigator.of(context).pop('decline');
                           },
-                    style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.error)),
-                    child: const Text('Decline', style: TextStyle(color: AppColors.error)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                    ),
+                    child: const Text(
+                      'Decline',
+                      style: TextStyle(color: AppColors.error),
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: FilledButton(
-                    onPressed: (_submitting || (!_shareAll && _selectedFolderIds.isEmpty)) ? null : _accept,
+                    onPressed:
+                        (_submitting ||
+                            (!_shareAll && _selectedFolderIds.isEmpty))
+                        ? null
+                        : _accept,
                     child: _submitting
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Accept'),
                   ),

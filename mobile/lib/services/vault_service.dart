@@ -7,28 +7,30 @@ class VaultService {
   final ApiClient _api;
 
   Future<List<VaultCategory>> getCategories() => _api.get(
-        '/vault/categories',
-        (data) => (data['categories'] as List<dynamic>)
-            .map((c) => VaultCategory.fromJson(c as Map<String, dynamic>))
-            .toList(),
-      );
+    '/vault/categories',
+    (data) => (data['categories'] as List<dynamic>)
+        .map((c) => VaultCategory.fromJson(c as Map<String, dynamic>))
+        .toList(),
+  );
 
-  Future<VaultStats> getStats() => _api.get('/vault/stats', (data) => VaultStats.fromJson(data));
+  Future<VaultStats> getStats() =>
+      _api.get('/vault/stats', (data) => VaultStats.fromJson(data));
 
   Future<List<VaultFolder>> getFolders() => _api.get(
-        '/vault/folders',
-        (data) => (data['folders'] as List<dynamic>)
-            .map((f) => VaultFolder.fromJson(f as Map<String, dynamic>))
-            .toList(),
-      );
+    '/vault/folders',
+    (data) => (data['folders'] as List<dynamic>)
+        .map((f) => VaultFolder.fromJson(f as Map<String, dynamic>))
+        .toList(),
+  );
 
   Future<VaultFolder> createFolder(String name) => _api.post(
-        '/vault/folders',
-        (data) => VaultFolder.fromJson(data['folder'] as Map<String, dynamic>),
-        body: {'name': name},
-      );
+    '/vault/folders',
+    (data) => VaultFolder.fromJson(data['folder'] as Map<String, dynamic>),
+    body: {'name': name},
+  );
 
-  Future<List<VaultFile>> getFiles({String? category, String? folderId}) => _api.get(
+  Future<List<VaultFile>> getFiles({String? category, String? folderId}) =>
+      _api.get(
         '/vault/files',
         (data) => (data['files'] as List<dynamic>)
             .map((f) => VaultFile.fromJson(f as Map<String, dynamic>))
@@ -52,7 +54,10 @@ class VaultService {
   }) async {
     final presign = await _api.post(
       '/vault/files/presign',
-      (data) => {'fileId': data['fileId'] as String, 'uploadUrl': data['uploadUrl'] as String},
+      (data) => {
+        'fileId': data['fileId'] as String,
+        'uploadUrl': data['uploadUrl'] as String,
+      },
       body: {
         'fileName': fileName,
         'mimeType': mimeType,

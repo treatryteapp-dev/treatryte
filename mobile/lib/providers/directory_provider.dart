@@ -24,7 +24,11 @@ class DirectoryProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      labs = await _service.getApprovedLabs(type: _type, query: _query, state: _state);
+      labs = await _service.getApprovedLabs(
+        type: _type,
+        query: _query,
+        state: _state,
+      );
       trendingTests = await _service.getTrendingTests();
     } finally {
       isLoading = false;

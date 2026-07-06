@@ -7,32 +7,43 @@ class WalletService {
 
   final ApiClient _api;
 
-  Future<int> getBalanceKobo() => _api.get('/wallet', (data) => data['balanceKobo'] as int);
+  Future<int> getBalanceKobo() =>
+      _api.get('/wallet', (data) => data['balanceKobo'] as int);
 
   Future<List<WalletTransaction>> getTransactions() => _api.get(
-        '/wallet/transactions',
-        (data) => (data['transactions'] as List<dynamic>)
-            .map((t) => WalletTransaction.fromJson(t as Map<String, dynamic>))
-            .toList(),
-      );
+    '/wallet/transactions',
+    (data) => (data['transactions'] as List<dynamic>)
+        .map((t) => WalletTransaction.fromJson(t as Map<String, dynamic>))
+        .toList(),
+  );
 
-  Future<Map<String, String>> fund({required int amountKobo, required String method}) => _api.post(
-        '/wallet/fund',
-        (data) => {'checkoutLink': data['checkoutLink'] as String, 'orderReference': data['orderReference'] as String},
-        body: {'amountKobo': amountKobo, 'method': method},
-      );
+  Future<Map<String, String>> fund({
+    required int amountKobo,
+    required String method,
+  }) => _api.post(
+    '/wallet/fund',
+    (data) => {
+      'checkoutLink': data['checkoutLink'] as String,
+      'orderReference': data['orderReference'] as String,
+    },
+    body: {'amountKobo': amountKobo, 'method': method},
+  );
 
   Future<List<Bank>> getBanks() => _api.get(
-        '/wallet/banks',
-        (data) =>
-            (data['banks'] as List<dynamic>).map((b) => Bank.fromJson(b as Map<String, dynamic>)).toList(),
-      );
+    '/wallet/banks',
+    (data) => (data['banks'] as List<dynamic>)
+        .map((b) => Bank.fromJson(b as Map<String, dynamic>))
+        .toList(),
+  );
 
-  Future<String> lookupAccount({required String accountNumber, required String bankCode}) => _api.post(
-        '/wallet/lookup-account',
-        (data) => data['accountName'] as String,
-        body: {'accountNumber': accountNumber, 'bankCode': bankCode},
-      );
+  Future<String> lookupAccount({
+    required String accountNumber,
+    required String bankCode,
+  }) => _api.post(
+    '/wallet/lookup-account',
+    (data) => data['accountName'] as String,
+    body: {'accountNumber': accountNumber, 'bankCode': bankCode},
+  );
 
   Future<void> withdraw({
     required int amountKobo,
@@ -40,23 +51,29 @@ class WalletService {
     required String bankCode,
     required String accountName,
     String? narration,
-  }) =>
-      _api.post('/wallet/withdraw', (_) => null, body: {
-        'amountKobo': amountKobo,
-        'accountNumber': accountNumber,
-        'bankCode': bankCode,
-        'accountName': accountName,
-        if (narration != null) 'narration': narration,
-      });
+  }) => _api.post(
+    '/wallet/withdraw',
+    (_) => null,
+    body: {
+      'amountKobo': amountKobo,
+      'accountNumber': accountNumber,
+      'bankCode': bankCode,
+      'accountName': accountName,
+      if (narration != null) 'narration': narration,
+    },
+  );
 
   Future<void> payProvider({
     required int amountKobo,
     required String providerCode,
     String? narration,
-  }) =>
-      _api.post('/wallet/pay-provider', (_) => null, body: {
-        'amountKobo': amountKobo,
-        'providerCode': providerCode,
-        if (narration != null) 'narration': narration,
-      });
+  }) => _api.post(
+    '/wallet/pay-provider',
+    (_) => null,
+    body: {
+      'amountKobo': amountKobo,
+      'providerCode': providerCode,
+      if (narration != null) 'narration': narration,
+    },
+  );
 }

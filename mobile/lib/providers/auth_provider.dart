@@ -21,7 +21,9 @@ class AuthProvider extends ChangeNotifier {
   Future<void> checkSession() async {
     final user = await _authService.fetchCurrentUser();
     currentUser = user;
-    status = user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+    status = user != null
+        ? AuthStatus.authenticated
+        : AuthStatus.unauthenticated;
     notifyListeners();
   }
 
@@ -40,36 +42,36 @@ class AuthProvider extends ChangeNotifier {
     String? state,
     String? bankName,
     String? accountNumber,
-  }) =>
-      _runAuthAction(() => _authService.register(
-            fullName: fullName,
-            dateOfBirth: dateOfBirth,
-            gender: gender,
-            address: address,
-            email: email,
-            password: password,
-            role: role,
-            planId: planId,
-            facilityName: facilityName,
-            licenseNumber: licenseNumber,
-            services: services,
-            state: state,
-            bankName: bankName,
-            accountNumber: accountNumber,
-          ));
+  }) => _runAuthAction(
+    () => _authService.register(
+      fullName: fullName,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      address: address,
+      email: email,
+      password: password,
+      role: role,
+      planId: planId,
+      facilityName: facilityName,
+      licenseNumber: licenseNumber,
+      services: services,
+      state: state,
+      bankName: bankName,
+      accountNumber: accountNumber,
+    ),
+  );
 
   Future<bool> login({
     required String email,
     required String password,
     bool keepLoggedIn = true,
-  }) =>
-      _runAuthAction(
-        () => _authService.login(
-          email: email,
-          password: password,
-          keepLoggedIn: keepLoggedIn,
-        ),
-      );
+  }) => _runAuthAction(
+    () => _authService.login(
+      email: email,
+      password: password,
+      keepLoggedIn: keepLoggedIn,
+    ),
+  );
 
   Future<bool> _runAuthAction(Future<AuthResult> Function() action) async {
     isLoading = true;
@@ -103,7 +105,11 @@ class AuthProvider extends ChangeNotifier {
     required List<int> bytes,
   }) async {
     try {
-      currentUser = await _authService.updateAvatar(fileName: fileName, mimeType: mimeType, bytes: bytes);
+      currentUser = await _authService.updateAvatar(
+        fileName: fileName,
+        mimeType: mimeType,
+        bytes: bytes,
+      );
       errorMessage = null;
       return true;
     } on ApiException catch (e) {

@@ -56,10 +56,16 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
           children: [
             const Padding(
               padding: EdgeInsets.all(AppSpacing.md),
-              child: Text('Choose an Option', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(
+                'Choose an Option',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+              leading: const Icon(
+                Icons.camera_alt_outlined,
+                color: AppColors.primary,
+              ),
               title: const Text('Scan Document (Camera)'),
               onTap: () => Navigator.of(context).pop('scan'),
             ),
@@ -88,18 +94,24 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
 
     setState(() => _uploading = true);
     final success = await context.read<VaultProvider>().uploadFile(
-          fileName: file!.name,
-          mimeType: _guessMimeType(file.extension),
-          bytes: file.bytes as Uint8List,
-          category: widget.folder.name,
-          folderId: widget.folder.id,
-        );
+      fileName: file!.name,
+      mimeType: _guessMimeType(file.extension),
+      bytes: file.bytes as Uint8List,
+      category: widget.folder.name,
+      folderId: widget.folder.id,
+    );
     if (!mounted) return;
     setState(() => _uploading = false);
 
     final vault = context.read<VaultProvider>();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(success ? 'Document uploaded successfully.' : vault.errorMessage ?? 'Upload failed.')),
+      SnackBar(
+        content: Text(
+          success
+              ? 'Document uploaded successfully.'
+              : vault.errorMessage ?? 'Upload failed.',
+        ),
+      ),
     );
   }
 
@@ -122,48 +134,59 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
             ? const SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
             : const Icon(Icons.upload_file),
         label: Text(_uploading ? 'Uploading…' : 'Upload'),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () => context.read<VaultProvider>().loadFolderFiles(widget.folder.id),
+          onRefresh: () =>
+              context.read<VaultProvider>().loadFolderFiles(widget.folder.id),
           child: vault.isLoadingFolderFiles && vault.currentFolderFiles.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : vault.currentFolderFiles.isEmpty
-                  ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(AppSpacing.xl),
-                          child: Text(
-                            'No documents in this folder yet — upload your first file.',
-                            style: textTheme.bodyMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    )
-                  : ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      itemCount: vault.currentFolderFiles.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (context, index) {
-                        final file = vault.currentFolderFiles[index];
-                        return Card(
-                          child: ListTile(
-                            leading: Icon(
-                              file.fileName.toLowerCase().endsWith('.pdf') ? Icons.picture_as_pdf : Icons.image,
-                              color: AppColors.primary,
-                            ),
-                            title: Text(file.fileName, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          ),
-                        );
-                      },
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'No documents in this folder yet — upload your first file.',
+                        style: textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
+                  ],
+                )
+              : ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  itemCount: vault.currentFolderFiles.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpacing.sm),
+                  itemBuilder: (context, index) {
+                    final file = vault.currentFolderFiles[index];
+                    return Card(
+                      child: ListTile(
+                        leading: Icon(
+                          file.fileName.toLowerCase().endsWith('.pdf')
+                              ? Icons.picture_as_pdf
+                              : Icons.image,
+                          color: AppColors.primary,
+                        ),
+                        title: Text(
+                          file.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ),
     );

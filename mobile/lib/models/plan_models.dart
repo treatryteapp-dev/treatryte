@@ -11,15 +11,19 @@ class Plan {
   });
 
   factory Plan.fromJson(Map<String, dynamic> json) => Plan(
-        id: json['_id'] as String,
-        name: json['name'] as String,
-        price: (json['price'] as num).toDouble(),
-        interval: json['interval'] as String? ?? 'monthly',
-        type: json['type'] as String? ?? 'Individual',
-        features: (json['features'] as List<dynamic>? ?? []).map((f) => f as String).toList(),
-        excludedFeatures: (json['excludedFeatures'] as List<dynamic>? ?? []).map((f) => f as String).toList(),
-        transactionSplit: (json['transactionSplit'] as num?)?.toDouble() ?? 0,
-      );
+    id: json['_id'] as String,
+    name: json['name'] as String,
+    price: (json['price'] as num).toDouble(),
+    interval: json['interval'] as String? ?? 'monthly',
+    type: json['type'] as String? ?? 'Individual',
+    features: (json['features'] as List<dynamic>? ?? [])
+        .map((f) => f as String)
+        .toList(),
+    excludedFeatures: (json['excludedFeatures'] as List<dynamic>? ?? [])
+        .map((f) => f as String)
+        .toList(),
+    transactionSplit: (json['transactionSplit'] as num?)?.toDouble() ?? 0,
+  );
 
   final String id;
   final String name;

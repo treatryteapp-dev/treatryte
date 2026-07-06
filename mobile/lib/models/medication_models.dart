@@ -7,7 +7,8 @@ class DoseScheduleItem {
     required this.status,
   });
 
-  factory DoseScheduleItem.fromJson(Map<String, dynamic> json) => DoseScheduleItem(
+  factory DoseScheduleItem.fromJson(Map<String, dynamic> json) =>
+      DoseScheduleItem(
         doseLogId: json['doseLogId'] as String,
         medicationName: json['medicationName'] as String? ?? '',
         dosage: json['dosage'] as String? ?? '',

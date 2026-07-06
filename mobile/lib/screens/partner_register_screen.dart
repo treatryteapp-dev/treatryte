@@ -45,7 +45,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
     'Diagnostics',
     'Maternity Care',
     'Pharmacy',
-    'Surgical Center'
+    'Surgical Center',
   ];
 
   // Real picked verification documents - uploaded only once registration
@@ -74,7 +74,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
   }
 
   Future<void> _pickFiles() async {
-    final result = await FilePicker.platform.pickFiles(withData: true, allowMultiple: true);
+    final result = await FilePicker.platform.pickFiles(
+      withData: true,
+      allowMultiple: true,
+    );
     if (result == null) return;
     setState(() {
       _pickedFiles.addAll(result.files.where((f) => f.bytes != null));
@@ -119,8 +122,12 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       licenseNumber: _licenseController.text.trim(),
       services: _selectedServices.toList(),
       state: _selectedState,
-      bankName: _bankNameController.text.trim().isEmpty ? null : _bankNameController.text.trim(),
-      accountNumber: _accountNumberController.text.trim().isEmpty ? null : _accountNumberController.text.trim(),
+      bankName: _bankNameController.text.trim().isEmpty
+          ? null
+          : _bankNameController.text.trim(),
+      accountNumber: _accountNumberController.text.trim().isEmpty
+          ? null
+          : _accountNumberController.text.trim(),
     );
 
     if (!mounted) return;
@@ -156,7 +163,11 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
     if (!mounted) return;
     if (uploadFailures > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration succeeded, but $uploadFailures document(s) failed to upload. You can retry later.')),
+        SnackBar(
+          content: Text(
+            'Registration succeeded, but $uploadFailures document(s) failed to upload. You can retry later.',
+          ),
+        ),
       );
     }
 
@@ -195,7 +206,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
       body: SafeArea(
@@ -217,7 +228,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
 
   Widget _buildStepIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         border: Border(
@@ -228,9 +242,17 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       ),
       child: Row(
         children: [
-          _StepIcon(step: 1, active: _currentStep >= 0, completed: _currentStep > 0),
+          _StepIcon(
+            step: 1,
+            active: _currentStep >= 0,
+            completed: _currentStep > 0,
+          ),
           const Expanded(child: Divider(indent: 8, endIndent: 8)),
-          _StepIcon(step: 2, active: _currentStep >= 1, completed: _currentStep > 1),
+          _StepIcon(
+            step: 2,
+            active: _currentStep >= 1,
+            completed: _currentStep > 1,
+          ),
           const Expanded(child: Divider(indent: 8, endIndent: 8)),
           _StepIcon(step: 3, active: _currentStep >= 2, completed: false),
         ],
@@ -260,7 +282,11 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.verified_user, color: AppColors.secondary, size: 20),
+              const Icon(
+                Icons.verified_user,
+                color: AppColors.secondary,
+                size: 20,
+              ),
               const SizedBox(width: AppSpacing.sm),
               Text(
                 'KYC VERIFICATION REQUIRED',
@@ -291,8 +317,11 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           _FieldLabel('FACILITY NAME'),
           TextFormField(
             controller: _facilityNameController,
-            decoration: const InputDecoration(hintText: 'e.g. Lagos City Specialist Hospital'),
-            validator: (value) => (value == null || value.trim().isEmpty) ? 'Required' : null,
+            decoration: const InputDecoration(
+              hintText: 'e.g. Lagos City Specialist Hospital',
+            ),
+            validator: (value) =>
+                (value == null || value.trim().isEmpty) ? 'Required' : null,
           ),
           const SizedBox(height: AppSpacing.md),
           _FieldLabel('MEDICAL LICENSE NUMBER'),
@@ -302,22 +331,28 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
               hintText: 'MDCN/REG/00000',
               suffixIcon: Icon(Icons.info_outline, size: 20),
             ),
-            validator: (value) => (value == null || value.trim().isEmpty) ? 'Required' : null,
+            validator: (value) =>
+                (value == null || value.trim().isEmpty) ? 'Required' : null,
           ),
           const SizedBox(height: AppSpacing.md),
           _FieldLabel('CONTACT PERSON (ADMINISTRATOR)'),
           TextFormField(
             controller: _contactController,
             decoration: const InputDecoration(hintText: 'Full legal name'),
-            validator: (value) => (value == null || value.trim().isEmpty) ? 'Required' : null,
+            validator: (value) =>
+                (value == null || value.trim().isEmpty) ? 'Required' : null,
           ),
           const SizedBox(height: AppSpacing.md),
           _FieldLabel('EMAIL ADDRESS'),
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(hintText: 'e.g. admin@hospital.com'),
-            validator: (value) => (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+            decoration: const InputDecoration(
+              hintText: 'e.g. admin@hospital.com',
+            ),
+            validator: (value) => (value == null || !value.contains('@'))
+                ? 'Enter a valid email'
+                : null,
           ),
           const SizedBox(height: AppSpacing.md),
           _FieldLabel('PASSWORD'),
@@ -327,11 +362,17 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
             decoration: InputDecoration(
               hintText: '••••••••',
               suffixIcon: IconButton(
-                icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
-            validator: (value) => (value == null || value.length < 8) ? 'Min 8 characters' : null,
+            validator: (value) =>
+                (value == null || value.length < 8) ? 'Min 8 characters' : null,
           ),
           const SizedBox(height: AppSpacing.md),
           _FieldLabel('CONFIRM PASSWORD'),
@@ -341,12 +382,19 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
             decoration: InputDecoration(
               hintText: '••••••••',
               suffixIcon: IconButton(
-                icon: Icon(_obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                icon: Icon(
+                  _obscureConfirmPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                ),
               ),
             ),
             validator: (value) {
-              if (value != _passwordController.text) return 'Passwords do not match';
+              if (value != _passwordController.text)
+                return 'Passwords do not match';
               return null;
             },
           ),
@@ -364,23 +412,34 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           TextFormField(
             controller: _addressController,
             maxLines: 2,
-            decoration: const InputDecoration(hintText: 'Number, Street, Area, LGA...'),
-            validator: (value) => (value == null || value.trim().isEmpty) ? 'Required' : null,
+            decoration: const InputDecoration(
+              hintText: 'Number, Street, Area, LGA...',
+            ),
+            validator: (value) =>
+                (value == null || value.trim().isEmpty) ? 'Required' : null,
           ),
           const SizedBox(height: AppSpacing.md),
           _FieldLabel('STATE'),
           DropdownButtonFormField<String>(
             initialValue: _selectedState,
             items: kNigerianStates
-                .map((state) => DropdownMenuItem(value: state, child: Text(state)))
+                .map(
+                  (state) => DropdownMenuItem(value: state, child: Text(state)),
+                )
                 .toList(),
-            onChanged: (value) => setState(() => _selectedState = value ?? _selectedState),
-            validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
+            onChanged: (value) =>
+                setState(() => _selectedState = value ?? _selectedState),
+            validator: (value) =>
+                (value == null || value.isEmpty) ? 'Required' : null,
           ),
           const SizedBox(height: AppSpacing.xl),
           Row(
             children: [
-              const Icon(Icons.medical_services, color: AppColors.primary, size: 20),
+              const Icon(
+                Icons.medical_services,
+                color: AppColors.primary,
+                size: 20,
+              ),
               const SizedBox(width: AppSpacing.sm),
               Text('SERVICES OFFERED', style: textTheme.labelMedium),
             ],
@@ -394,16 +453,22 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
               return FilterChip(
                 label: Text(service),
                 selected: isSelected,
-                selectedColor: AppColors.primaryContainer.withValues(alpha: 0.2),
+                selectedColor: AppColors.primaryContainer.withValues(
+                  alpha: 0.2,
+                ),
                 checkmarkColor: AppColors.primary,
                 labelStyle: TextStyle(
-                  color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.onSurfaceVariant,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadii.md),
                   side: BorderSide(
-                    color: isSelected ? AppColors.primary : AppColors.outlineVariant,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.outlineVariant,
                   ),
                 ),
                 onSelected: (selected) {
@@ -423,9 +488,16 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           const SizedBox(height: AppSpacing.xl),
           Row(
             children: [
-              const Icon(Icons.account_balance, color: AppColors.primary, size: 20),
+              const Icon(
+                Icons.account_balance,
+                color: AppColors.primary,
+                size: 20,
+              ),
               const SizedBox(width: AppSpacing.sm),
-              Text('SETTLEMENT ACCOUNT (OPTIONAL)', style: textTheme.labelMedium),
+              Text(
+                'SETTLEMENT ACCOUNT (OPTIONAL)',
+                style: textTheme.labelMedium,
+              ),
             ],
           ),
           const Divider(height: AppSpacing.lg),
@@ -468,7 +540,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           onTap: _pickFiles,
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.xxl,
+              horizontal: AppSpacing.lg,
+            ),
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -486,10 +561,17 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.cloud_upload_outlined, size: 36, color: AppColors.primary),
+                  child: const Icon(
+                    Icons.cloud_upload_outlined,
+                    size: 36,
+                    color: AppColors.primary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                Text('Click to browse or drag files here', style: textTheme.headlineSmall?.copyWith(fontSize: 16)),
+                Text(
+                  'Click to browse or drag files here',
+                  style: textTheme.headlineSmall?.copyWith(fontSize: 16),
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   'Maximum file size 15MB. Supported formats: PDF, JPG, PNG.',
@@ -511,7 +593,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
         const SizedBox(height: AppSpacing.xl),
         Text(
           'SELECTED CREDENTIALS',
-          style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          style: textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
         ),
         const Divider(height: AppSpacing.md),
         if (_pickedFiles.isEmpty)
@@ -524,7 +609,8 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _pickedFiles.length,
-            separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppSpacing.sm),
             itemBuilder: (context, index) {
               final file = _pickedFiles[index];
               final sizeLabel = '${(file.size / 1024).toStringAsFixed(0)} KB';
@@ -534,7 +620,9 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(AppRadii.md),
-                  border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -546,7 +634,9 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                         borderRadius: BorderRadius.circular(AppRadii.sm),
                       ),
                       child: Icon(
-                        file.name.toLowerCase().endsWith('.pdf') ? Icons.description : Icons.image,
+                        file.name.toLowerCase().endsWith('.pdf')
+                            ? Icons.description
+                            : Icons.image,
                         color: AppColors.onSurfaceVariant,
                       ),
                     ),
@@ -557,7 +647,9 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                         children: [
                           Text(
                             file.name,
-                            style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -567,7 +659,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.error,
+                      ),
                       onPressed: () {
                         setState(() {
                           _pickedFiles.removeAt(index);
@@ -610,7 +705,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           title: 'Location',
           icon: Icons.pin_drop,
           children: [
-            _buildAuditField('Physical Address', '${_addressController.text}, $_selectedState'),
+            _buildAuditField(
+              'Physical Address',
+              '${_addressController.text}, $_selectedState',
+            ),
             const SizedBox(height: AppSpacing.sm),
             Container(
               height: 100,
@@ -620,7 +718,11 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                 color: AppColors.surfaceContainer,
               ),
               child: const Center(
-                child: Icon(Icons.location_on, color: AppColors.error, size: 36),
+                child: Icon(
+                  Icons.location_on,
+                  color: AppColors.error,
+                  size: 36,
+                ),
               ),
             ),
           ],
@@ -633,13 +735,20 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
             Wrap(
               spacing: 6,
               children: _selectedServices
-                  .map((service) => Chip(
-                        label: Text(service),
-                        visualDensity: VisualDensity.compact,
-                        backgroundColor: AppColors.primaryContainer.withValues(alpha: 0.1),
-                        side: BorderSide.none,
-                        labelStyle: const TextStyle(fontSize: 12, color: AppColors.primary),
-                      ))
+                  .map(
+                    (service) => Chip(
+                      label: Text(service),
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor: AppColors.primaryContainer.withValues(
+                        alpha: 0.1,
+                      ),
+                      side: BorderSide.none,
+                      labelStyle: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -649,8 +758,12 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           title: 'Settlement Account',
           icon: Icons.account_balance,
           children: [
-            if (_bankNameController.text.trim().isEmpty && _accountNumberController.text.trim().isEmpty)
-              const Text('Not provided - you can add this later.', style: TextStyle(color: AppColors.outline, fontSize: 13))
+            if (_bankNameController.text.trim().isEmpty &&
+                _accountNumberController.text.trim().isEmpty)
+              const Text(
+                'Not provided - you can add this later.',
+                style: TextStyle(color: AppColors.outline, fontSize: 13),
+              )
             else
               Row(
                 children: [
@@ -660,19 +773,29 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                       color: AppColors.surfaceContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.outline),
+                    child: const Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: AppColors.outline,
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _bankNameController.text.trim().isEmpty ? 'Bank not provided' : _bankNameController.text.trim(),
+                        _bankNameController.text.trim().isEmpty
+                            ? 'Bank not provided'
+                            : _bankNameController.text.trim(),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        _accountNumberController.text.trim().isEmpty ? '' : _accountNumberController.text.trim(),
-                        style: const TextStyle(color: AppColors.outline, fontSize: 13),
+                        _accountNumberController.text.trim().isEmpty
+                            ? ''
+                            : _accountNumberController.text.trim(),
+                        style: const TextStyle(
+                          color: AppColors.outline,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -694,7 +817,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                 padding: EdgeInsets.only(top: 10.0),
                 child: Text(
                   'I attest that the information provided is accurate and verifiable. I understand that false information may lead to rejection.',
-                  style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -723,7 +849,13 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                   children: [
                     Icon(icon, color: AppColors.primary, size: 20),
                     const SizedBox(width: AppSpacing.sm),
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ],
                 ),
                 TextButton(
@@ -747,8 +879,14 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.outline, fontSize: 11)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+          Text(
+            label,
+            style: const TextStyle(color: AppColors.outline, fontSize: 11),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+          ),
         ],
       ),
     );
@@ -765,7 +903,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -804,12 +942,19 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(_currentStep == 2 ? 'Submit Registration' : 'Next Step'),
+                        Text(
+                          _currentStep == 2
+                              ? 'Submit Registration'
+                              : 'Next Step',
+                        ),
                         const SizedBox(width: AppSpacing.xs),
                         const Icon(Icons.arrow_forward, size: 18),
                       ],
@@ -838,7 +983,9 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: AppColors.secondaryContainer.withValues(alpha: 0.2),
+                      color: AppColors.secondaryContainer.withValues(
+                        alpha: 0.2,
+                      ),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -850,10 +997,12 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.onSecondaryContainer.withValues(alpha: 0.2),
+                          color: AppColors.onSecondaryContainer.withValues(
+                            alpha: 0.2,
+                          ),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
-                        )
+                        ),
                       ],
                     ),
                     child: const Icon(
@@ -865,7 +1014,11 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
-              Text('Application Submitted!', style: textTheme.headlineMedium, textAlign: TextAlign.center),
+              Text(
+                'Application Submitted!',
+                style: textTheme.headlineMedium,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Your credentials have been securely transmitted to our clinical review team. Please allow 24 to 48 hours for the verification process to complete.',
@@ -900,7 +1053,11 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
 }
 
 class _StepIcon extends StatelessWidget {
-  const _StepIcon({required this.step, required this.active, required this.completed});
+  const _StepIcon({
+    required this.step,
+    required this.active,
+    required this.completed,
+  });
 
   final int step;
   final bool active;

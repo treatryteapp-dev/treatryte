@@ -33,9 +33,9 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
   Future<void> _proceed() async {
     final naira = double.tryParse(_amountController.text.replaceAll(',', ''));
     if (naira == null || naira <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid amount.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter a valid amount.')));
       return;
     }
 
@@ -50,7 +50,9 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
 
     if (checkoutLink == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(wallet.errorMessage ?? 'Could not start payment')),
+        SnackBar(
+          content: Text(wallet.errorMessage ?? 'Could not start payment'),
+        ),
       );
       return;
     }
@@ -64,11 +66,17 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
       await launchUrl(Uri.parse(checkoutLink), webOnlyWindowName: '_blank');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Complete your payment in the new tab, then return here.')),
+        const SnackBar(
+          content: Text(
+            'Complete your payment in the new tab, then return here.',
+          ),
+        ),
       );
     } else {
       await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => CheckoutWebViewScreen(checkoutUrl: checkoutLink)),
+        MaterialPageRoute(
+          builder: (_) => CheckoutWebViewScreen(checkoutUrl: checkoutLink),
+        ),
       );
     }
     if (!mounted) return;
@@ -112,8 +120,10 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                   for (final amount in _quickAmounts)
                     OutlinedButton(
                       onPressed: () {
-                        _amountController.text =
-                            amount.replaceAll(RegExp(r'[^0-9]'), '');
+                        _amountController.text = amount.replaceAll(
+                          RegExp(r'[^0-9]'),
+                          '',
+                        );
                       },
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(0, 36),
@@ -132,7 +142,8 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                 title: 'Bank Transfer',
                 subtitle: 'Manual transfer to account',
                 selected: _method == _PaymentMethod.bankTransfer,
-                onTap: () => setState(() => _method = _PaymentMethod.bankTransfer),
+                onTap: () =>
+                    setState(() => _method = _PaymentMethod.bankTransfer),
               ),
               const SizedBox(height: AppSpacing.sm),
               _PaymentOption(
@@ -151,7 +162,10 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -198,7 +212,9 @@ class _PaymentOption extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Card(
-      color: selected ? AppColors.secondaryContainer.withValues(alpha: 0.25) : null,
+      color: selected
+          ? AppColors.secondaryContainer.withValues(alpha: 0.25)
+          : null,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.lg),
         side: BorderSide(
@@ -219,13 +235,20 @@ class _PaymentOption extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(
+                      title,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     Text(subtitle, style: textTheme.bodySmall),
                   ],
                 ),
               ),
               Icon(
-                selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
                 color: selected ? AppColors.primary : AppColors.outline,
               ),
             ],

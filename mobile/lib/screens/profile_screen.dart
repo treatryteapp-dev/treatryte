@@ -19,7 +19,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _uploadingAvatar = false;
 
   String _initials(String fullName) {
-    final parts = fullName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = fullName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return (parts.first[0] + parts.last[0]).toUpperCase();
@@ -60,10 +64,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _uploadingAvatar = true);
     final ok = await context.read<AuthProvider>().updateAvatar(
-          fileName: file!.name,
-          mimeType: _guessMimeType(file.extension),
-          bytes: file.bytes as Uint8List,
-        );
+      fileName: file!.name,
+      mimeType: _guessMimeType(file.extension),
+      bytes: file.bytes as Uint8List,
+    );
     if (!mounted) return;
     setState(() => _uploadingAvatar = false);
 
@@ -82,7 +86,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Log Out'),
         content: const Text('Are you sure you want to log out of TreatRyte?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
@@ -124,7 +131,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   labelText: 'Confirm your password',
                   errorText: error,
                   suffixIcon: IconButton(
-                    icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                    icon: Icon(
+                      obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
                     onPressed: () => setDialogState(() => obscure = !obscure),
                   ),
                 ),
@@ -133,7 +144,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: submitting ? null : () => Navigator.of(dialogContext).pop(false),
+              onPressed: submitting
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(false),
               child: const Text('Cancel'),
             ),
             FilledButton(
@@ -148,14 +161,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         submitting = true;
                         error = null;
                       });
-                      final ok = await context.read<AuthProvider>().deleteAccount(passwordController.text);
+                      final ok = await context
+                          .read<AuthProvider>()
+                          .deleteAccount(passwordController.text);
                       if (ok) {
-                        if (dialogContext.mounted) Navigator.of(dialogContext).pop(true);
+                        if (dialogContext.mounted)
+                          Navigator.of(dialogContext).pop(true);
                         return;
                       }
                       setDialogState(() {
                         submitting = false;
-                        error = context.read<AuthProvider>().errorMessage ?? 'Failed to delete account';
+                        error =
+                            context.read<AuthProvider>().errorMessage ??
+                            'Failed to delete account';
                       });
                     },
               style: FilledButton.styleFrom(backgroundColor: AppColors.error),
@@ -163,7 +181,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Delete Account'),
             ),
@@ -203,19 +224,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CircleAvatar(
                       radius: 40,
                       backgroundColor: AppColors.primaryContainer,
-                      backgroundImage: user?.avatarUrl != null ? NetworkImage(user!.avatarUrl!) : null,
+                      backgroundImage: user?.avatarUrl != null
+                          ? NetworkImage(user!.avatarUrl!)
+                          : null,
                       child: _uploadingAvatar
                           ? const SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                           : user?.avatarUrl == null
-                              ? Text(
-                                  _initials(user?.fullName ?? '?'),
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
-                                )
-                              : null,
+                          ? Text(
+                              _initials(user?.fullName ?? '?'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            )
+                          : null,
                     ),
                     Positioned(
                       bottom: -2,
@@ -227,7 +257,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -236,13 +270,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Center(
-              child: Text(user?.fullName ?? 'Unknown', style: textTheme.headlineSmall),
+              child: Text(
+                user?.fullName ?? 'Unknown',
+                style: textTheme.headlineSmall,
+              ),
             ),
             const SizedBox(height: 4),
             Center(
               child: Text(
                 _roleLabel(user?.role ?? 'patient'),
-                style: textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant),
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -250,13 +289,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.email_outlined, color: AppColors.primary),
+                    leading: const Icon(
+                      Icons.email_outlined,
+                      color: AppColors.primary,
+                    ),
                     title: const Text('Email'),
                     subtitle: Text(user?.email ?? '-'),
                   ),
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   ListTile(
-                    leading: const Icon(Icons.badge_outlined, color: AppColors.primary),
+                    leading: const Icon(
+                      Icons.badge_outlined,
+                      color: AppColors.primary,
+                    ),
                     title: const Text('Account Type'),
                     subtitle: Text(_roleLabel(user?.role ?? 'patient')),
                   ),
@@ -267,7 +312,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             OutlinedButton.icon(
               onPressed: () => _confirmLogout(context),
               icon: const Icon(Icons.logout, color: AppColors.error),
-              label: const Text('Log Out', style: TextStyle(color: AppColors.error)),
+              label: const Text(
+                'Log Out',
+                style: TextStyle(color: AppColors.error),
+              ),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
                 side: const BorderSide(color: AppColors.error),
@@ -276,9 +324,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: AppSpacing.sm),
             TextButton.icon(
               onPressed: () => _confirmDeleteAccount(context),
-              icon: const Icon(Icons.delete_forever_outlined, color: AppColors.error),
-              label: const Text('Delete Account', style: TextStyle(color: AppColors.error)),
-              style: TextButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+              icon: const Icon(
+                Icons.delete_forever_outlined,
+                color: AppColors.error,
+              ),
+              label: const Text(
+                'Delete Account',
+                style: TextStyle(color: AppColors.error),
+              ),
+              style: TextButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
             ),
           ],
         ),

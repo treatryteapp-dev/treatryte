@@ -9,7 +9,10 @@ class SecureStorageService {
   static const _refreshTokenKey = 'refresh_token';
   static const _keepLoggedInKey = 'keep_logged_in';
 
-  Future<void> saveTokens({required String accessToken, required String refreshToken}) async {
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
     await _storage.write(key: _accessTokenKey, value: accessToken);
     await _storage.write(key: _refreshTokenKey, value: refreshToken);
   }

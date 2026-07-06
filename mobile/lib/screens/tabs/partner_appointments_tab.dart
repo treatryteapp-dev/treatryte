@@ -55,10 +55,15 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
           color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadii.xl),
+          ),
         ),
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl,
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.xl,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -66,7 +71,8 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.outlineVariant,
                   borderRadius: BorderRadius.circular(AppRadii.full),
@@ -80,7 +86,10 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
             ),
             Text(
               '${apt.serviceType ?? 'Appointment'}  •  ${apt.scheduledTimeSlot ?? ''}',
-              style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13),
+              style: const TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Row(
@@ -94,7 +103,13 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                       final ok = await partner.checkIn(apt.id);
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(ok ? '${apt.patientName ?? 'Patient'} checked in.' : 'Failed to check in.')),
+                        SnackBar(
+                          content: Text(
+                            ok
+                                ? '${apt.patientName ?? 'Patient'} checked in.'
+                                : 'Failed to check in.',
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -116,7 +131,11 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
             SizedBox(
               width: double.infinity,
               child: TextButton.icon(
-                icon: const Icon(Icons.cancel_outlined, size: 18, color: AppColors.error),
+                icon: const Icon(
+                  Icons.cancel_outlined,
+                  size: 18,
+                  color: AppColors.error,
+                ),
                 label: const Text(
                   'Cancel Appointment',
                   style: TextStyle(color: AppColors.error),
@@ -126,7 +145,13 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                   final ok = await partner.cancelAppointment(apt.id);
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(ok ? '${apt.patientName ?? 'Appointment'} cancelled.' : 'Failed to cancel.')),
+                    SnackBar(
+                      content: Text(
+                        ok
+                            ? '${apt.patientName ?? 'Appointment'} cancelled.'
+                            : 'Failed to cancel.',
+                      ),
+                    ),
                   );
                 },
               ),
@@ -139,7 +164,9 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
 
   Future<void> _showRescheduleDialog(Appointment apt) async {
     final dateController = TextEditingController(text: apt.scheduledDate ?? '');
-    final slotController = TextEditingController(text: apt.scheduledTimeSlot ?? '');
+    final slotController = TextEditingController(
+      text: apt.scheduledTimeSlot ?? '',
+    );
     final partner = context.read<PartnerProvider>();
 
     final confirmed = await showDialog<bool>(
@@ -161,8 +188,14 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
@@ -175,7 +208,11 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Appointment rescheduled.' : 'Failed to reschedule.')),
+      SnackBar(
+        content: Text(
+          ok ? 'Appointment rescheduled.' : 'Failed to reschedule.',
+        ),
+      ),
     );
   }
 
@@ -227,17 +264,27 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
 
               if (partner.isLoadingAppointments && all.isEmpty)
                 const Center(
-                  child: Padding(padding: EdgeInsets.all(AppSpacing.xl), child: CircularProgressIndicator()),
+                  child: Padding(
+                    padding: EdgeInsets.all(AppSpacing.xl),
+                    child: CircularProgressIndicator(),
+                  ),
                 )
               else if (partner.appointmentsError != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                  child: Text(partner.appointmentsError!, style: textTheme.bodySmall?.copyWith(color: AppColors.error)),
+                  child: Text(
+                    partner.appointmentsError!,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.error,
+                    ),
+                  ),
                 )
               else if (filtered.isEmpty)
                 Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xl,
+                    ),
                     child: Text(
                       'No $_activeFilter appointments.',
                       style: textTheme.bodySmall,
@@ -249,7 +296,8 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                   child: Column(
                     children: [
                       for (int i = 0; i < filtered.length; i++) ...[
-                        if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
+                        if (i > 0)
+                          const Divider(height: 1, indent: 16, endIndent: 16),
                         _buildAppointmentRow(filtered[i]),
                       ],
                     ],
@@ -267,9 +315,14 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
     return GestureDetector(
       onTap: () => setState(() => _activeFilter = value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 6,
+        ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surfaceContainerLowest,
+          color: isSelected
+              ? AppColors.primary
+              : AppColors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(AppRadii.full),
           border: Border.all(
             color: isSelected
@@ -322,7 +375,10 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                     apt.patientName ?? 'Patient',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text(apt.serviceType ?? 'Appointment', style: textTheme.bodySmall),
+                  Text(
+                    apt.serviceType ?? 'Appointment',
+                    style: textTheme.bodySmall,
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -348,11 +404,7 @@ class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.outline,
-              size: 20,
-            ),
+            const Icon(Icons.chevron_right, color: AppColors.outline, size: 20),
           ],
         ),
       ),

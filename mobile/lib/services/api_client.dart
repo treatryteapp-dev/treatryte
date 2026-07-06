@@ -17,7 +17,12 @@ class ApiException implements Exception {
 /// Thrown specifically when a request fails auth and the refresh attempt
 /// also failed - callers can catch this to force a logout/navigate to login.
 class SessionExpiredException extends ApiException {
-  SessionExpiredException() : super(statusCode: 401, message: 'Session expired', code: 'SESSION_EXPIRED');
+  SessionExpiredException()
+    : super(
+        statusCode: 401,
+        message: 'Session expired',
+        code: 'SESSION_EXPIRED',
+      );
 }
 
 class ApiClient {
@@ -48,7 +53,10 @@ class ApiClient {
             } catch (_) {
               await _storage.clear();
               return handler.reject(
-                DioException(requestOptions: error.requestOptions, error: SessionExpiredException()),
+                DioException(
+                  requestOptions: error.requestOptions,
+                  error: SessionExpiredException(),
+                ),
               );
             }
           }
@@ -72,10 +80,14 @@ class ApiClient {
   Future<void>? _refreshInFlight;
 
   bool _isAuthEndpoint(String path) =>
-      path.contains('/auth/login') || path.contains('/auth/register') || path.contains('/auth/refresh');
+      path.contains('/auth/login') ||
+      path.contains('/auth/register') ||
+      path.contains('/auth/refresh');
 
   Future<void> _refreshTokens() {
-    _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
+    _refreshInFlight ??= _doRefresh().whenComplete(
+      () => _refreshInFlight = null,
+    );
     return _refreshInFlight!;
   }
 
@@ -83,7 +95,10 @@ class ApiClient {
     final refreshToken = await _storage.refreshToken;
     if (refreshToken == null) throw SessionExpiredException();
 
-    final response = await _refreshDio.post('/auth/refresh', data: {'refreshToken': refreshToken});
+    final response = await _refreshDio.post(
+      '/auth/refresh',
+      data: {'refreshToken': refreshToken},
+    );
     await _storage.saveTokens(
       accessToken: response.data['accessToken'],
       refreshToken: response.data['refreshToken'],
@@ -92,10 +107,10 @@ class ApiClient {
 
   Future<Response<dynamic>> _retry(RequestOptions requestOptions) async {
     final token = await _storage.accessToken;
-    final options = Options(method: requestOptions.method, headers: {
-      ...requestOptions.headers,
-      'Authorization': 'Bearer $token',
-    });
+    final options = Options(
+      method: requestOptions.method,
+      headers: {...requestOptions.headers, 'Authorization': 'Bearer $token'},
+    );
     return _dio.request(
       requestOptions.path,
       data: requestOptions.data,
@@ -104,7 +119,10 @@ class ApiClient {
     );
   }
 
-  Future<T> _handle<T>(Future<Response<dynamic>> Function() request, T Function(dynamic data) onSuccess) async {
+  Future<T> _handle<T>(
+    Future<Response<dynamic>> Function() request,
+    T Function(dynamic data) onSuccess,
+  ) async {
     try {
       final response = await request();
       return onSuccess(response.data);
@@ -114,7 +132,11 @@ class ApiClient {
       final data = e.response?.data;
       final code = data is Map ? data['code'] as String? : null;
       final message = _extractErrorMessage(data) ?? _networkErrorMessage(e);
-      throw ApiException(statusCode: e.response?.statusCode, message: message, code: code);
+      throw ApiException(
+        statusCode: e.response?.statusCode,
+        message: message,
+        code: code,
+      );
     }
   }
 
@@ -126,10 +148,14 @@ class ApiClient {
     if (data is! Map) return null;
 
     final details = data['details'];
-    if (data['code'] == 'VALIDATION_ERROR' && details is List && details.isNotEmpty) {
+    if (data['code'] == 'VALIDATION_ERROR' &&
+        details is List &&
+        details.isNotEmpty) {
       final fieldMessages = details.map((issue) {
         final path = issue['path'];
-        final fieldName = (path is List && path.isNotEmpty) ? path.first.toString() : null;
+        final fieldName = (path is List && path.isNotEmpty)
+            ? path.first.toString()
+            : null;
         final issueMessage = issue['message']?.toString() ?? 'Invalid value';
         if (fieldName == null) return issueMessage;
         final label = fieldName[0].toUpperCase() + fieldName.substring(1);
@@ -154,22 +180,41 @@ class ApiClient {
     }
   }
 
-  Future<T> get<T>(String path, T Function(dynamic data) onSuccess, {Map<String, dynamic>? query}) =>
-      _handle(() => _dio.get(path, queryParameters: query), onSuccess);
+  Future<T> get<T>(
+    String path,
+    T Function(dynamic data) onSuccess, {
+    Map<String, dynamic>? query,
+  }) => _handle(() => _dio.get(path, queryParameters: query), onSuccess);
 
-  Future<T> post<T>(String path, T Function(dynamic data) onSuccess, {dynamic body}) =>
-      _handle(() => _dio.post(path, data: body), onSuccess);
+  Future<T> post<T>(
+    String path,
+    T Function(dynamic data) onSuccess, {
+    dynamic body,
+  }) => _handle(() => _dio.post(path, data: body), onSuccess);
 
-  Future<T> patch<T>(String path, T Function(dynamic data) onSuccess, {dynamic body}) =>
-      _handle(() => _dio.patch(path, data: body), onSuccess);
+  Future<T> patch<T>(
+    String path,
+    T Function(dynamic data) onSuccess, {
+    dynamic body,
+  }) => _handle(() => _dio.patch(path, data: body), onSuccess);
 
-  Future<T> put<T>(String path, T Function(dynamic data) onSuccess, {dynamic body}) =>
-      _handle(() => _dio.put(path, data: body), onSuccess);
+  Future<T> put<T>(
+    String path,
+    T Function(dynamic data) onSuccess, {
+    dynamic body,
+  }) => _handle(() => _dio.put(path, data: body), onSuccess);
 
-  Future<T> delete<T>(String path, T Function(dynamic data) onSuccess, {dynamic body}) =>
-      _handle(() => _dio.delete(path, data: body), onSuccess);
+  Future<T> delete<T>(
+    String path,
+    T Function(dynamic data) onSuccess, {
+    dynamic body,
+  }) => _handle(() => _dio.delete(path, data: body), onSuccess);
 
-  Future<void> putRaw(String url, List<int> bytes, {required String contentType}) async {
+  Future<void> putRaw(
+    String url,
+    List<int> bytes, {
+    required String contentType,
+  }) async {
     try {
       // Use _s3Dio (no interceptors) so the Authorization header is never
       // attached to the presigned URL request.  S3 returns a 400
@@ -185,7 +230,10 @@ class ApiClient {
       // without this, a raw DioException (e.g. a CORS-blocked upload on
       // web) propagates uncaught past every caller's `on ApiException`
       // catch clause, since it's never actually an ApiException.
-      throw ApiException(statusCode: e.response?.statusCode, message: _networkErrorMessage(e));
+      throw ApiException(
+        statusCode: e.response?.statusCode,
+        message: _networkErrorMessage(e),
+      );
     }
   }
 }

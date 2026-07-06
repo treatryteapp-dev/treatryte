@@ -158,9 +158,7 @@ class _RoleCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Icon(
-                selected
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
+                selected ? Icons.check_circle : Icons.radio_button_unchecked,
                 color: selected ? AppColors.primary : AppColors.outline,
               ),
             ],

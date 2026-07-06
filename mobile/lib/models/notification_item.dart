@@ -8,7 +8,8 @@ class NotificationItem {
     required this.createdAt,
   });
 
-  factory NotificationItem.fromJson(Map<String, dynamic> json) => NotificationItem(
+  factory NotificationItem.fromJson(Map<String, dynamic> json) =>
+      NotificationItem(
         id: json['_id'] as String,
         type: json['type'] as String,
         title: json['title'] as String,

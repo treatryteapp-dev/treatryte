@@ -39,7 +39,9 @@ class _DirectoryTabState extends State<DirectoryTab> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DirectoryProvider>().refresh(type: _filter == 'All' ? 'all' : _filter);
+      context.read<DirectoryProvider>().refresh(
+        type: _filter == 'All' ? 'all' : _filter,
+      );
     });
   }
 
@@ -65,10 +67,10 @@ class _DirectoryTabState extends State<DirectoryTab> {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () => context.read<DirectoryProvider>().refresh(
-              type: _filter == 'All' ? 'all' : _filter,
-              query: _searchController.text,
-              state: _state == 'All States' ? 'all' : _state,
-            ),
+          type: _filter == 'All' ? 'all' : _filter,
+          query: _searchController.text,
+          state: _state == 'All States' ? 'all' : _state,
+        ),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
@@ -96,7 +98,8 @@ class _DirectoryTabState extends State<DirectoryTab> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _filters.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(width: AppSpacing.sm),
                   itemBuilder: (context, index) {
                     final label = _filters[index];
                     final selected = label == _filter;
@@ -106,19 +109,23 @@ class _DirectoryTabState extends State<DirectoryTab> {
                       onSelected: (_) {
                         setState(() => _filter = label);
                         context.read<DirectoryProvider>().refresh(
-                              type: label == 'All' ? 'all' : label,
-                              query: _searchController.text,
-                              state: _state == 'All States' ? 'all' : _state,
-                            );
+                          type: label == 'All' ? 'all' : label,
+                          query: _searchController.text,
+                          state: _state == 'All States' ? 'all' : _state,
+                        );
                       },
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
-                        color: selected ? Colors.white : AppColors.onSurfaceVariant,
+                        color: selected
+                            ? Colors.white
+                            : AppColors.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                       backgroundColor: AppColors.surfaceContainerLowest,
                       side: BorderSide(
-                        color: selected ? AppColors.primary : AppColors.outlineVariant,
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.outlineVariant,
                       ),
                     );
                   },
@@ -127,7 +134,11 @@ class _DirectoryTabState extends State<DirectoryTab> {
               const SizedBox(height: AppSpacing.md),
               Row(
                 children: [
-                  const Icon(Icons.location_on_outlined, size: 18, color: AppColors.outline),
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 18,
+                    color: AppColors.outline,
+                  ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: DropdownButtonHideUnderline(
@@ -136,19 +147,27 @@ class _DirectoryTabState extends State<DirectoryTab> {
                         isDense: true,
                         decoration: const InputDecoration(
                           isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: 4,
+                          ),
                         ),
                         items: ['All States', ...kNigerianStates]
-                            .map((state) => DropdownMenuItem(value: state, child: Text(state)))
+                            .map(
+                              (state) => DropdownMenuItem(
+                                value: state,
+                                child: Text(state),
+                              ),
+                            )
                             .toList(),
                         onChanged: (value) {
                           if (value == null) return;
                           setState(() => _state = value);
                           context.read<DirectoryProvider>().refresh(
-                                type: _filter == 'All' ? 'all' : _filter,
-                                query: _searchController.text,
-                                state: value == 'All States' ? 'all' : value,
-                              );
+                            type: _filter == 'All' ? 'all' : _filter,
+                            query: _searchController.text,
+                            state: value == 'All States' ? 'all' : value,
+                          );
                         },
                       ),
                     ),
@@ -164,7 +183,10 @@ class _DirectoryTabState extends State<DirectoryTab> {
               else if (directory.labs.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                  child: Text('No approved diagnostic centres yet.', style: textTheme.bodySmall),
+                  child: Text(
+                    'No approved diagnostic centres yet.',
+                    style: textTheme.bodySmall,
+                  ),
                 )
               else
                 for (final lab in directory.labs) _FeaturedLabCard(lab: lab),
@@ -177,7 +199,11 @@ class _DirectoryTabState extends State<DirectoryTab> {
                 children: [
                   for (final test in directory.trendingTests)
                     Chip(
-                      avatar: const Icon(Icons.trending_up, size: 16, color: AppColors.primary),
+                      avatar: const Icon(
+                        Icons.trending_up,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
                       label: Text(test.name),
                       backgroundColor: AppColors.surfaceContainerLowest,
                       side: const BorderSide(color: AppColors.outlineVariant),
@@ -210,7 +236,13 @@ class _FeaturedLabCard extends StatelessWidget {
           labId: lab.id,
           labName: lab.name,
           labAddress: lab.address,
-          services: [SelectedService(id: test.id, name: test.name, priceKobo: test.priceKobo ?? 0)],
+          services: [
+            SelectedService(
+              id: test.id,
+              name: test.name,
+              priceKobo: test.priceKobo ?? 0,
+            ),
+          ],
         ),
       );
       return;
@@ -244,7 +276,11 @@ class _FeaturedLabCard extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Icon(Icons.biotech, color: Colors.white38, size: 48),
+                child: const Icon(
+                  Icons.biotech,
+                  color: Colors.white38,
+                  size: 48,
+                ),
               ),
               Positioned(
                 top: AppSpacing.sm,
@@ -278,8 +314,15 @@ class _FeaturedLabCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, size: 14, color: AppColors.outline),
-                    Text(' ${lab.distanceKm}km • ${lab.address}', style: textTheme.bodySmall),
+                    const Icon(
+                      Icons.location_on,
+                      size: 14,
+                      color: AppColors.outline,
+                    ),
+                    Text(
+                      ' ${lab.distanceKm}km • ${lab.address}',
+                      style: textTheme.bodySmall,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -289,34 +332,50 @@ class _FeaturedLabCard extends StatelessWidget {
                       Icon(
                         i < fullStars
                             ? Icons.star
-                            : (i == fullStars && hasHalfStar ? Icons.star_half : Icons.star_border),
+                            : (i == fullStars && hasHalfStar
+                                  ? Icons.star_half
+                                  : Icons.star_border),
                         size: 14,
                         color: const Color(0xFFF5B301),
                       ),
                     const SizedBox(width: 4),
-                    Text('(${lab.reviewCount} Reviews)',
-                        style: const TextStyle(fontSize: 12, color: AppColors.outline)),
+                    Text(
+                      '(${lab.reviewCount} Reviews)',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.outline,
+                      ),
+                    ),
                   ],
                 ),
                 const Divider(height: AppSpacing.lg),
                 if (lab.tests.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                    child: Text('No services listed yet.', style: textTheme.bodySmall),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.sm,
+                    ),
+                    child: Text(
+                      'No services listed yet.',
+                      style: textTheme.bodySmall,
+                    ),
                   )
                 else ...[
                   for (final test in previewTests)
                     _TestRow(
                       name: test.name,
                       duration: test.duration ?? '',
-                      price: test.priceKobo != null ? '₦${(test.priceKobo! / 100).toStringAsFixed(0)}' : '',
+                      price: test.priceKobo != null
+                          ? '₦${(test.priceKobo! / 100).toStringAsFixed(0)}'
+                          : '',
                     ),
                   if (hasMoreTests)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Text(
                         '+ ${lab.tests.length - _previewCount} more service${lab.tests.length - _previewCount == 1 ? '' : 's'}',
-                        style: textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   const SizedBox(height: AppSpacing.md),
@@ -325,7 +384,9 @@ class _FeaturedLabCard extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () => _onPrimaryAction(context),
                       child: Text(
-                        lab.tests.length > 1 ? 'View Services & Book' : 'Book & Pay Now',
+                        lab.tests.length > 1
+                            ? 'View Services & Book'
+                            : 'Book & Pay Now',
                       ),
                     ),
                   ),
@@ -362,15 +423,23 @@ class _TestRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  name,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 Text(duration, style: textTheme.bodySmall),
               ],
             ),
           ),
-          Text(price, style: textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
-          )),
+          Text(
+            price,
+            style: textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
         ],
       ),
     );

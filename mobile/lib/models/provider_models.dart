@@ -10,14 +10,16 @@ class PartnerLab {
   });
 
   factory PartnerLab.fromJson(Map<String, dynamic> json) => PartnerLab(
-        id: json['_id'] as String,
-        name: json['name'] as String,
-        licenseNumber: json['licenseNumber'] as String? ?? '',
-        address: json['address'] as String? ?? '',
-        services: (json['services'] as List<dynamic>? ?? []).map((s) => s as String).toList(),
-        status: json['status'] as String? ?? 'pending',
-        rejectionReason: json['rejectionReason'] as String?,
-      );
+    id: json['_id'] as String,
+    name: json['name'] as String,
+    licenseNumber: json['licenseNumber'] as String? ?? '',
+    address: json['address'] as String? ?? '',
+    services: (json['services'] as List<dynamic>? ?? [])
+        .map((s) => s as String)
+        .toList(),
+    status: json['status'] as String? ?? 'pending',
+    rejectionReason: json['rejectionReason'] as String?,
+  );
 
   final String id;
   final String name;
@@ -37,11 +39,11 @@ class PartnerService {
   });
 
   factory PartnerService.fromJson(Map<String, dynamic> json) => PartnerService(
-        id: json['_id'] as String,
-        name: json['name'] as String,
-        priceKobo: json['price'] as int,
-        category: json['category'] as String,
-      );
+    id: json['_id'] as String,
+    name: json['name'] as String,
+    priceKobo: json['price'] as int,
+    category: json['category'] as String,
+  );
 
   final String id;
   final String name;

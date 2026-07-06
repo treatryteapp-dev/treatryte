@@ -8,13 +8,14 @@ class Subscription {
   });
 
   factory Subscription.fromJson(Map<String, dynamic> json) => Subscription(
-        id: json['_id'] as String,
-        planId: json['planId'] as String,
-        status: json['status'] as String,
-        currentPeriodEnd:
-            json['currentPeriodEnd'] != null ? DateTime.tryParse(json['currentPeriodEnd'] as String) : null,
-        cancelAtPeriodEnd: json['cancelAtPeriodEnd'] as bool? ?? false,
-      );
+    id: json['_id'] as String,
+    planId: json['planId'] as String,
+    status: json['status'] as String,
+    currentPeriodEnd: json['currentPeriodEnd'] != null
+        ? DateTime.tryParse(json['currentPeriodEnd'] as String)
+        : null,
+    cancelAtPeriodEnd: json['cancelAtPeriodEnd'] as bool? ?? false,
+  );
 
   final String id;
   final String planId;
@@ -27,9 +28,9 @@ class UpgradeResult {
   const UpgradeResult({required this.requiresPayment, this.checkoutLink});
 
   factory UpgradeResult.fromJson(Map<String, dynamic> json) => UpgradeResult(
-        requiresPayment: json['requiresPayment'] as bool? ?? false,
-        checkoutLink: json['checkoutLink'] as String?,
-      );
+    requiresPayment: json['requiresPayment'] as bool? ?? false,
+    checkoutLink: json['checkoutLink'] as String?,
+  );
 
   final bool requiresPayment;
   final String? checkoutLink;

@@ -13,7 +13,10 @@ class ConnectionProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
-  List<PartnerConnection> get pending => connections.where((c) => c.status == 'pending').toList();
+  List<PartnerConnection> get pending =>
+      connections.where((c) => c.status == 'pending').toList();
+  List<PartnerConnection> get accepted =>
+      connections.where((c) => c.status == 'accepted').toList();
 
   Future<void> refresh() async {
     isLoading = true;
@@ -29,9 +32,39 @@ class ConnectionProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> accept(String id, {required bool shareAll, List<String>? folderIds}) async {
+  Future<ConnectionDetail?> getDetail(String id) async {
+    try {
+      return await _service.getDetail(id);
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> accept(
+    String id, {
+    required bool shareAll,
+    List<String>? folderIds,
+  }) async {
     try {
       await _service.accept(id, shareAll: shareAll, folderIds: folderIds);
+      await refresh();
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateAccess(
+    String id, {
+    required bool shareAll,
+    List<String>? folderIds,
+  }) async {
+    try {
+      await _service.updateAccess(id, shareAll: shareAll, folderIds: folderIds);
       await refresh();
       return true;
     } on ApiException catch (e) {

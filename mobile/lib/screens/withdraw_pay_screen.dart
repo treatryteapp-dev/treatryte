@@ -62,18 +62,30 @@ class _WithdrawPayScreenState extends State<WithdrawPayScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('TreatRyte Wallet Balance', style: textTheme.bodySmall),
+                    Text(
+                      'TreatRyte Wallet Balance',
+                      style: textTheme.bodySmall,
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       wallet.formattedBalance,
-                      style: textTheme.headlineMedium?.copyWith(color: AppColors.primary),
+                      style: textTheme.headlineMedium?.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Row(
                       children: [
-                        const Icon(Icons.shield, size: 16, color: AppColors.secondary),
+                        const Icon(
+                          Icons.shield,
+                          size: 16,
+                          color: AppColors.secondary,
+                        ),
                         const SizedBox(width: AppSpacing.xs),
-                        Text('Transactions secured by Nomba MFB', style: textTheme.bodySmall),
+                        Text(
+                          'Transactions secured by Nomba MFB',
+                          style: textTheme.bodySmall,
+                        ),
                       ],
                     ),
                   ],
@@ -93,10 +105,7 @@ class _WithdrawPayScreenState extends State<WithdrawPayScreen>
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: const [
-                  _WithdrawToBankForm(),
-                  _PayForServiceForm(),
-                ],
+                children: const [_WithdrawToBankForm(), _PayForServiceForm()],
               ),
             ),
           ],
@@ -140,15 +149,16 @@ class _WithdrawToBankFormState extends State<_WithdrawToBankForm> {
   }
 
   Future<void> _maybeLookupAccount() async {
-    if (_accountNumberController.text.length != 10 || _selectedBank == null) return;
+    if (_accountNumberController.text.length != 10 || _selectedBank == null)
+      return;
     setState(() {
       _resolving = true;
       _resolvedAccountName = null;
     });
     final name = await context.read<WalletProvider>().lookupAccount(
-          accountNumber: _accountNumberController.text,
-          bankCode: _selectedBank!.code,
-        );
+      accountNumber: _accountNumberController.text,
+      bankCode: _selectedBank!.code,
+    );
     if (mounted) {
       setState(() {
         _resolving = false;
@@ -159,9 +169,14 @@ class _WithdrawToBankFormState extends State<_WithdrawToBankForm> {
 
   Future<void> _submit() async {
     final naira = double.tryParse(_amountController.text);
-    if (_selectedBank == null || _resolvedAccountName == null || naira == null || naira <= 0) {
+    if (_selectedBank == null ||
+        _resolvedAccountName == null ||
+        naira == null ||
+        naira <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Complete all fields with a valid account and amount.')),
+        const SnackBar(
+          content: Text('Complete all fields with a valid account and amount.'),
+        ),
       );
       return;
     }
@@ -178,7 +193,13 @@ class _WithdrawToBankFormState extends State<_WithdrawToBankForm> {
     setState(() => _submitting = false);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(success ? 'Withdrawal submitted.' : (wallet.errorMessage ?? 'Withdrawal failed'))),
+      SnackBar(
+        content: Text(
+          success
+              ? 'Withdrawal submitted.'
+              : (wallet.errorMessage ?? 'Withdrawal failed'),
+        ),
+      ),
     );
     if (success) context.pop();
   }
@@ -198,7 +219,8 @@ class _WithdrawToBankFormState extends State<_WithdrawToBankForm> {
             initialValue: _selectedBank,
             hint: const Text('Select a bank'),
             items: [
-              for (final bank in _banks) DropdownMenuItem(value: bank, child: Text(bank.name)),
+              for (final bank in _banks)
+                DropdownMenuItem(value: bank, child: Text(bank.name)),
             ],
             onChanged: (bank) {
               setState(() {
@@ -220,7 +242,11 @@ class _WithdrawToBankFormState extends State<_WithdrawToBankForm> {
               suffixIcon: _resolving
                   ? const Padding(
                       padding: EdgeInsets.all(12),
-                      child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
                   : null,
             ),
@@ -228,7 +254,10 @@ class _WithdrawToBankFormState extends State<_WithdrawToBankForm> {
           if (_resolvedAccountName != null)
             Text(
               _resolvedAccountName!,
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           const SizedBox(height: AppSpacing.md),
           Text('Amount to Withdraw (₦)', style: textTheme.labelSmall),
@@ -247,7 +276,10 @@ class _WithdrawToBankFormState extends State<_WithdrawToBankForm> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Withdraw Funds'),
             ),
@@ -281,7 +313,9 @@ class _PayForServiceFormState extends State<_PayForServiceForm> {
     final naira = double.tryParse(_amountController.text);
     if (_codeController.text.trim().isEmpty || naira == null || naira <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a provider code and a valid amount.')),
+        const SnackBar(
+          content: Text('Enter a provider code and a valid amount.'),
+        ),
       );
       return;
     }
@@ -296,7 +330,11 @@ class _PayForServiceFormState extends State<_PayForServiceForm> {
     setState(() => _submitting = false);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(success ? 'Payment sent.' : (wallet.errorMessage ?? 'Payment failed'))),
+      SnackBar(
+        content: Text(
+          success ? 'Payment sent.' : (wallet.errorMessage ?? 'Payment failed'),
+        ),
+      ),
     );
     if (success) context.pop();
   }
@@ -333,7 +371,10 @@ class _PayForServiceFormState extends State<_PayForServiceForm> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Pay Provider'),
             ),

@@ -52,14 +52,20 @@ class _HomeTabState extends State<HomeTab> {
               const SizedBox(height: AppSpacing.lg),
               _WalletCard(wallet: wallet),
               const SizedBox(height: AppSpacing.xl),
-              Text('Quick Services', style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                'Quick Services',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: AppSpacing.md),
               const _QuickServicesGrid(),
               const SizedBox(height: AppSpacing.xl),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Recent Activity', style: Theme.of(context).textTheme.headlineSmall),
+                  Text(
+                    'Recent Activity',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                   TextButton(onPressed: () {}, child: const Text('See All')),
                 ],
               ),
@@ -71,7 +77,10 @@ class _HomeTabState extends State<HomeTab> {
               else if (activity.recent.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  child: Text('No recent activity yet.', style: Theme.of(context).textTheme.bodySmall),
+                  child: Text(
+                    'No recent activity yet.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 )
               else
                 for (final item in activity.recent)
@@ -106,7 +115,10 @@ class _DashboardHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hello, ${user?.firstName ?? ''} 👋', style: textTheme.headlineMedium),
+              Text(
+                'Hello, ${user?.firstName ?? ''} 👋',
+                style: textTheme.headlineMedium,
+              ),
               const SizedBox(height: 2),
               Text('How are you feeling today?', style: textTheme.bodySmall),
             ],
@@ -155,8 +167,11 @@ class _WalletCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet_outlined,
-                  color: Colors.white70, size: 18),
+              const Icon(
+                Icons.account_balance_wallet_outlined,
+                color: Colors.white70,
+                size: 18,
+              ),
               const SizedBox(width: AppSpacing.xs),
               Text(
                 'NOMBA DIGITAL WALLET',
@@ -177,7 +192,10 @@ class _WalletCard extends StatelessWidget {
                     child: SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 )
@@ -274,7 +292,8 @@ class _QuickServicesGrid extends StatelessWidget {
           Card(
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadii.md),
-              onTap: () => context.read<MainTabProvider>().setIndex(service.tabIndex),
+              onTap: () =>
+                  context.read<MainTabProvider>().setIndex(service.tabIndex),
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.sm),
                 child: Row(
@@ -286,16 +305,20 @@ class _QuickServicesGrid extends StatelessWidget {
                         color: service.color,
                         borderRadius: BorderRadius.circular(AppRadii.sm),
                       ),
-                      child: Icon(service.icon, size: 18, color: service.onColor),
+                      child: Icon(
+                        service.icon,
+                        size: 18,
+                        color: service.onColor,
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         service.label,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.onSurface,
-                            ),
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurface,
+                        ),
                       ),
                     ),
                   ],
@@ -345,10 +368,13 @@ class _ActivityTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
-                )),
+                Text(
+                  title,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                  ),
+                ),
                 Text(subtitle, style: textTheme.bodySmall),
               ],
             ),

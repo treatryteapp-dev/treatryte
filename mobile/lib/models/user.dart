@@ -9,13 +9,13 @@ class AppUser {
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
-        id: json['id'] as String,
-        fullName: json['fullName'] as String,
-        email: json['email'] as String,
-        role: json['role'] as String,
-        planId: json['planId'] as String?,
-        avatarUrl: json['avatarUrl'] as String?,
-      );
+    id: json['id'] as String,
+    fullName: json['fullName'] as String,
+    email: json['email'] as String,
+    role: json['role'] as String,
+    planId: json['planId'] as String?,
+    avatarUrl: json['avatarUrl'] as String?,
+  );
 
   final String id;
   final String fullName;

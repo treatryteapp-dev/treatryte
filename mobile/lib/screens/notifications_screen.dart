@@ -7,7 +7,9 @@ import '../models/notification_item.dart';
 import '../providers/notification_provider.dart';
 import '../theme/app_theme.dart';
 
-({IconData icon, Color iconColor, Color iconBackground}) _styleForType(String type) {
+({IconData icon, Color iconColor, Color iconBackground}) _styleForType(
+  String type,
+) {
   switch (type) {
     case 'wallet':
       return (
@@ -62,7 +64,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final notifications = context.watch<NotificationProvider>();
     final isEmpty =
-        notifications.today.isEmpty && notifications.yesterday.isEmpty && notifications.earlier.isEmpty;
+        notifications.today.isEmpty &&
+        notifications.yesterday.isEmpty &&
+        notifications.earlier.isEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -82,28 +86,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: notifications.isLoading && isEmpty
             ? const Center(child: CircularProgressIndicator())
             : isEmpty
-                ? Center(
-                    child: Text('No notifications yet.', style: Theme.of(context).textTheme.bodyMedium),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    children: [
-                      if (notifications.today.isNotEmpty) ...[
-                        const _SectionLabel('TODAY'),
-                        for (final n in notifications.today) _NotificationTile(notification: n),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                      if (notifications.yesterday.isNotEmpty) ...[
-                        const _SectionLabel('YESTERDAY'),
-                        for (final n in notifications.yesterday) _NotificationTile(notification: n),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                      if (notifications.earlier.isNotEmpty) ...[
-                        const _SectionLabel('EARLIER'),
-                        for (final n in notifications.earlier) _NotificationTile(notification: n),
-                      ],
-                    ],
-                  ),
+            ? Center(
+                child: Text(
+                  'No notifications yet.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              )
+            : ListView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                children: [
+                  if (notifications.today.isNotEmpty) ...[
+                    const _SectionLabel('TODAY'),
+                    for (final n in notifications.today)
+                      _NotificationTile(notification: n),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (notifications.yesterday.isNotEmpty) ...[
+                    const _SectionLabel('YESTERDAY'),
+                    for (final n in notifications.yesterday)
+                      _NotificationTile(notification: n),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (notifications.earlier.isNotEmpty) ...[
+                    const _SectionLabel('EARLIER'),
+                    for (final n in notifications.earlier)
+                      _NotificationTile(notification: n),
+                  ],
+                ],
+              ),
       ),
     );
   }
@@ -166,12 +176,18 @@ class _NotificationTile extends StatelessWidget {
                           child: Text(
                             notification.title,
                             style: textTheme.bodyMedium?.copyWith(
-                              fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.w700,
+                              fontWeight: notification.isRead
+                                  ? FontWeight.w500
+                                  : FontWeight.w700,
                             ),
                           ),
                         ),
-                        Text(DateFormat('h:mm a').format(notification.createdAt.toLocal()),
-                            style: textTheme.bodySmall),
+                        Text(
+                          DateFormat(
+                            'h:mm a',
+                          ).format(notification.createdAt.toLocal()),
+                          style: textTheme.bodySmall,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 2),

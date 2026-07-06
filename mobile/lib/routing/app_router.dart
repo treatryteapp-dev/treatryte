@@ -19,6 +19,8 @@ import '../screens/subscription_plans_screen.dart';
 import '../screens/vault_folder_screen.dart';
 import '../screens/withdraw_pay_screen.dart';
 import '../screens/scan_upload_screen.dart';
+import '../models/connection_models.dart';
+import '../screens/partner_connection_detail_screen.dart';
 
 const _publicPaths = {'/', '/join', '/login', '/register', '/partner-register'};
 
@@ -33,18 +35,9 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const GetStartedScreen(),
-      ),
-      GoRoute(
-        path: '/join',
-        builder: (context, state) => const JoinScreen(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const GetStartedScreen()),
+      GoRoute(path: '/join', builder: (context, state) => const JoinScreen()),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
@@ -75,15 +68,12 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       ),
       GoRoute(
         path: '/book-test',
-        builder: (context, state) => BookTestScreen(
-          booking: state.extra as BookTestArgs,
-        ),
+        builder: (context, state) =>
+            BookTestScreen(booking: state.extra as BookTestArgs),
       ),
       GoRoute(
         path: '/lab-detail',
-        builder: (context, state) => LabDetailScreen(
-          lab: state.extra as Lab,
-        ),
+        builder: (context, state) => LabDetailScreen(lab: state.extra as Lab),
       ),
       GoRoute(
         path: '/subscription-plans',
@@ -95,13 +85,23 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       ),
       GoRoute(
         path: '/vault-folder',
-        builder: (context, state) => VaultFolderScreen(
-          folder: state.extra as VaultFolder,
-        ),
+        builder: (context, state) =>
+            VaultFolderScreen(folder: state.extra as VaultFolder),
       ),
       GoRoute(
         path: '/invitations',
         builder: (context, state) => const InvitationsScreen(),
+      ),
+      GoRoute(
+        path: '/vault/connection/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          final connection = state.extra as PartnerConnection;
+          return PartnerConnectionDetailScreen(
+            connectionId: id,
+            initialConnection: connection,
+          );
+        },
       ),
     ],
   );

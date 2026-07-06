@@ -2,9 +2,9 @@ class TimeSlot {
   const TimeSlot({required this.time, required this.available});
 
   factory TimeSlot.fromJson(Map<String, dynamic> json) => TimeSlot(
-        time: json['time'] as String,
-        available: json['available'] as bool,
-      );
+    time: json['time'] as String,
+    available: json['available'] as bool,
+  );
 
   final String time;
   final bool available;
@@ -14,11 +14,11 @@ class Availability {
   const Availability({required this.days, required this.serviceFeeKobo});
 
   factory Availability.fromJson(Map<String, dynamic> json) => Availability(
-        days: (json['days'] as List<dynamic>)
-            .map((d) => AvailabilityDay.fromJson(d as Map<String, dynamic>))
-            .toList(),
-        serviceFeeKobo: json['serviceFeeKobo'] as int,
-      );
+    days: (json['days'] as List<dynamic>)
+        .map((d) => AvailabilityDay.fromJson(d as Map<String, dynamic>))
+        .toList(),
+    serviceFeeKobo: json['serviceFeeKobo'] as int,
+  );
 
   final List<AvailabilityDay> days;
   final int serviceFeeKobo;
@@ -27,7 +27,8 @@ class Availability {
 class AvailabilityDay {
   const AvailabilityDay({required this.date, required this.slots});
 
-  factory AvailabilityDay.fromJson(Map<String, dynamic> json) => AvailabilityDay(
+  factory AvailabilityDay.fromJson(Map<String, dynamic> json) =>
+      AvailabilityDay(
         date: DateTime.parse(json['date'] as String),
         slots: (json['slots'] as List<dynamic>)
             .map((s) => TimeSlot.fromJson(s as Map<String, dynamic>))
@@ -54,18 +55,20 @@ class Appointment {
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
-        id: json['_id'] as String,
-        status: json['status'] as String,
-        subtotalKobo: json['subtotal'] as int,
-        serviceFeeKobo: json['serviceFee'] as int,
-        totalKobo: json['total'] as int,
-        patientId: json['userId'] as String?,
-        patientName: json['patientName'] as String?,
-        serviceType: json['serviceType'] as String?,
-        scheduledDate: json['scheduledDate'] as String?,
-        scheduledTimeSlot: json['scheduledTimeSlot'] as String?,
-        createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'] as String) : null,
-      );
+    id: json['_id'] as String,
+    status: json['status'] as String,
+    subtotalKobo: json['subtotal'] as int,
+    serviceFeeKobo: json['serviceFee'] as int,
+    totalKobo: json['total'] as int,
+    patientId: json['userId'] as String?,
+    patientName: json['patientName'] as String?,
+    serviceType: json['serviceType'] as String?,
+    scheduledDate: json['scheduledDate'] as String?,
+    scheduledTimeSlot: json['scheduledTimeSlot'] as String?,
+    createdAt: json['createdAt'] != null
+        ? DateTime.tryParse(json['createdAt'] as String)
+        : null,
+  );
 
   final String id;
   final String status;

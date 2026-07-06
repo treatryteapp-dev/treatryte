@@ -18,7 +18,12 @@ import '../theme/app_theme.dart';
 /// just an informational message) so they can act on the rejection reason
 /// and resubmit for review without contacting support.
 class PartnerStatusScreen extends StatefulWidget {
-  const PartnerStatusScreen({super.key, required this.status, this.rejectionReason, this.onRetry});
+  const PartnerStatusScreen({
+    super.key,
+    required this.status,
+    this.rejectionReason,
+    this.onRetry,
+  });
 
   /// 'pending' or 'rejected'.
   final String status;
@@ -36,7 +41,10 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
   bool get _isRejected => widget.status == 'rejected';
 
   Future<void> _pickFiles() async {
-    final result = await FilePicker.platform.pickFiles(withData: true, allowMultiple: true);
+    final result = await FilePicker.platform.pickFiles(
+      withData: true,
+      allowMultiple: true,
+    );
     if (result == null) return;
     setState(() {
       _pickedFiles.addAll(result.files.where((f) => f.bytes != null));
@@ -60,7 +68,9 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
   Future<void> _resubmit() async {
     if (_pickedFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one document before resubmitting.')),
+        const SnackBar(
+          content: Text('Add at least one document before resubmitting.'),
+        ),
       );
       return;
     }
@@ -87,7 +97,11 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
     if (uploadFailures > 0) {
       setState(() => _resubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$uploadFailures document(s) failed to upload. Please try again.')),
+        SnackBar(
+          content: Text(
+            '$uploadFailures document(s) failed to upload. Please try again.',
+          ),
+        ),
       );
       return;
     }
@@ -99,7 +113,11 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
     if (ok) {
       setState(() => _pickedFiles.clear());
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Application resubmitted - our team will review it shortly.')),
+        const SnackBar(
+          content: Text(
+            'Application resubmitted - our team will review it shortly.',
+          ),
+        ),
       );
     } else {
       final error = context.read<PartnerProvider>().errorMessage;
@@ -126,11 +144,17 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
                   width: 88,
                   height: 88,
                   decoration: BoxDecoration(
-                    color: (_isRejected ? AppColors.error : AppColors.secondaryContainer).withValues(alpha: 0.15),
+                    color:
+                        (_isRejected
+                                ? AppColors.error
+                                : AppColors.secondaryContainer)
+                            .withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _isRejected ? Icons.cancel_outlined : Icons.hourglass_top_rounded,
+                    _isRejected
+                        ? Icons.cancel_outlined
+                        : Icons.hourglass_top_rounded,
                     color: _isRejected ? AppColors.error : AppColors.secondary,
                     size: 40,
                   ),
@@ -138,7 +162,9 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
               ),
               const SizedBox(height: AppSpacing.xl),
               Text(
-                _isRejected ? 'Application Not Approved' : 'Application Under Review',
+                _isRejected
+                    ? 'Application Not Approved'
+                    : 'Application Under Review',
                 style: textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),
@@ -157,12 +183,20 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.errorContainer.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(AppRadii.md),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Reason', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.error)),
+                      Text(
+                        'Reason',
+                        style: textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.error,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         widget.rejectionReason?.trim().isNotEmpty == true
@@ -176,7 +210,10 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
                 const SizedBox(height: AppSpacing.xl),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Re-upload Verification Documents', style: textTheme.headlineSmall),
+                  child: Text(
+                    'Re-upload Verification Documents',
+                    style: textTheme.headlineSmall,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 OutlinedButton.icon(
@@ -191,14 +228,26 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
                       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                       child: ListTile(
                         leading: Icon(
-                          _pickedFiles[i].name.toLowerCase().endsWith('.pdf') ? Icons.description : Icons.image,
+                          _pickedFiles[i].name.toLowerCase().endsWith('.pdf')
+                              ? Icons.description
+                              : Icons.image,
                           color: AppColors.onSurfaceVariant,
                         ),
-                        title: Text(_pickedFiles[i].name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        subtitle: Text('${(_pickedFiles[i].size / 1024).toStringAsFixed(0)} KB'),
+                        title: Text(
+                          _pickedFiles[i].name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${(_pickedFiles[i].size / 1024).toStringAsFixed(0)} KB',
+                        ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                          onPressed: () => setState(() => _pickedFiles.removeAt(i)),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: AppColors.error,
+                          ),
+                          onPressed: () =>
+                              setState(() => _pickedFiles.removeAt(i)),
                         ),
                       ),
                     ),
@@ -210,7 +259,10 @@ class _PartnerStatusScreenState extends State<PartnerStatusScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Resubmit Application'),
                 ),

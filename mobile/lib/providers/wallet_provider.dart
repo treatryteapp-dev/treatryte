@@ -17,10 +17,7 @@ class WalletProvider extends ChangeNotifier {
 
   String get formattedBalance {
     final naira = balanceKobo / 100;
-    return '₦${naira.toStringAsFixed(2).replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d)\.)'),
-          (m) => '${m[1]},',
-        )}';
+    return '₦${naira.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d)\.)'), (m) => '${m[1]},')}';
   }
 
   Future<void> refresh() async {
@@ -40,7 +37,10 @@ class WalletProvider extends ChangeNotifier {
 
   Future<String?> fund(int amountKobo, {required String method}) async {
     try {
-      final result = await _service.fund(amountKobo: amountKobo, method: method);
+      final result = await _service.fund(
+        amountKobo: amountKobo,
+        method: method,
+      );
       return result['checkoutLink'];
     } on ApiException catch (e) {
       errorMessage = e.message;
@@ -51,9 +51,15 @@ class WalletProvider extends ChangeNotifier {
 
   Future<List<Bank>> getBanks() => _service.getBanks();
 
-  Future<String?> lookupAccount({required String accountNumber, required String bankCode}) async {
+  Future<String?> lookupAccount({
+    required String accountNumber,
+    required String bankCode,
+  }) async {
     try {
-      return await _service.lookupAccount(accountNumber: accountNumber, bankCode: bankCode);
+      return await _service.lookupAccount(
+        accountNumber: accountNumber,
+        bankCode: bankCode,
+      );
     } on ApiException catch (e) {
       errorMessage = e.message;
       notifyListeners();
@@ -91,7 +97,11 @@ class WalletProvider extends ChangeNotifier {
     String? narration,
   }) async {
     try {
-      await _service.payProvider(amountKobo: amountKobo, providerCode: providerCode, narration: narration);
+      await _service.payProvider(
+        amountKobo: amountKobo,
+        providerCode: providerCode,
+        narration: narration,
+      );
       await refresh();
       return true;
     } on ApiException catch (e) {

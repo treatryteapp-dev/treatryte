@@ -9,13 +9,13 @@ class ActivityItem {
   });
 
   factory ActivityItem.fromJson(Map<String, dynamic> json) => ActivityItem(
-        id: json['_id'] as String,
-        type: json['type'] as String,
-        title: json['title'] as String,
-        subtitle: json['subtitle'] as String? ?? '',
-        iconKey: json['iconKey'] as String? ?? '',
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
+    id: json['_id'] as String,
+    type: json['type'] as String,
+    title: json['title'] as String,
+    subtitle: json['subtitle'] as String? ?? '',
+    iconKey: json['iconKey'] as String? ?? '',
+    createdAt: DateTime.parse(json['createdAt'] as String),
+  );
 
   final String id;
   final String type;

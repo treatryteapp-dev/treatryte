@@ -15,10 +15,10 @@ class _RawAuthResponse {
 }
 
 _RawAuthResponse _parseAuthResponse(dynamic data) => _RawAuthResponse(
-      AppUser.fromJson(data['user']),
-      data['accessToken'] as String,
-      data['refreshToken'] as String,
-    );
+  AppUser.fromJson(data['user']),
+  data['accessToken'] as String,
+  data['refreshToken'] as String,
+);
 
 class AuthService {
   AuthService(this._api, this._storage);
@@ -42,23 +42,30 @@ class AuthService {
     String? bankName,
     String? accountNumber,
   }) async {
-    final result = await _api.post('/auth/register', _parseAuthResponse, body: {
-      'fullName': fullName,
-      'dateOfBirth': dateOfBirth,
-      'gender': gender,
-      'address': address,
-      'email': email,
-      'password': password,
-      if (role != null) 'role': role,
-      if (planId != null) 'planId': planId,
-      if (facilityName != null) 'facilityName': facilityName,
-      if (licenseNumber != null) 'licenseNumber': licenseNumber,
-      if (services != null) 'services': services,
-      if (state != null) 'state': state,
-      if (bankName != null) 'bankName': bankName,
-      if (accountNumber != null) 'accountNumber': accountNumber,
-    });
-    await _storage.saveTokens(accessToken: result.accessToken, refreshToken: result.refreshToken);
+    final result = await _api.post(
+      '/auth/register',
+      _parseAuthResponse,
+      body: {
+        'fullName': fullName,
+        'dateOfBirth': dateOfBirth,
+        'gender': gender,
+        'address': address,
+        'email': email,
+        'password': password,
+        if (role != null) 'role': role,
+        if (planId != null) 'planId': planId,
+        if (facilityName != null) 'facilityName': facilityName,
+        if (licenseNumber != null) 'licenseNumber': licenseNumber,
+        if (services != null) 'services': services,
+        if (state != null) 'state': state,
+        if (bankName != null) 'bankName': bankName,
+        if (accountNumber != null) 'accountNumber': accountNumber,
+      },
+    );
+    await _storage.saveTokens(
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    );
     return AuthResult(result.user);
   }
 
@@ -72,7 +79,10 @@ class AuthService {
       _parseAuthResponse,
       body: {'email': email, 'password': password},
     );
-    await _storage.saveTokens(accessToken: result.accessToken, refreshToken: result.refreshToken);
+    await _storage.saveTokens(
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    );
     // Persist the user's session preference so checkSession() knows whether to
     // restore the session on a future cold start.
     await _storage.saveKeepLoggedIn(keepLoggedIn);
@@ -100,7 +110,10 @@ class AuthService {
     if (token == null) return null;
 
     try {
-      return await _api.get('/auth/me', (data) => AppUser.fromJson(data['user']));
+      return await _api.get(
+        '/auth/me',
+        (data) => AppUser.fromJson(data['user']),
+      );
     } on ApiException catch (e) {
       // 401 means the access token has expired. Try a silent refresh once.
       if (e.statusCode == 401) {
@@ -133,7 +146,11 @@ class AuthService {
     await _storage.clear();
     if (refreshToken == null) return;
     try {
-      await _api.post('/auth/logout', (_) => null, body: {'refreshToken': refreshToken});
+      await _api.post(
+        '/auth/logout',
+        (_) => null,
+        body: {'refreshToken': refreshToken},
+      );
     } on ApiException {
       // Already logged out locally - a failed remote revoke isn't fatal.
     }
@@ -149,7 +166,10 @@ class AuthService {
   }) async {
     final presign = await _api.post(
       '/auth/me/avatar/presign',
-      (data) => {'uploadUrl': data['uploadUrl'] as String, 's3Key': data['s3Key'] as String},
+      (data) => {
+        'uploadUrl': data['uploadUrl'] as String,
+        's3Key': data['s3Key'] as String,
+      },
       body: {'fileName': fileName, 'mimeType': mimeType},
     );
 
@@ -167,4 +187,3 @@ class AuthService {
     await _storage.clear();
   }
 }
-

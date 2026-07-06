@@ -33,8 +33,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    _termsRecognizer = TapGestureRecognizer()..onTap = () => _openLegalPage('/terms');
-    _privacyRecognizer = TapGestureRecognizer()..onTap = () => _openLegalPage('/privacy');
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () => _openLegalPage('/terms');
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () => _openLegalPage('/privacy');
   }
 
   @override
@@ -53,9 +55,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final uri = Uri.parse('${AppConfig.landingPageUrl}$path');
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!mounted || opened) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Could not open this page.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Could not open this page.')));
   }
 
   Future<void> _pickDate() async {
@@ -76,7 +78,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false) || _dateOfBirth == null || _gender == null) {
+    if (!(_formKey.currentState?.validate() ?? false) ||
+        _dateOfBirth == null ||
+        _gender == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields correctly.')),
       );
@@ -124,7 +128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Individual Registration', style: textTheme.headlineMedium),
+                Text(
+                  'Individual Registration',
+                  style: textTheme.headlineMedium,
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Please provide valid information as it appears on your '
@@ -135,8 +142,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 _FieldLabel('FULL LEGAL NAME'),
                 TextFormField(
                   controller: _fullNameController,
-                  decoration: const InputDecoration(hintText: 'John Olusegun Doe'),
-                  validator: (value) => (value == null || value.trim().isEmpty) ? 'Required' : null,
+                  decoration: const InputDecoration(
+                    hintText: 'John Olusegun Doe',
+                  ),
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Required'
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _FieldLabel('DATE OF BIRTH'),
@@ -172,7 +183,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hintText: '123 Admiralty Way, Lekki Phase 1, Lagos State',
                     prefixIcon: Icon(Icons.location_on_outlined),
                   ),
-                  validator: (value) => (value == null || value.trim().isEmpty) ? 'Required' : null,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Required'
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _FieldLabel('EMAIL ADDRESS'),
@@ -181,16 +194,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(hintText: 'name@email.com'),
                   validator: (value) =>
-                      (value == null || !_emailRegex.hasMatch(value.trim())) ? 'Enter a valid email' : null,
+                      (value == null || !_emailRegex.hasMatch(value.trim()))
+                      ? 'Enter a valid email'
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _FieldLabel('PASSWORD'),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(hintText: 'At least 8 characters'),
-                  validator: (value) =>
-                      (value == null || value.length < 8) ? 'Minimum 8 characters' : null,
+                  decoration: const InputDecoration(
+                    hintText: 'At least 8 characters',
+                  ),
+                  validator: (value) => (value == null || value.length < 8)
+                      ? 'Minimum 8 characters'
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Row(
@@ -211,7 +229,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             style: textTheme.bodySmall,
                             children: [
                               const TextSpan(
-                                text: 'I certify that all provided information '
+                                text:
+                                    'I certify that all provided information '
                                     'is accurate and I agree to the ',
                               ),
                               TextSpan(
@@ -243,12 +262,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: (_agreedToTerms && !auth.isLoading) ? _submit : null,
+                    onPressed: (_agreedToTerms && !auth.isLoading)
+                        ? _submit
+                        : null,
                     child: auth.isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -264,7 +288,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Center(
                   child: Text(
                     '© ${DateTime.now().year} TreatRyte Technologies. All rights reserved.',
-                    style: const TextStyle(fontSize: 11, color: AppColors.outline),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.outline,
+                    ),
                   ),
                 ),
               ],

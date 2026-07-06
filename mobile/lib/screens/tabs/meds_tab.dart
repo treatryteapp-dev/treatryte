@@ -37,10 +37,12 @@ class _MedsTabState extends State<MedsTab> {
     if (_selectedMood == null || doseLogId == null) return;
     setState(() => _submittingFeedback = true);
     await context.read<MedicationProvider>().submitMood(
-          doseLogId,
-          mood: _selectedMood!,
-          note: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-        );
+      doseLogId,
+      mood: _selectedMood!,
+      note: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+    );
     if (!mounted) return;
     setState(() => _submittingFeedback = false);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -59,7 +61,10 @@ class _MedsTabState extends State<MedsTab> {
     final textTheme = Theme.of(context).textTheme;
     final medications = context.watch<MedicationProvider>();
     final feedbackTargetId =
-        medications.nextDose?.doseLogId ?? (medications.schedule.isNotEmpty ? medications.schedule.last.doseLogId : null);
+        medications.nextDose?.doseLogId ??
+        (medications.schedule.isNotEmpty
+            ? medications.schedule.last.doseLogId
+            : null);
 
     return SafeArea(
       child: RefreshIndicator(
@@ -88,27 +93,40 @@ class _MedsTabState extends State<MedsTab> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               else ...[
-                if (medications.nextDose != null) _ActiveMedicationCard(dose: medications.nextDose!),
+                if (medications.nextDose != null)
+                  _ActiveMedicationCard(dose: medications.nextDose!),
                 const SizedBox(height: AppSpacing.xl),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text("Today's Schedule", style: textTheme.headlineSmall),
-                    TextButton(onPressed: () {}, child: const Text('View History')),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text('View History'),
+                    ),
                   ],
                 ),
                 if (medications.schedule.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                    child: Text('No medications scheduled for today.', style: textTheme.bodySmall),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.md,
+                    ),
+                    child: Text(
+                      'No medications scheduled for today.',
+                      style: textTheme.bodySmall,
+                    ),
                   )
                 else
-                  for (final dose in medications.schedule) _DoseTile(dose: dose),
+                  for (final dose in medications.schedule)
+                    _DoseTile(dose: dose),
               ],
               const SizedBox(height: AppSpacing.xl),
               Text('Feedback Log', style: textTheme.headlineSmall),
               const SizedBox(height: 4),
-              Text('How are you feeling after your dose?', style: textTheme.bodySmall),
+              Text(
+                'How are you feeling after your dose?',
+                style: textTheme.bodySmall,
+              ),
               const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: AppSpacing.sm,
@@ -119,7 +137,8 @@ class _MedsTabState extends State<MedsTab> {
                       avatar: Icon(mood.icon, size: 16),
                       label: Text(mood.label),
                       selected: _selectedMood == mood.label,
-                      onSelected: (_) => setState(() => _selectedMood = mood.label),
+                      onSelected: (_) =>
+                          setState(() => _selectedMood = mood.label),
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
                         color: _selectedMood == mood.label
@@ -141,21 +160,28 @@ class _MedsTabState extends State<MedsTab> {
                 controller: _notesController,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                  hintText: 'Additional notes (e.g., Slightly dizzy but manageable)',
+                  hintText:
+                      'Additional notes (e.g., Slightly dizzy but manageable)',
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: (_selectedMood != null && feedbackTargetId != null && !_submittingFeedback)
+                  onPressed:
+                      (_selectedMood != null &&
+                          feedbackTargetId != null &&
+                          !_submittingFeedback)
                       ? () => _submitFeedback(feedbackTargetId)
                       : null,
                   child: _submittingFeedback
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Submit to Doctor'),
                 ),
@@ -188,7 +214,10 @@ class _ActiveMedicationCardState extends State<_ActiveMedicationCard> {
   void initState() {
     super.initState();
     _updateRemaining();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateRemaining(),
+    );
   }
 
   @override
@@ -232,20 +261,31 @@ class _ActiveMedicationCardState extends State<_ActiveMedicationCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: 2,
+            ),
             decoration: BoxDecoration(
               color: Colors.white24,
               borderRadius: BorderRadius.circular(AppRadii.full),
             ),
             child: const Text(
               'UPCOMING DOSE',
-              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             widget.dose.medicationName,
-            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           Text(
             'Dosage: ${widget.dose.dosage}',
@@ -298,7 +338,9 @@ class _DoseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final taken = dose.taken;
-    final time = TimeOfDay.fromDateTime(dose.scheduledFor.toLocal()).format(context);
+    final time = TimeOfDay.fromDateTime(
+      dose.scheduledFor.toLocal(),
+    ).format(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
@@ -308,7 +350,9 @@ class _DoseTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: taken ? AppColors.secondaryContainer : AppColors.errorContainer,
+              color: taken
+                  ? AppColors.secondaryContainer
+                  : AppColors.errorContainer,
               borderRadius: BorderRadius.circular(AppRadii.md),
             ),
             child: Icon(
@@ -322,15 +366,25 @@ class _DoseTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(dose.medicationName, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  dose.medicationName,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 Text(time, style: textTheme.bodySmall),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: 4,
+            ),
             decoration: BoxDecoration(
-              color: taken ? AppColors.secondaryContainer : AppColors.errorContainer,
+              color: taken
+                  ? AppColors.secondaryContainer
+                  : AppColors.errorContainer,
               borderRadius: BorderRadius.circular(AppRadii.full),
             ),
             child: Text(
@@ -368,15 +422,22 @@ class _MedPlanBanner extends StatelessWidget {
                 color: AppColors.secondaryContainer,
                 borderRadius: BorderRadius.circular(AppRadii.md),
               ),
-              child: const Icon(Icons.verified_outlined, color: AppColors.onSecondaryContainer),
+              child: const Icon(
+                Icons.verified_outlined,
+                color: AppColors.onSecondaryContainer,
+              ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(active ? 'MedPlan Active' : 'No Active MedPlan',
-                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    active ? 'MedPlan Active' : 'No Active MedPlan',
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   Text(
                     active
                         ? 'This prescription is fully covered by your TreatRyte plan.'

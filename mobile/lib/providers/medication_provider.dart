@@ -32,6 +32,9 @@ class MedicationProvider extends ChangeNotifier {
     await refresh();
   }
 
-  Future<void> submitMood(String doseLogId, {required String mood, String? note}) =>
-      _service.submitMood(doseLogId, mood: mood, note: note);
+  Future<void> submitMood(
+    String doseLogId, {
+    required String mood,
+    String? note,
+  }) => _service.submitMood(doseLogId, mood: mood, note: note);
 }

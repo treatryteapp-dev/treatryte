@@ -7,10 +7,10 @@ class ActivityService {
   final ApiClient _api;
 
   Future<List<ActivityItem>> getRecent({int limit = 5}) => _api.get(
-        '/activities',
-        (data) => (data['activities'] as List<dynamic>)
-            .map((a) => ActivityItem.fromJson(a as Map<String, dynamic>))
-            .toList(),
-        query: {'limit': limit},
-      );
+    '/activities',
+    (data) => (data['activities'] as List<dynamic>)
+        .map((a) => ActivityItem.fromJson(a as Map<String, dynamic>))
+        .toList(),
+    query: {'limit': limit},
+  );
 }

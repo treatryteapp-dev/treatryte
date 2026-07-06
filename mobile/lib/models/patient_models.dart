@@ -1,13 +1,21 @@
 import 'vault_models.dart';
 
 class MedicalProfile {
-  const MedicalProfile({required this.bloodGroup, required this.allergies, required this.conditions});
+  const MedicalProfile({
+    required this.bloodGroup,
+    required this.allergies,
+    required this.conditions,
+  });
 
   factory MedicalProfile.fromJson(Map<String, dynamic> json) => MedicalProfile(
-        bloodGroup: json['bloodGroup'] as String?,
-        allergies: (json['allergies'] as List<dynamic>? ?? []).map((a) => a as String).toList(),
-        conditions: (json['conditions'] as List<dynamic>? ?? []).map((c) => c as String).toList(),
-      );
+    bloodGroup: json['bloodGroup'] as String?,
+    allergies: (json['allergies'] as List<dynamic>? ?? [])
+        .map((a) => a as String)
+        .toList(),
+    conditions: (json['conditions'] as List<dynamic>? ?? [])
+        .map((c) => c as String)
+        .toList(),
+  );
 
   final String? bloodGroup;
   final List<String> allergies;
@@ -26,14 +34,14 @@ class PartnerPatient {
   });
 
   factory PartnerPatient.fromJson(Map<String, dynamic> json) => PartnerPatient(
-        id: json['id'] as String,
-        patientCode: json['patientCode'] as String? ?? '',
-        fullName: json['fullName'] as String,
-        email: json['email'] as String? ?? '',
-        dateOfBirth: DateTime.tryParse(json['dateOfBirth'] as String? ?? ''),
-        gender: json['gender'] as String?,
-        lastVisit: DateTime.tryParse(json['lastVisit'] as String? ?? ''),
-      );
+    id: json['id'] as String,
+    patientCode: json['patientCode'] as String? ?? '',
+    fullName: json['fullName'] as String,
+    email: json['email'] as String? ?? '',
+    dateOfBirth: DateTime.tryParse(json['dateOfBirth'] as String? ?? ''),
+    gender: json['gender'] as String?,
+    lastVisit: DateTime.tryParse(json['lastVisit'] as String? ?? ''),
+  );
 
   final String id;
   final String patientCode;
@@ -53,11 +61,11 @@ class MedicalRecord {
   });
 
   factory MedicalRecord.fromJson(Map<String, dynamic> json) => MedicalRecord(
-        id: json['_id'] as String,
-        visitType: json['visitType'] as String,
-        notes: json['notes'] as String? ?? '',
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
-      );
+    id: json['_id'] as String,
+    visitType: json['visitType'] as String,
+    notes: json['notes'] as String? ?? '',
+    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+  );
 
   final String id;
   final String visitType;
@@ -76,13 +84,13 @@ class Prescription {
   });
 
   factory Prescription.fromJson(Map<String, dynamic> json) => Prescription(
-        id: json['_id'] as String,
-        medicineName: json['medicineName'] as String,
-        dosage: json['dosage'] as String,
-        duration: json['duration'] as String,
-        notes: json['notes'] as String? ?? '',
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
-      );
+    id: json['_id'] as String,
+    medicineName: json['medicineName'] as String,
+    dosage: json['dosage'] as String,
+    duration: json['duration'] as String,
+    notes: json['notes'] as String? ?? '',
+    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+  );
 
   final String id;
   final String medicineName;
@@ -107,20 +115,30 @@ class PatientDetail {
   });
 
   factory PatientDetail.fromJson(Map<String, dynamic> json) => PatientDetail(
-        id: (json['patient'] as Map<String, dynamic>)['id'] as String,
-        patientCode: (json['patient'] as Map<String, dynamic>)['patientCode'] as String? ?? '',
-        fullName: (json['patient'] as Map<String, dynamic>)['fullName'] as String,
-        email: (json['patient'] as Map<String, dynamic>)['email'] as String? ?? '',
-        dateOfBirth: DateTime.tryParse((json['patient'] as Map<String, dynamic>)['dateOfBirth'] as String? ?? ''),
-        gender: (json['patient'] as Map<String, dynamic>)['gender'] as String?,
-        medicalProfile: MedicalProfile.fromJson((json['patient'] as Map<String, dynamic>)['medicalProfile'] as Map<String, dynamic>),
-        reports: (json['reports'] as List<dynamic>).map((r) => VaultFile.fromJson(r as Map<String, dynamic>)).toList(),
-        prescriptions:
-            (json['prescriptions'] as List<dynamic>).map((p) => Prescription.fromJson(p as Map<String, dynamic>)).toList(),
-        medicalRecords: (json['medicalRecords'] as List<dynamic>? ?? [])
-            .map((r) => MedicalRecord.fromJson(r as Map<String, dynamic>))
-            .toList(),
-      );
+    id: (json['patient'] as Map<String, dynamic>)['id'] as String,
+    patientCode:
+        (json['patient'] as Map<String, dynamic>)['patientCode'] as String? ??
+        '',
+    fullName: (json['patient'] as Map<String, dynamic>)['fullName'] as String,
+    email: (json['patient'] as Map<String, dynamic>)['email'] as String? ?? '',
+    dateOfBirth: DateTime.tryParse(
+      (json['patient'] as Map<String, dynamic>)['dateOfBirth'] as String? ?? '',
+    ),
+    gender: (json['patient'] as Map<String, dynamic>)['gender'] as String?,
+    medicalProfile: MedicalProfile.fromJson(
+      (json['patient'] as Map<String, dynamic>)['medicalProfile']
+          as Map<String, dynamic>,
+    ),
+    reports: (json['reports'] as List<dynamic>)
+        .map((r) => VaultFile.fromJson(r as Map<String, dynamic>))
+        .toList(),
+    prescriptions: (json['prescriptions'] as List<dynamic>)
+        .map((p) => Prescription.fromJson(p as Map<String, dynamic>))
+        .toList(),
+    medicalRecords: (json['medicalRecords'] as List<dynamic>? ?? [])
+        .map((r) => MedicalRecord.fromJson(r as Map<String, dynamic>))
+        .toList(),
+  );
 
   final String id;
   final String patientCode;

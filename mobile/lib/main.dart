@@ -55,7 +55,8 @@ class _TreatRyteAppState extends State<TreatRyteApp> {
     super.initState();
     _storage = SecureStorageService();
     _apiClient = ApiClient(_storage);
-    _authProvider = AuthProvider(AuthService(_apiClient, _storage))..checkSession();
+    _authProvider = AuthProvider(AuthService(_apiClient, _storage))
+      ..checkSession();
     // Built once and kept alive for the app's lifetime - GoRouter owns
     // navigation stack state, so recreating it on every rebuild (e.g. every
     // time AuthProvider notifies) would reset the user's navigation stack.
@@ -68,18 +69,41 @@ class _TreatRyteAppState extends State<TreatRyteApp> {
       providers: [
         ChangeNotifierProvider.value(value: _authProvider),
         ChangeNotifierProvider(create: (_) => MainTabProvider()),
-        ChangeNotifierProvider(create: (_) => WalletProvider(WalletService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => ActivityProvider(ActivityService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => ConnectionProvider(ConnectionService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => VaultProvider(VaultService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => DirectoryProvider(DirectoryService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => AppointmentProvider(AppointmentService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => MedicationProvider(MedicationService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => NotificationProvider(NotificationService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => PlanProvider(PlanService(_apiClient))),
-        ChangeNotifierProvider(create: (_) => SubscriptionProvider(SubscriptionService(_apiClient))),
         ChangeNotifierProvider(
-          create: (_) => PartnerProvider(ProviderService(_apiClient), AppointmentService(_apiClient)),
+          create: (_) => WalletProvider(WalletService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ActivityProvider(ActivityService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ConnectionProvider(ConnectionService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => VaultProvider(VaultService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DirectoryProvider(DirectoryService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AppointmentProvider(AppointmentService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MedicationProvider(MedicationService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => NotificationProvider(NotificationService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PlanProvider(PlanService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => SubscriptionProvider(SubscriptionService(_apiClient)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PartnerProvider(
+            ProviderService(_apiClient),
+            AppointmentService(_apiClient),
+          ),
         ),
       ],
       child: MaterialApp.router(

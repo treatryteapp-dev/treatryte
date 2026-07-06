@@ -2,9 +2,9 @@ class VaultCategory {
   const VaultCategory({required this.category, required this.count});
 
   factory VaultCategory.fromJson(Map<String, dynamic> json) => VaultCategory(
-        category: json['category'] as String,
-        count: json['count'] as int,
-      );
+    category: json['category'] as String,
+    count: json['count'] as int,
+  );
 
   final String category;
   final int count;
@@ -21,13 +21,13 @@ class VaultStats {
   });
 
   factory VaultStats.fromJson(Map<String, dynamic> json) => VaultStats(
-        usedBytes: json['usedBytes'] as int,
-        quotaBytes: json['quotaBytes'] as int,
-        fileCount: json['fileCount'] as int,
-        folderCount: json['folderCount'] as int? ?? 0,
-        maxVaultFolders: json['maxVaultFolders'] as int?,
-        maxVaultFiles: json['maxVaultFiles'] as int?,
-      );
+    usedBytes: json['usedBytes'] as int,
+    quotaBytes: json['quotaBytes'] as int,
+    fileCount: json['fileCount'] as int,
+    folderCount: json['folderCount'] as int? ?? 0,
+    maxVaultFolders: json['maxVaultFolders'] as int?,
+    maxVaultFiles: json['maxVaultFiles'] as int?,
+  );
 
   final int usedBytes;
   final int quotaBytes;
@@ -39,13 +39,17 @@ class VaultStats {
 }
 
 class VaultFolder {
-  const VaultFolder({required this.id, required this.name, required this.fileCount});
+  const VaultFolder({
+    required this.id,
+    required this.name,
+    required this.fileCount,
+  });
 
   factory VaultFolder.fromJson(Map<String, dynamic> json) => VaultFolder(
-        id: json['_id'] as String,
-        name: json['name'] as String,
-        fileCount: json['fileCount'] as int? ?? 0,
-      );
+    id: json['_id'] as String,
+    name: json['name'] as String,
+    fileCount: json['fileCount'] as int? ?? 0,
+  );
 
   final String id;
   final String name;
@@ -62,12 +66,12 @@ class VaultFile {
   });
 
   factory VaultFile.fromJson(Map<String, dynamic> json) => VaultFile(
-        id: json['_id'] as String,
-        fileName: json['fileName'] as String,
-        category: json['category'] as String,
-        status: json['status'] as String,
-        url: json['url'] as String?,
-      );
+    id: json['_id'] as String,
+    fileName: json['fileName'] as String,
+    category: json['category'] as String,
+    status: json['status'] as String,
+    url: json['url'] as String?,
+  );
 
   final String id;
   final String fileName;

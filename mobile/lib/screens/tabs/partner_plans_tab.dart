@@ -141,7 +141,9 @@ class _PartnerPlansTabState extends State<PartnerPlansTab> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok ? 'Switched to ${plan.name}.' : 'Failed to switch plans. Please try again.',
+          ok
+              ? 'Switched to ${plan.name}.'
+              : 'Failed to switch plans. Please try again.',
         ),
       ),
     );
@@ -222,21 +224,23 @@ class _PartnerPlansTabState extends State<PartnerPlansTab> {
                       color: AppColors.secondary,
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(feature, style: textTheme.bodySmall),
-                    ),
+                    Expanded(child: Text(feature, style: textTheme.bodySmall)),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
-              onPressed: isActive || _switching ? null : () => _selectPlan(plan),
+              onPressed: isActive || _switching
+                  ? null
+                  : () => _selectPlan(plan),
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isActive ? AppColors.secondaryContainer : AppColors.primary,
-                foregroundColor:
-                    isActive ? AppColors.onSecondaryContainer : Colors.white,
+                backgroundColor: isActive
+                    ? AppColors.secondaryContainer
+                    : AppColors.primary,
+                foregroundColor: isActive
+                    ? AppColors.onSecondaryContainer
+                    : Colors.white,
                 minimumSize: const Size.fromHeight(48),
               ),
               child: Text(isActive ? 'Current Plan' : 'Switch to This Plan'),
@@ -262,9 +266,7 @@ class _CurrentPlanBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.secondaryContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        border: Border.all(
-          color: AppColors.secondary.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: AppColors.secondary.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [

@@ -75,9 +75,17 @@ class PartnerProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createService({required String name, required int priceKobo, required String category}) async {
+  Future<bool> createService({
+    required String name,
+    required int priceKobo,
+    required String category,
+  }) async {
     try {
-      await _service.createService(name: name, priceKobo: priceKobo, category: category);
+      await _service.createService(
+        name: name,
+        priceKobo: priceKobo,
+        category: category,
+      );
       await loadServices();
       return true;
     } on ApiException catch (e) {
@@ -87,9 +95,19 @@ class PartnerProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateService(String id, {String? name, int? priceKobo, String? category}) async {
+  Future<bool> updateService(
+    String id, {
+    String? name,
+    int? priceKobo,
+    String? category,
+  }) async {
     try {
-      await _service.updateService(id, name: name, priceKobo: priceKobo, category: category);
+      await _service.updateService(
+        id,
+        name: name,
+        priceKobo: priceKobo,
+        category: category,
+      );
       await loadServices();
       return true;
     } on ApiException catch (e) {
@@ -137,7 +155,11 @@ class PartnerProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> reschedule(String appointmentId, {required String scheduledDate, required String scheduledTimeSlot}) async {
+  Future<bool> reschedule(
+    String appointmentId, {
+    required String scheduledDate,
+    required String scheduledTimeSlot,
+  }) async {
     try {
       await _appointmentService.reschedule(
         appointmentId,
@@ -201,7 +223,13 @@ class PartnerProvider extends ChangeNotifier {
     String? notes,
   }) async {
     try {
-      await _service.addPrescription(patientId, medicineName: medicineName, dosage: dosage, duration: duration, notes: notes);
+      await _service.addPrescription(
+        patientId,
+        medicineName: medicineName,
+        dosage: dosage,
+        duration: duration,
+        notes: notes,
+      );
       await loadPatientDetail(patientId);
       return true;
     } on ApiException catch (e) {
@@ -252,14 +280,15 @@ class PartnerProvider extends ChangeNotifier {
     String? notes,
   }) async {
     try {
-      await _service.issueMedicalRecord(patientId, visitType: visitType, notes: notes);
+      await _service.issueMedicalRecord(
+        patientId,
+        visitType: visitType,
+        notes: notes,
+      );
       // Reload both the detail view and the patients list - the backend
       // stamps lastVisitAt on issue, so the patients list sort order
       // (most-recent-first) needs to be refreshed too.
-      await Future.wait([
-        loadPatientDetail(patientId),
-        loadPatients(),
-      ]);
+      await Future.wait([loadPatientDetail(patientId), loadPatients()]);
       return true;
     } on ApiException catch (e) {
       patientDetailError = e.message;

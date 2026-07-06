@@ -13,7 +13,8 @@ class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({super.key});
 
   @override
-  State<SubscriptionPlansScreen> createState() => _SubscriptionPlansScreenState();
+  State<SubscriptionPlansScreen> createState() =>
+      _SubscriptionPlansScreenState();
 }
 
 class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
@@ -47,78 +48,99 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
                 onRefresh: () async {
-                  await context.read<PlanProvider>().loadPlans(type: 'Individual');
+                  await context.read<PlanProvider>().loadPlans(
+                    type: 'Individual',
+                  );
                   await context.read<AuthProvider>().checkSession();
                 },
                 child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Select a plan that fits your healthcare needs',
-                      style: textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    if (planProvider.plans.isEmpty)
-                      Text('No plans are available right now.', style: textTheme.bodySmall)
-                    else
-                      for (final plan in planProvider.plans) ...[
-                        _PlanCard(
-                          plan: plan,
-                          selected: plan.id == _selectedPlanId,
-                          isCurrent: plan.id == currentPlanId,
-                          onTap: () => setState(() => _selectedPlanId = plan.id),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                    const SizedBox(height: AppSpacing.sm),
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Select a plan that fits your healthcare needs',
+                        style: textTheme.bodyMedium,
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.shield_outlined, size: 18, color: AppColors.secondary),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text.rich(
-                              TextSpan(
-                                style: textTheme.bodySmall,
-                                children: const [
-                                  TextSpan(
-                                    text: 'Your medical history and data are encrypted with '
-                                        'bank-grade security protocols. ',
-                                  ),
-                                  TextSpan(
-                                    text: 'Learn more about our security.',
-                                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
+                      const SizedBox(height: AppSpacing.lg),
+                      if (planProvider.plans.isEmpty)
+                        Text(
+                          'No plans are available right now.',
+                          style: textTheme.bodySmall,
+                        )
+                      else
+                        for (final plan in planProvider.plans) ...[
+                          _PlanCard(
+                            plan: plan,
+                            selected: plan.id == _selectedPlanId,
+                            isCurrent: plan.id == currentPlanId,
+                            onTap: () =>
+                                setState(() => _selectedPlanId = plan.id),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                      const SizedBox(height: AppSpacing.sm),
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(AppRadii.lg),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.shield_outlined,
+                              size: 18,
+                              color: AppColors.secondary,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text.rich(
+                                TextSpan(
+                                  style: textTheme.bodySmall,
+                                  children: const [
+                                    TextSpan(
+                                      text:
+                                          'Your medical history and data are encrypted with '
+                                          'bank-grade security protocols. ',
+                                    ),
+                                    TextSpan(
+                                      text: 'Learn more about our security.',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    if (planProvider.plans.isNotEmpty)
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: (_selectedPlanId == null || _selectedPlanId == currentPlanId || _switching)
-                              ? null
-                              : _confirmSelection,
-                          child: Text(_selectedPlanId == currentPlanId ? 'Current Plan' : 'Confirm Selection'),
+                          ],
                         ),
                       ),
-                  ],
+                      const SizedBox(height: AppSpacing.lg),
+                      if (planProvider.plans.isNotEmpty)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed:
+                                (_selectedPlanId == null ||
+                                    _selectedPlanId == currentPlanId ||
+                                    _switching)
+                                ? null
+                                : _confirmSelection,
+                            child: Text(
+                              _selectedPlanId == currentPlanId
+                                  ? 'Current Plan'
+                                  : 'Confirm Selection',
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
               ),
       ),
     );
@@ -127,7 +149,9 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   Future<void> _confirmSelection() async {
     if (_selectedPlanId == null) return;
     final planProvider = context.read<PlanProvider>();
-    final selectedPlan = planProvider.plans.firstWhere((p) => p.id == _selectedPlanId);
+    final selectedPlan = planProvider.plans.firstWhere(
+      (p) => p.id == _selectedPlanId,
+    );
 
     setState(() => _switching = true);
 
@@ -139,18 +163,24 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       if (!mounted) return;
       setState(() => _switching = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ok ? 'Plan updated.' : 'Failed to update your plan.')),
+        SnackBar(
+          content: Text(ok ? 'Plan updated.' : 'Failed to update your plan.'),
+        ),
       );
       return;
     }
 
-    final checkoutLink = await context.read<SubscriptionProvider>().upgrade(_selectedPlanId!);
+    final checkoutLink = await context.read<SubscriptionProvider>().upgrade(
+      _selectedPlanId!,
+    );
     if (!mounted) return;
     setState(() => _switching = false);
 
     if (checkoutLink == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to start checkout for this plan.')),
+        const SnackBar(
+          content: Text('Failed to start checkout for this plan.'),
+        ),
       );
       return;
     }
@@ -167,14 +197,21 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Complete payment in the browser, then come back and pull to refresh.'),
+        content: Text(
+          'Complete payment in the browser, then come back and pull to refresh.',
+        ),
       ),
     );
   }
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.selected, required this.isCurrent, required this.onTap});
+  const _PlanCard({
+    required this.plan,
+    required this.selected,
+    required this.isCurrent,
+    required this.onTap,
+  });
 
   final Plan plan;
   final bool selected;
@@ -210,10 +247,15 @@ class _PlanCard extends StatelessWidget {
                         if (isCurrent) ...[
                           const SizedBox(width: AppSpacing.sm),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.secondaryContainer,
-                              borderRadius: BorderRadius.circular(AppRadii.full),
+                              borderRadius: BorderRadius.circular(
+                                AppRadii.full,
+                              ),
                             ),
                             child: Text(
                               'CURRENT',
@@ -228,7 +270,9 @@ class _PlanCard extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                    selected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
                     color: selected ? AppColors.primary : AppColors.outline,
                   ),
                 ],
@@ -238,12 +282,19 @@ class _PlanCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    plan.price == 0 ? '₦0' : '₦${plan.price.toStringAsFixed(0)}',
-                    style: textTheme.headlineMedium?.copyWith(color: AppColors.primary),
+                    plan.price == 0
+                        ? '₦0'
+                        : '₦${plan.price.toStringAsFixed(0)}',
+                    style: textTheme.headlineMedium?.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 4),
-                    child: Text('/${plan.interval}', style: textTheme.bodySmall),
+                    child: Text(
+                      '/${plan.interval}',
+                      style: textTheme.bodySmall,
+                    ),
                   ),
                 ],
               ),
@@ -254,9 +305,15 @@ class _PlanCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.check_circle, size: 16, color: AppColors.secondary),
+                      const Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: AppColors.secondary,
+                      ),
                       const SizedBox(width: AppSpacing.sm),
-                      Expanded(child: Text(feature, style: textTheme.bodySmall)),
+                      Expanded(
+                        child: Text(feature, style: textTheme.bodySmall),
+                      ),
                     ],
                   ),
                 ),
@@ -266,10 +323,19 @@ class _PlanCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.cancel_outlined, size: 16, color: AppColors.outline),
+                      const Icon(
+                        Icons.cancel_outlined,
+                        size: 16,
+                        color: AppColors.outline,
+                      ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
-                        child: Text(feature, style: textTheme.bodySmall?.copyWith(color: AppColors.outline)),
+                        child: Text(
+                          feature,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.outline,
+                          ),
+                        ),
                       ),
                     ],
                   ),

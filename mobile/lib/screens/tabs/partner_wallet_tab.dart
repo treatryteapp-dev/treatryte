@@ -32,8 +32,16 @@ class _PartnerWalletTabState extends State<PartnerWalletTab> {
     final status = lab?.status;
     final (statusLabel, statusColor, statusIcon) = switch (status) {
       'approved' => ('Fully Verified', AppColors.secondary, Icons.verified),
-      'rejected' => ('Verification Rejected', AppColors.error, Icons.error_outline),
-      _ => ('Verification Pending', AppColors.onSurfaceVariant, Icons.hourglass_top),
+      'rejected' => (
+        'Verification Rejected',
+        AppColors.error,
+        Icons.error_outline,
+      ),
+      _ => (
+        'Verification Pending',
+        AppColors.onSurfaceVariant,
+        Icons.hourglass_top,
+      ),
     };
 
     return SafeArea(
@@ -276,9 +284,11 @@ class _PartnerWalletTabState extends State<PartnerWalletTab> {
                     child: Column(
                       children: [
                         // Show up to the most recent 10 transactions
-                        for (int i = 0;
-                            i < wallet.transactions.length && i < 10;
-                            i++) ...[
+                        for (
+                          int i = 0;
+                          i < wallet.transactions.length && i < 10;
+                          i++
+                        ) ...[
                           if (i > 0) const Divider(height: 1),
                           _buildTxTile(wallet.transactions[i]),
                         ],
@@ -298,10 +308,7 @@ class _PartnerWalletTabState extends State<PartnerWalletTab> {
     final isCredit = tx.type == 'credit';
     final amountNaira = tx.amountKobo / 100;
     final formattedAmount =
-        '${isCredit ? '+' : '-'}₦${amountNaira.toStringAsFixed(2).replaceAllMapped(
-              RegExp(r'(\d)(?=(\d{3})+(?!\d)\.)', ),
-              (m) => '${m[1]},',
-            )}';
+        '${isCredit ? '+' : '-'}₦${amountNaira.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d)\.)'), (m) => '${m[1]},')}';
 
     final day = tx.createdAt.day.toString().padLeft(2, '0');
     final month = _monthName(tx.createdAt.month);
@@ -401,8 +408,18 @@ class _PartnerWalletTabState extends State<PartnerWalletTab> {
 
   String _monthName(int month) {
     const names = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return names[month - 1];
   }
@@ -432,10 +449,7 @@ class _ErrorBanner extends StatelessWidget {
                 ),
               ),
             ),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),

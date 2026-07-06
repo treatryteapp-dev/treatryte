@@ -41,7 +41,10 @@ class _VaultTabState extends State<VaultTab> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()),
             child: const Text('Create'),
@@ -55,7 +58,9 @@ class _VaultTabState extends State<VaultTab> {
     if (!mounted) return;
     if (folder == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vault.errorMessage ?? 'Failed to create folder.')),
+        SnackBar(
+          content: Text(vault.errorMessage ?? 'Failed to create folder.'),
+        ),
       );
     }
   }
@@ -65,7 +70,9 @@ class _VaultTabState extends State<VaultTab> {
     final textTheme = Theme.of(context).textTheme;
     final vault = context.watch<VaultProvider>();
     final stats = vault.stats;
-    final folderLimitReached = stats?.maxVaultFolders != null && vault.folders.length >= stats!.maxVaultFolders!;
+    final folderLimitReached =
+        stats?.maxVaultFolders != null &&
+        vault.folders.length >= stats!.maxVaultFolders!;
     final pendingInvites = context.watch<ConnectionProvider>().pending;
 
     return SafeArea(
@@ -89,9 +96,16 @@ class _VaultTabState extends State<VaultTab> {
                   color: AppColors.secondaryContainer.withValues(alpha: 0.4),
                   margin: const EdgeInsets.only(bottom: AppSpacing.md),
                   child: ListTile(
-                    leading: const Icon(Icons.mail_outline, color: AppColors.secondary),
-                    title: Text('${pendingInvites.length} pending invitation${pendingInvites.length == 1 ? '' : 's'}'),
-                    subtitle: const Text('Review which partners can see your records.'),
+                    leading: const Icon(
+                      Icons.mail_outline,
+                      color: AppColors.secondary,
+                    ),
+                    title: Text(
+                      '${pendingInvites.length} pending invitation${pendingInvites.length == 1 ? '' : 's'}',
+                    ),
+                    subtitle: const Text(
+                      'Review which partners can see your records.',
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/invitations'),
                   ),
@@ -103,8 +117,13 @@ class _VaultTabState extends State<VaultTab> {
                 children: [
                   Text('Folders', style: textTheme.headlineSmall),
                   TextButton.icon(
-                    onPressed: folderLimitReached ? null : _showCreateFolderDialog,
-                    icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+                    onPressed: folderLimitReached
+                        ? null
+                        : _showCreateFolderDialog,
+                    icon: const Icon(
+                      Icons.create_new_folder_outlined,
+                      size: 18,
+                    ),
                     label: const Text('New Folder'),
                   ),
                 ],
@@ -114,7 +133,9 @@ class _VaultTabState extends State<VaultTab> {
                   stats.maxVaultFolders != null
                       ? '${vault.folders.length} / ${stats.maxVaultFolders} folders used'
                       : '${vault.folders.length} folders',
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.outline,
+                  ),
                 ),
               const SizedBox(height: AppSpacing.sm),
               if (vault.isLoading && vault.folders.isEmpty)
@@ -146,7 +167,11 @@ class _VaultTabState extends State<VaultTab> {
                           color: AppColors.secondaryContainer,
                           borderRadius: BorderRadius.circular(AppRadii.md),
                         ),
-                        child: const Icon(Icons.folder_outlined, size: 20, color: AppColors.onSecondaryContainer),
+                        child: const Icon(
+                          Icons.folder_outlined,
+                          size: 20,
+                          color: AppColors.onSecondaryContainer,
+                        ),
                       ),
                       title: Text(
                         folder.name,
@@ -155,8 +180,14 @@ class _VaultTabState extends State<VaultTab> {
                           color: AppColors.onSurface,
                         ),
                       ),
-                      subtitle: Text('${folder.fileCount} Files', style: textTheme.bodySmall),
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.outline),
+                      subtitle: Text(
+                        '${folder.fileCount} Files',
+                        style: textTheme.bodySmall,
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.outline,
+                      ),
                       onTap: () => context.push('/vault-folder', extra: folder),
                     ),
                   ),
@@ -165,9 +196,68 @@ class _VaultTabState extends State<VaultTab> {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     'Folder limit reached for your plan. Upgrade to add more.',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.error,
+                    ),
                   ),
                 ),
+              const SizedBox(height: AppSpacing.xxl),
+              Text('Connected Partners', style: textTheme.headlineSmall),
+              const SizedBox(height: AppSpacing.sm),
+              if (context.watch<ConnectionProvider>().accepted.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Text(
+                    'No connected partners yet. Partners who invite you will appear here once accepted.',
+                    style: textTheme.bodySmall,
+                  ),
+                )
+              else
+                for (final partner
+                    in context.watch<ConnectionProvider>().accepted)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryContainer,
+                          borderRadius: BorderRadius.circular(AppRadii.md),
+                        ),
+                        child: const Icon(
+                          Icons.domain,
+                          size: 20,
+                          color: AppColors.onSecondaryContainer,
+                        ),
+                      ),
+                      title: Text(
+                        partner.labName,
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      subtitle: Text(
+                        partner.shareAll
+                            ? 'Access to all folders'
+                            : '${partner.sharedFolderIds.length} folders shared',
+                        style: textTheme.bodySmall,
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.outline,
+                      ),
+                      onTap: () => context.push(
+                        '/vault/connection/${partner.id}',
+                        extra: partner,
+                      ),
+                    ),
+                  ),
             ],
           ),
         ),

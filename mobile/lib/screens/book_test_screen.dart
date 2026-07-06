@@ -8,7 +8,11 @@ import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
 
 class SelectedService {
-  const SelectedService({required this.id, required this.name, required this.priceKobo});
+  const SelectedService({
+    required this.id,
+    required this.name,
+    required this.priceKobo,
+  });
 
   final String id;
   final String name;
@@ -49,12 +53,15 @@ class _BookTestScreenState extends State<BookTestScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppointmentProvider>().loadAvailability(widget.booking.labId);
+      context.read<AppointmentProvider>().loadAvailability(
+        widget.booking.labId,
+      );
       context.read<WalletProvider>().refresh();
     });
   }
 
-  String _formatNaira(int kobo) => '₦${(kobo / 100).toStringAsFixed(kobo % 100 == 0 ? 0 : 2)}';
+  String _formatNaira(int kobo) =>
+      '₦${(kobo / 100).toStringAsFixed(kobo % 100 == 0 ? 0 : 2)}';
 
   Future<void> _payViaWallet() async {
     final appointments = context.read<AppointmentProvider>();
@@ -75,7 +82,9 @@ class _BookTestScreenState extends State<BookTestScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointment booked and paid successfully.')),
+        const SnackBar(
+          content: Text('Appointment booked and paid successfully.'),
+        ),
       );
       context.pop();
     } else {
@@ -120,7 +129,9 @@ class _BookTestScreenState extends State<BookTestScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      services.length > 1 ? 'SELECTED SERVICES (${services.length})' : 'SELECTED SERVICE',
+                      services.length > 1
+                          ? 'SELECTED SERVICES (${services.length})'
+                          : 'SELECTED SERVICE',
                       style: textTheme.labelSmall,
                     ),
                     const SizedBox(height: AppSpacing.xs),
@@ -134,20 +145,31 @@ class _BookTestScreenState extends State<BookTestScreen> {
                               child: Text(
                                 service.name,
                                 style: services.length > 1
-                                    ? textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)
+                                    ? textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      )
                                     : textTheme.headlineSmall,
                               ),
                             ),
-                            Text(_formatNaira(service.priceKobo), style: textTheme.bodyMedium),
+                            Text(
+                              _formatNaira(service.priceKobo),
+                              style: textTheme.bodyMedium,
+                            ),
                           ],
                         ),
                       ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, size: 14, color: AppColors.outline),
-                        Text(' ${widget.booking.labName}, ${widget.booking.labAddress}',
-                            style: textTheme.bodySmall),
+                        const Icon(
+                          Icons.location_on,
+                          size: 14,
+                          color: AppColors.outline,
+                        ),
+                        Text(
+                          ' ${widget.booking.labName}, ${widget.booking.labAddress}',
+                          style: textTheme.bodySmall,
+                        ),
                       ],
                     ),
                   ],
@@ -168,12 +190,17 @@ class _BookTestScreenState extends State<BookTestScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        appointments.errorMessage ?? 'Could not load available appointment slots.',
-                        style: textTheme.bodyMedium?.copyWith(color: AppColors.error),
+                        appointments.errorMessage ??
+                            'Could not load available appointment slots.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       OutlinedButton(
-                        onPressed: () => context.read<AppointmentProvider>().loadAvailability(widget.booking.labId),
+                        onPressed: () => context
+                            .read<AppointmentProvider>()
+                            .loadAvailability(widget.booking.labId),
                         child: const Text('Retry'),
                       ),
                     ],
@@ -185,7 +212,8 @@ class _BookTestScreenState extends State<BookTestScreen> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: appointments.availability.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: AppSpacing.sm),
                     itemBuilder: (context, index) {
                       final day = appointments.availability[index];
                       final selected = index == _selectedDay;
@@ -197,10 +225,14 @@ class _BookTestScreenState extends State<BookTestScreen> {
                         child: Container(
                           width: 64,
                           decoration: BoxDecoration(
-                            color: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
+                            color: selected
+                                ? AppColors.primary
+                                : AppColors.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(AppRadii.md),
                             border: Border.all(
-                              color: selected ? AppColors.primary : AppColors.outlineVariant,
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.outlineVariant,
                             ),
                           ),
                           child: Column(
@@ -210,7 +242,9 @@ class _BookTestScreenState extends State<BookTestScreen> {
                                 DateFormat('EEE').format(day.date),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: selected ? Colors.white70 : AppColors.onSurfaceVariant,
+                                  color: selected
+                                      ? Colors.white70
+                                      : AppColors.onSurfaceVariant,
                                 ),
                               ),
                               Text(
@@ -218,14 +252,20 @@ class _BookTestScreenState extends State<BookTestScreen> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
-                                  color: selected ? Colors.white : AppColors.onSurface,
+                                  color: selected
+                                      ? Colors.white
+                                      : AppColors.onSurface,
                                 ),
                               ),
                               Text(
-                                DateFormat('MMM').format(day.date).toUpperCase(),
+                                DateFormat(
+                                  'MMM',
+                                ).format(day.date).toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: selected ? Colors.white70 : AppColors.onSurfaceVariant,
+                                  color: selected
+                                      ? Colors.white70
+                                      : AppColors.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -245,23 +285,47 @@ class _BookTestScreenState extends State<BookTestScreen> {
                     crossAxisSpacing: AppSpacing.sm,
                     childAspectRatio: 2.4,
                     children: [
-                      for (var i = 0; i < appointments.availability[_selectedDay].slots.length; i++)
-                        Builder(builder: (context) {
-                          final slot = appointments.availability[_selectedDay].slots[i];
-                          final selected = i == _selectedTime;
-                          return OutlinedButton(
-                            onPressed: slot.available ? () => setState(() => _selectedTime = i) : null,
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
-                              foregroundColor: selected ? Colors.white : AppColors.onSurface,
-                              disabledBackgroundColor: AppColors.surfaceContainerHigh,
-                              side: BorderSide(
-                                color: selected ? AppColors.primary : AppColors.outlineVariant,
+                      for (
+                        var i = 0;
+                        i <
+                            appointments
+                                .availability[_selectedDay]
+                                .slots
+                                .length;
+                        i++
+                      )
+                        Builder(
+                          builder: (context) {
+                            final slot = appointments
+                                .availability[_selectedDay]
+                                .slots[i];
+                            final selected = i == _selectedTime;
+                            return OutlinedButton(
+                              onPressed: slot.available
+                                  ? () => setState(() => _selectedTime = i)
+                                  : null,
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: selected
+                                    ? AppColors.primary
+                                    : AppColors.surfaceContainerLowest,
+                                foregroundColor: selected
+                                    ? Colors.white
+                                    : AppColors.onSurface,
+                                disabledBackgroundColor:
+                                    AppColors.surfaceContainerHigh,
+                                side: BorderSide(
+                                  color: selected
+                                      ? AppColors.primary
+                                      : AppColors.outlineVariant,
+                                ),
                               ),
-                            ),
-                            child: Text(slot.time, style: const TextStyle(fontSize: 12)),
-                          );
-                        }),
+                              child: Text(
+                                slot.time,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            );
+                          },
+                        ),
                     ],
                   ),
               ],
@@ -271,7 +335,11 @@ class _BookTestScreenState extends State<BookTestScreen> {
               _SummaryRow(label: 'Subtotal', value: _formatNaira(subtotal)),
               // Subscribers pay zero service fee - showing a redundant "₦0"
               // line just raises questions, so omit it entirely for them.
-              if (serviceFee > 0) _SummaryRow(label: 'Service Fee', value: _formatNaira(serviceFee)),
+              if (serviceFee > 0)
+                _SummaryRow(
+                  label: 'Service Fee',
+                  value: _formatNaira(serviceFee),
+                ),
               const Divider(height: AppSpacing.lg),
               _SummaryRow(
                 label: 'Total',
@@ -287,12 +355,17 @@ class _BookTestScreenState extends State<BookTestScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.account_balance_wallet, color: AppColors.secondary),
+                    const Icon(
+                      Icons.account_balance_wallet,
+                      color: AppColors.secondary,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         'Wallet Balance: ${wallet.formattedBalance}',
-                        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     TextButton(
@@ -306,7 +379,11 @@ class _BookTestScreenState extends State<BookTestScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.lock_outline, size: 16, color: AppColors.outline),
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 16,
+                    color: AppColors.outline,
+                  ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
@@ -321,12 +398,17 @@ class _BookTestScreenState extends State<BookTestScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: (_paying || appointments.availability.isEmpty) ? null : _payViaWallet,
+                  onPressed: (_paying || appointments.availability.isEmpty)
+                      ? null
+                      : _payViaWallet,
                   child: _paying
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -367,9 +449,7 @@ class _SummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final style = emphasize
-        ? textTheme.headlineSmall
-        : textTheme.bodyMedium;
+    final style = emphasize ? textTheme.headlineSmall : textTheme.bodyMedium;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -377,9 +457,10 @@ class _SummaryRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: style),
-          Text(value, style: style?.copyWith(
-            color: emphasize ? AppColors.primary : null,
-          )),
+          Text(
+            value,
+            style: style?.copyWith(color: emphasize ? AppColors.primary : null),
+          ),
         ],
       ),
     );
