@@ -44,10 +44,4 @@ class VaultService {
 
     await _api.post('/vault/files/${presign['fileId']}/confirm', (_) => null);
   }
-
-  Future<bool> setBiometricLock(bool enabled) => _api.patch(
-        '/vault/biometric-lock',
-        (data) => data['biometricLockEnabled'] as bool,
-        body: {'enabled': enabled},
-      );
 }

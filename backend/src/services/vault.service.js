@@ -6,7 +6,6 @@ const env = require('../config/env');
 const { getS3Client } = require('../aws');
 const { signVaultUrl } = require('../cloudfrontSign');
 const vaultFileModel = require('../models/vaultFile.model');
-const userModel = require('../models/user.model');
 const activityService = require('./activity.service');
 const { ApiError } = require('../middleware/errorHandler');
 
@@ -77,11 +76,6 @@ async function getStats(userId) {
   };
 }
 
-async function setBiometricLock(userId, enabled) {
-  await userModel.collection().updateOne({ _id: userId }, { $set: { biometricLockEnabled: enabled } });
-  return { biometricLockEnabled: enabled };
-}
-
 module.exports = {
   presignUpload,
   confirmUpload,
@@ -89,5 +83,4 @@ module.exports = {
   listFiles,
   getCategories,
   getStats,
-  setBiometricLock,
 };

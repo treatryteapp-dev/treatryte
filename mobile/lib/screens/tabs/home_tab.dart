@@ -117,10 +117,13 @@ class _DashboardHeader extends StatelessWidget {
           icon: const Icon(Icons.notifications_none),
         ),
         const SizedBox(width: AppSpacing.sm),
-        const CircleAvatar(
-          radius: 20,
-          backgroundColor: AppColors.secondaryContainer,
-          child: Icon(Icons.person, color: AppColors.onSecondaryContainer),
+        GestureDetector(
+          onTap: () => context.push('/profile'),
+          child: const CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.secondaryContainer,
+            child: Icon(Icons.person, color: AppColors.onSecondaryContainer),
+          ),
         ),
       ],
     );

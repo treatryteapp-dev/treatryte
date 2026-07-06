@@ -45,6 +45,4 @@ class VaultProvider extends ChangeNotifier {
       return false;
     }
   }
-
-  Future<void> setBiometricLock(bool enabled) => _service.setBiometricLock(enabled);
 }

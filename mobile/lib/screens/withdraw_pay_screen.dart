@@ -73,7 +73,7 @@ class _WithdrawPayScreenState extends State<WithdrawPayScreen>
                       children: [
                         const Icon(Icons.shield, size: 16, color: AppColors.secondary),
                         const SizedBox(width: AppSpacing.xs),
-                        Text('Funds secured by MedFin Insurance', style: textTheme.bodySmall),
+                        Text('Transactions secured by Nomba MFB', style: textTheme.bodySmall),
                       ],
                     ),
                   ],

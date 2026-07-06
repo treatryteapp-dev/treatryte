@@ -10,12 +10,12 @@ import '../screens/main_shell.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/partner_register_screen.dart';
-import '../screens/setup_biometrics_screen.dart';
+import '../screens/profile_screen.dart';
 import '../screens/subscription_plans_screen.dart';
 import '../screens/withdraw_pay_screen.dart';
 import '../screens/scan_upload_screen.dart';
 
-const _publicPaths = {'/', '/join', '/login', '/register', '/partner-register', '/setup-biometrics'};
+const _publicPaths = {'/', '/join', '/login', '/register', '/partner-register'};
 
 GoRouter createAppRouter(AuthProvider authProvider) {
   return GoRouter(
@@ -49,10 +49,6 @@ GoRouter createAppRouter(AuthProvider authProvider) {
         builder: (context, state) => const PartnerRegisterScreen(),
       ),
       GoRoute(
-        path: '/setup-biometrics',
-        builder: (context, state) => const SetupBiometricsScreen(),
-      ),
-      GoRoute(
         path: '/dashboard',
         builder: (context, state) => const MainShell(),
       ),
@@ -67,6 +63,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: '/book-test',

@@ -13,10 +13,6 @@ const presignSchema = z.object({
   category: z.string().min(1),
 });
 
-const biometricLockSchema = z.object({
-  enabled: z.boolean(),
-});
-
 function parseObjectId(id) {
   if (!ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid id', 'INVALID_ID');
@@ -66,19 +62,12 @@ const stats = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
-const biometricLock = asyncHandler(async (req, res) => {
-  const result = await vaultService.setBiometricLock(req.userId, req.body.enabled);
-  res.json(result);
-});
-
 module.exports = {
   presignSchema,
-  biometricLockSchema,
   presign,
   confirm,
   getFile,
   listFiles,
   categories,
   stats,
-  biometricLock,
 };

@@ -156,10 +156,13 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
                   icon: const Icon(Icons.notifications_none),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                const CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primaryContainer,
-                  child: Text('DR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                GestureDetector(
+                  onTap: () => context.push('/profile'),
+                  child: const CircleAvatar(
+                    radius: 20,
+                    backgroundColor: AppColors.primaryContainer,
+                    child: Text('DR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
                 ),
               ],
             ),

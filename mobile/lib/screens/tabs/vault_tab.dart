@@ -223,8 +223,6 @@ class _VaultTabState extends State<VaultTab> {
                       trailing: const Icon(Icons.chevron_right, color: AppColors.outline),
                     ),
                   ),
-              const SizedBox(height: AppSpacing.lg),
-              const _BiometricLockBanner(),
             ],
           ),
         ),
@@ -300,60 +298,3 @@ class _StorageBanner extends StatelessWidget {
   }
 }
 
-class _BiometricLockBanner extends StatefulWidget {
-  const _BiometricLockBanner();
-
-  @override
-  State<_BiometricLockBanner> createState() => _BiometricLockBannerState();
-}
-
-class _BiometricLockBannerState extends State<_BiometricLockBanner> {
-  bool _enabled = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.secondaryContainer,
-                borderRadius: BorderRadius.circular(AppRadii.md),
-              ),
-              child: const Icon(Icons.fingerprint,
-                  color: AppColors.onSecondaryContainer),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Enable Biometric Lock',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          )),
-                  Text(
-                    'Add an extra layer of protection to your vault.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            Switch(
-              value: _enabled,
-              activeThumbColor: AppColors.primary,
-              onChanged: (value) async {
-                setState(() => _enabled = value);
-                await context.read<VaultProvider>().setBiometricLock(value);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

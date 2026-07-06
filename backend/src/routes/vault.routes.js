@@ -14,6 +14,5 @@ router.get('/files', controller.listFiles);
 router.get('/files/:fileId', controller.getFile);
 router.post('/files/presign', validateBody(controller.presignSchema), controller.presign);
 router.post('/files/:fileId/confirm', controller.confirm);
-router.patch('/biometric-lock', validateBody(controller.biometricLockSchema), controller.biometricLock);
 
 module.exports = router;

@@ -44,7 +44,6 @@ async function main() {
       passwordHash,
       role: 'admin',
       nombaCustomerId: null,
-      biometricLockEnabled: false,
       createdAt: new Date(),
       updatedAt: new Date()
     };
