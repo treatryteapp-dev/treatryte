@@ -2,6 +2,8 @@ const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { z } = require('zod');
+const { GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl: getS3PresignedUrl } = require('@aws-sdk/s3-request-presigner');
 const labModel = require('../models/lab.model');
 const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
@@ -11,6 +13,8 @@ const settlementService = require('../services/settlement.service');
 const platformSettingsModel = require('../models/platformSettings.model');
 const vaultFileModel = require('../models/vaultFile.model');
 const { signVaultUrl } = require('../cloudfrontSign');
+const { getS3Client } = require('../aws');
+const env = require('../config/env');
 const emailService = require('../services/email.service');
 const nomba = require('../nomba');
 const { asyncHandler } = require('../middleware/asyncHandler');
@@ -49,32 +53,52 @@ const listLabs = asyncHandler(async (req, res) => {
   res.json({ labs });
 });
 
+const ADMIN_DOC_TTL_SECONDS = 300;
+
+/**
+ * Generates a presigned URL for admin document review.
+ * Tries CloudFront first (preferred, private distribution). Falls back to
+ * a presigned S3 GetObject URL so admin can always preview documents even
+ * when CloudFront signing keys aren't configured in the environment.
+ */
+async function signAdminDocUrl(s3Key) {
+  try {
+    return signVaultUrl(s3Key, { ttlSeconds: ADMIN_DOC_TTL_SECONDS });
+  } catch {
+    // CloudFront not configured - generate a presigned S3 URL instead.
+    return getS3PresignedUrl(
+      getS3Client(),
+      new GetObjectCommand({ Bucket: env.aws.s3Bucket, Key: s3Key }),
+      { expiresIn: ADMIN_DOC_TTL_SECONDS },
+    );
+  }
+}
+
 const listLabDocuments = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);
   const files = await vaultFileModel.findByLabId(labId, 'partner_verification');
-  const documents = files.map((f) => {
-    // signVaultUrl throws if CloudFront keys aren't configured - catch it
-    // per-file so a single signing failure doesn't 500 the entire endpoint.
-    let url = null;
-    if (f.status === 'uploaded') {
-      try {
-        url = signVaultUrl(f.s3Key);
-      } catch (err) {
-        console.error(`Failed to sign URL for vault file ${f._id}:`, err.message);
+  const documents = await Promise.all(
+    files.map(async (f) => {
+      let url = null;
+      if (f.status === 'uploaded') {
+        try {
+          url = await signAdminDocUrl(f.s3Key);
+        } catch (err) {
+          console.error(`Failed to generate URL for vault file ${f._id}:`, err.message);
+        }
       }
-    }
-    return {
-      id: f._id,
-      fileName: f.fileName,
-      mimeType: f.mimeType,
-      status: f.status,
-      uploadedAt: f.uploadedAt,
-      url,
-    };
-  });
+      return {
+        id: f._id,
+        fileName: f.fileName,
+        mimeType: f.mimeType,
+        status: f.status,
+        uploadedAt: f.uploadedAt,
+        url,
+      };
+    }),
+  );
   res.json({ documents });
 });
-
 
 const approveLab = asyncHandler(async (req, res) => {
   const labId = parseObjectId(req.params.id);
