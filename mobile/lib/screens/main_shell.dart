@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/main_tab_provider.dart';
 import '../providers/partner_provider.dart';
 import '../theme/app_theme.dart';
 import 'partner_status_screen.dart';
@@ -26,7 +27,6 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _tabIndex = 0;
   bool _partnerStatusLoaded = false;
 
   static const _patientTabs = [
@@ -89,14 +89,16 @@ class _MainShellState extends State<MainShell> {
 
     final tabs = isProvider ? _providerTabs : _patientTabs;
     final pages = isProvider ? _providerPages : _patientPages;
+    final mainTab = context.watch<MainTabProvider>();
 
     // Guard against index out of range when switching roles
-    if (_tabIndex >= tabs.length) {
-      _tabIndex = 0;
+    if (mainTab.index >= tabs.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => mainTab.setIndex(0));
     }
+    final tabIndex = mainTab.index < tabs.length ? mainTab.index : 0;
 
     return Scaffold(
-      body: IndexedStack(index: _tabIndex, children: pages),
+      body: IndexedStack(index: tabIndex, children: pages),
       floatingActionButton: isProvider
           ? FloatingActionButton(
               onPressed: () => showIssueRecordSheet(context),
@@ -110,8 +112,8 @@ class _MainShellState extends State<MainShell> {
               child: const Icon(Icons.add, color: AppColors.onPrimary),
             ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _tabIndex,
-        onDestinationSelected: (index) => setState(() => _tabIndex = index),
+        selectedIndex: tabIndex,
+        onDestinationSelected: (index) => mainTab.setIndex(index),
         destinations: [
           for (final tab in tabs)
             NavigationDestination(icon: Icon(tab.icon), label: tab.label),

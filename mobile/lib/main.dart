@@ -7,6 +7,7 @@ import 'providers/activity_provider.dart';
 import 'providers/appointment_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/directory_provider.dart';
+import 'providers/main_tab_provider.dart';
 import 'providers/medication_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/partner_provider.dart';
@@ -64,6 +65,7 @@ class _TreatRyteAppState extends State<TreatRyteApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _authProvider),
+        ChangeNotifierProvider(create: (_) => MainTabProvider()),
         ChangeNotifierProvider(create: (_) => WalletProvider(WalletService(_apiClient))),
         ChangeNotifierProvider(create: (_) => ActivityProvider(ActivityService(_apiClient))),
         ChangeNotifierProvider(create: (_) => VaultProvider(VaultService(_apiClient))),

@@ -18,6 +18,8 @@ class PlanProvider extends ChangeNotifier {
     notifyListeners();
     try {
       plans = await _service.fetchPlans(type: type);
+      // Cheapest (free) plan first, regardless of DB insertion order.
+      plans.sort((a, b) => a.price.compareTo(b.price));
       errorMessage = null;
     } on ApiException catch (e) {
       errorMessage = e.message;

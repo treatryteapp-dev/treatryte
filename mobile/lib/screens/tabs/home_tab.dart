@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/activity_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/main_tab_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/icon_mapper.dart';
@@ -224,11 +225,36 @@ class _WalletCard extends StatelessWidget {
 class _QuickServicesGrid extends StatelessWidget {
   const _QuickServicesGrid();
 
+  // tabIndex refers to MainShell's patient tab order: Home, Vault, Directory, Meds.
   static const _services = [
-    (icon: Icons.folder_shared_outlined, label: 'Medical Vault', color: AppColors.secondaryContainer, onColor: AppColors.onSecondaryContainer),
-    (icon: Icons.biotech_outlined, label: 'Find Labs', color: Color(0xFFDAE2FD), onColor: AppColors.tertiary),
-    (icon: Icons.alarm, label: 'Med Alarms', color: AppColors.errorContainer, onColor: AppColors.error),
-    (icon: Icons.share_outlined, label: 'Share Records', color: Color(0xFFE0E3E5), onColor: AppColors.onSurfaceVariant),
+    (
+      icon: Icons.folder_shared_outlined,
+      label: 'Medical Vault',
+      color: AppColors.secondaryContainer,
+      onColor: AppColors.onSecondaryContainer,
+      tabIndex: 1,
+    ),
+    (
+      icon: Icons.biotech_outlined,
+      label: 'Find Labs',
+      color: Color(0xFFDAE2FD),
+      onColor: AppColors.tertiary,
+      tabIndex: 2,
+    ),
+    (
+      icon: Icons.alarm,
+      label: 'Med Alarms',
+      color: AppColors.errorContainer,
+      onColor: AppColors.error,
+      tabIndex: 3,
+    ),
+    (
+      icon: Icons.share_outlined,
+      label: 'Share Records',
+      color: Color(0xFFE0E3E5),
+      onColor: AppColors.onSurfaceVariant,
+      tabIndex: 1,
+    ),
   ];
 
   @override
@@ -243,30 +269,34 @@ class _QuickServicesGrid extends StatelessWidget {
       children: [
         for (final service in _services)
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: service.color,
-                      borderRadius: BorderRadius.circular(AppRadii.sm),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              onTap: () => context.read<MainTabProvider>().setIndex(service.tabIndex),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: service.color,
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
+                      ),
+                      child: Icon(service.icon, size: 18, color: service.onColor),
                     ),
-                    child: Icon(service.icon, size: 18, color: service.onColor),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      service.label,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
-                          ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        service.label,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurface,
+                            ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
