@@ -18,8 +18,22 @@ function countBooked(labId, scheduledDate, scheduledTimeSlot) {
 // [items] is a snapshot of the tests selected at booking time
 // ({testId, name, price}) - since a partner can edit or delete a test later,
 // the appointment must keep its own copy rather than re-joining testIds
-// against the live tests collection.
-async function create({ userId, labId, items, scheduledDate, scheduledTimeSlot, subtotal, serviceFee, total }) {
+// against the live tests collection. Wallet payment is synchronous, so the
+// appointment is only ever inserted once payment has already succeeded -
+// callers pass status: 'confirmed' and a real transactionId, not a
+// placeholder "pending" record to be confirmed later.
+async function create({
+  userId,
+  labId,
+  items,
+  scheduledDate,
+  scheduledTimeSlot,
+  subtotal,
+  serviceFee,
+  total,
+  status,
+  transactionId,
+}) {
   const now = new Date();
   const doc = {
     userId,
@@ -28,11 +42,11 @@ async function create({ userId, labId, items, scheduledDate, scheduledTimeSlot, 
     items,
     scheduledDate,
     scheduledTimeSlot,
-    status: 'pending_payment',
+    status,
     subtotal,
     serviceFee,
     total,
-    transactionId: null,
+    transactionId,
     settlementId: null,
     createdAt: now,
     updatedAt: now,
@@ -43,13 +57,6 @@ async function create({ userId, labId, items, scheduledDate, scheduledTimeSlot, 
 
 function findById(userId, appointmentId) {
   return collection().findOne({ _id: appointmentId, userId });
-}
-
-function markConfirmed(appointmentId, transactionId) {
-  return collection().updateOne(
-    { _id: appointmentId },
-    { $set: { status: 'confirmed', transactionId, updatedAt: new Date() } },
-  );
 }
 
 function list(userId) {
@@ -107,7 +114,6 @@ module.exports = {
   countBooked,
   create,
   findById,
-  markConfirmed,
   list,
   listByLabId,
   updateStatus,

@@ -35,14 +35,9 @@ const create = asyncHandler(async (req, res) => {
   res.status(201).json({ appointment });
 });
 
-const pay = asyncHandler(async (req, res) => {
-  const appointment = await appointmentService.payAppointment(req.userId, parseObjectId(req.params.id));
-  res.json({ appointment });
-});
-
 const list = asyncHandler(async (req, res) => {
   const appointments = await appointmentService.listAppointments(req.userId);
   res.json({ appointments });
 });
 
-module.exports = { createSchema, availability, create, pay, list };
+module.exports = { createSchema, availability, create, list };

@@ -32,9 +32,6 @@ class AppointmentService {
         },
       );
 
-  Future<Appointment> pay(String appointmentId) =>
-      _api.post('/appointments/$appointmentId/pay', (data) => Appointment.fromJson(data['appointment']));
-
   Future<List<Appointment>> listForProvider() => _api.get(
         '/provider/appointments',
         (data) => (data['appointments'] as List<dynamic>)

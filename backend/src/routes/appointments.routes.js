@@ -11,6 +11,5 @@ router.use(requireAuth);
 router.get('/availability', controller.availability);
 router.get('/', controller.list);
 router.post('/', validateBody(controller.createSchema), controller.create);
-router.post('/:id/pay', controller.pay);
 
 module.exports = router;

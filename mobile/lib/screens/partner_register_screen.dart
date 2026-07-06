@@ -5,9 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../models/plan_models.dart';
 import '../providers/auth_provider.dart';
-import '../providers/plan_provider.dart';
 import '../providers/vault_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/nigerian_states.dart';
@@ -20,7 +18,9 @@ class PartnerRegisterScreen extends StatefulWidget {
 }
 
 class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
-  // 0: Facility Info, 1: Certificate Upload, 2: Choose Plan, 3: Credential Audit, 4: Submission Success
+  // 0: Facility Info, 1: Certificate Upload, 2: Credential Audit, 3: Submission Success.
+  // Plan selection isn't part of signup - the account isn't approved yet, so
+  // a partner picks a plan later from the Partner dashboard once vetted.
   int _currentStep = 0;
 
   // Form controllers for Step 1
@@ -35,6 +35,8 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
   String _selectedState = 'Lagos State';
   final _bankNameController = TextEditingController();
   final _accountNumberController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   // Selected Services
   final Set<String> _selectedServices = {'General Practice'};
@@ -49,8 +51,6 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
   // Real picked verification documents - uploaded only once registration
   // succeeds and a session exists (see _submit).
   final List<PlatformFile> _pickedFiles = [];
-  bool _plansLoaded = false;
-  String? _selectedPlanId;
 
   // Step 3 Confirmation
   bool _attested = false;
@@ -115,7 +115,6 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       role: 'provider',
-      planId: _selectedPlanId,
       facilityName: _facilityNameController.text.trim(),
       licenseNumber: _licenseController.text.trim(),
       services: _selectedServices.toList(),
@@ -156,14 +155,14 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
 
     // Navigate to success screen and clear the submitting guard.
     setState(() {
-      _currentStep = 4;
+      _currentStep = 3;
       _submitting = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_currentStep == 4) {
+    if (_currentStep == 3) {
       return _buildSuccessScreen(context);
     }
 
@@ -226,9 +225,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           const Expanded(child: Divider(indent: 8, endIndent: 8)),
           _StepIcon(step: 2, active: _currentStep >= 1, completed: _currentStep > 1),
           const Expanded(child: Divider(indent: 8, endIndent: 8)),
-          _StepIcon(step: 3, active: _currentStep >= 2, completed: _currentStep > 2),
-          const Expanded(child: Divider(indent: 8, endIndent: 8)),
-          _StepIcon(step: 4, active: _currentStep >= 3, completed: false),
+          _StepIcon(step: 3, active: _currentStep >= 2, completed: false),
         ],
       ),
     );
@@ -241,80 +238,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       case 1:
         return _buildCertificateUploadView();
       case 2:
-        return _buildChoosePlanView();
-      case 3:
         return _buildCredentialAuditView();
       default:
         return const SizedBox.shrink();
     }
-  }
-
-  Widget _buildChoosePlanView() {
-    final textTheme = Theme.of(context).textTheme;
-    final planProvider = context.watch<PlanProvider>();
-
-    if (!_plansLoaded) {
-      _plansLoaded = true;
-      final provider = context.read<PlanProvider>();
-      Future.microtask(() => provider.loadPlans(type: 'Partner'));
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Choose a Plan', style: textTheme.headlineMedium),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'Pick a subscription tier now, or skip and choose later from your Partner dashboard.',
-          style: textTheme.bodyMedium,
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        if (planProvider.isLoading)
-          const Center(child: Padding(padding: EdgeInsets.all(AppSpacing.xl), child: CircularProgressIndicator()))
-        else if (planProvider.plans.isEmpty)
-          Text('No plans are available right now - you can select one later.', style: textTheme.bodySmall)
-        else
-          ...planProvider.plans.map((plan) => _buildPlanOption(plan)),
-      ],
-    );
-  }
-
-  Widget _buildPlanOption(Plan plan) {
-    final textTheme = Theme.of(context).textTheme;
-    final isSelected = _selectedPlanId == plan.id;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedPlanId = isSelected ? null : plan.id),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryContainer.withValues(alpha: 0.15) : AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          border: Border.all(color: isSelected ? AppColors.primary : AppColors.outlineVariant),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              color: isSelected ? AppColors.primary : AppColors.outline,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(plan.name, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                  Text(
-                    plan.price == 0 ? 'Free' : '₦${plan.price.toStringAsFixed(0)} / ${plan.interval}',
-                    style: textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildFacilityInfoForm() {
@@ -389,16 +316,28 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           _FieldLabel('PASSWORD'),
           TextFormField(
             controller: _passwordController,
-            obscureText: true,
-            decoration: const InputDecoration(hintText: '••••••••'),
+            obscureText: _obscurePassword,
+            decoration: InputDecoration(
+              hintText: '••••••••',
+              suffixIcon: IconButton(
+                icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
             validator: (value) => (value == null || value.length < 8) ? 'Min 8 characters' : null,
           ),
           const SizedBox(height: AppSpacing.md),
           _FieldLabel('CONFIRM PASSWORD'),
           TextFormField(
             controller: _confirmPasswordController,
-            obscureText: true,
-            decoration: const InputDecoration(hintText: '••••••••'),
+            obscureText: _obscureConfirmPassword,
+            decoration: InputDecoration(
+              hintText: '••••••••',
+              suffixIcon: IconButton(
+                icon: Icon(_obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              ),
+            ),
             validator: (value) {
               if (value != _passwordController.text) return 'Passwords do not match';
               return null;
@@ -734,23 +673,6 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
-        _buildAuditCard(
-          title: 'Selected Plan',
-          icon: Icons.workspace_premium_outlined,
-          editStep: 2,
-          children: [
-            Builder(builder: (context) {
-              final plans = context.watch<PlanProvider>().plans;
-              final matches = plans.where((p) => p.id == _selectedPlanId);
-              final selectedName = _selectedPlanId != null && matches.isNotEmpty ? matches.first.name : null;
-              return Text(
-                selectedName ?? 'No plan selected - you can choose one later.',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              );
-            }),
-          ],
-        ),
         const SizedBox(height: AppSpacing.xl),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -868,8 +790,6 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                       } else if (_currentStep == 1) {
                         setState(() => _currentStep = 2);
                       } else if (_currentStep == 2) {
-                        setState(() => _currentStep = 3);
-                      } else if (_currentStep == 3) {
                         _submit();
                       }
                     },
@@ -882,7 +802,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(_currentStep == 3 ? 'Submit Registration' : 'Next Step'),
+                        Text(_currentStep == 2 ? 'Submit Registration' : 'Next Step'),
                         const SizedBox(width: AppSpacing.xs),
                         const Icon(Icons.arrow_forward, size: 18),
                       ],

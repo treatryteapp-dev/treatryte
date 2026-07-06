@@ -35,13 +35,15 @@ class AppointmentProvider extends ChangeNotifier {
     required String scheduledTimeSlot,
   }) async {
     try {
-      final appointment = await _service.create(
+      // Booking and payment are one atomic backend call - a declined/
+      // insufficient-funds payment throws before anything is created, so
+      // there's no separate "pay" step (and no orphaned pending booking).
+      currentAppointment = await _service.create(
         labId: labId,
         testIds: testIds,
         scheduledDate: scheduledDate,
         scheduledTimeSlot: scheduledTimeSlot,
       );
-      currentAppointment = await _service.pay(appointment.id);
       return true;
     } on ApiException catch (e) {
       errorMessage = e.message;

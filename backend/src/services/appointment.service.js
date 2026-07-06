@@ -51,7 +51,11 @@ async function getServiceFee(userId) {
 
 // A patient can book several of a partner's services for the same slot as
 // one appointment (one service fee, one payment) instead of repeating the
-// whole flow per service.
+// whole flow per service. Payment via wallet is synchronous, so booking and
+// paying happen as a single atomic step - the wallet is charged *before*
+// the appointment is ever inserted, so a declined/insufficient-funds
+// payment never leaves a slot reserved or a "pending" booking sitting in
+// the partner's queue that was never actually paid for.
 async function createAppointment(userId, { labId, testIds, scheduledDate, scheduledTimeSlot }) {
   if (!testIds.length) {
     throw new ApiError(400, 'Select at least one service', 'NO_SERVICES_SELECTED');
@@ -76,7 +80,17 @@ async function createAppointment(userId, { labId, testIds, scheduledDate, schedu
   const serviceFee = await getServiceFee(userId);
   const total = subtotal + serviceFee;
 
-  return appointmentModel.create({
+  // Debit first - if this throws (insufficient funds), nothing below runs
+  // and no appointment document is ever created.
+  const transaction = await walletService.debitImmediate(userId, {
+    amountKobo: total,
+    category: 'service_payment',
+    description: 'Lab test appointment payment',
+    metadata: {},
+    refs: {},
+  });
+
+  const appointment = await appointmentModel.create({
     userId,
     labId,
     items,
@@ -85,35 +99,17 @@ async function createAppointment(userId, { labId, testIds, scheduledDate, schedu
     subtotal,
     serviceFee,
     total,
+    status: 'confirmed',
+    transactionId: transaction._id,
   });
-}
-
-async function payAppointment(userId, appointmentId) {
-  const appointment = await appointmentModel.findById(userId, appointmentId);
-  if (!appointment) {
-    throw new ApiError(404, 'Appointment not found', 'APPOINTMENT_NOT_FOUND');
-  }
-  if (appointment.status !== 'pending_payment') {
-    throw new ApiError(409, 'Appointment is not awaiting payment', 'INVALID_STATE');
-  }
-
-  const transaction = await walletService.debitImmediate(userId, {
-    amountKobo: appointment.total,
-    category: 'service_payment',
-    description: 'Lab test appointment payment',
-    metadata: { appointmentId: appointmentId.toString() },
-    refs: {},
-  });
-
-  await appointmentModel.markConfirmed(appointmentId, transaction._id);
 
   await activityService.record(userId, {
     type: 'appointment_booked',
     title: 'Appointment Confirmed',
-    subtitle: `₦${(appointment.total / 100).toLocaleString()} paid`,
+    subtitle: `₦${(total / 100).toLocaleString()} paid`,
     iconKey: 'event_available',
     refCollection: appointmentModel.COLLECTION,
-    refId: appointmentId,
+    refId: appointment._id,
   });
   await notificationService.notify(userId, {
     type: 'appointment',
@@ -121,20 +117,20 @@ async function payAppointment(userId, appointmentId) {
     body: 'Your booking is confirmed. Details are in your appointments list.',
   });
 
-  const lab = await labModel.findById(appointment.labId);
+  const lab = await labModel.findById(labId);
   if (lab) {
     await notificationService.notify(lab.userId, {
       type: 'appointment',
       title: 'New Appointment Booked',
-      body: `A patient booked and paid for a ${appointment.scheduledTimeSlot} slot on ${appointment.scheduledDate.toISOString().slice(0, 10)}.`,
+      body: `A patient booked and paid for a ${scheduledTimeSlot} slot on ${date.toISOString().slice(0, 10)}.`,
     });
   }
 
-  return { ...appointment, status: 'confirmed', transactionId: transaction._id };
+  return appointment;
 }
 
 function listAppointments(userId) {
   return appointmentModel.list(userId);
 }
 
-module.exports = { getAvailability, getServiceFee, createAppointment, payAppointment, listAppointments };
+module.exports = { getAvailability, getServiceFee, createAppointment, listAppointments };
