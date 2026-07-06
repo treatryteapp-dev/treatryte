@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ShieldCheck, Check, FileText, XCircle, ExternalLink, RefreshCw, BadgeCheck } from 'lucide-react';
+import { ShieldCheck, Check, FileText, XCircle, RefreshCw, BadgeCheck } from 'lucide-react';
 import { api, type LabDocument, type LabProfile } from '../services/api';
 
 type Tab = 'new' | 'review' | 'accepted';
