@@ -128,87 +128,104 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(AppRadii.xl),
-              ),
+      builder: (ctx) {
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.xl,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Issue Medical Record — ${patient.fullName}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppRadii.xl),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Visit Type'),
-                  child: DropdownButton<String>(
-                    value: selectedVisitType,
-                    underline: const SizedBox.shrink(),
-                    isExpanded: true,
-                    items: visitTypes
-                        .map(
-                          (t) => DropdownMenuItem<String>(
-                            value: t,
-                            child: Text(t),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (val) => setSheetState(
-                      () => selectedVisitType = val ?? selectedVisitType,
+              ),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Issue Medical Record — ${patient.fullName}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                TextField(
-                  controller: notesCtrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Clinical Notes',
-                    alignLabelWithHint: true,
+                  const SizedBox(height: AppSpacing.md),
+                  InputDecorator(
+                    decoration: const InputDecoration(labelText: 'Visit Type'),
+                    child: DropdownButton<String>(
+                      value: selectedVisitType,
+                      underline: const SizedBox.shrink(),
+                      isExpanded: true,
+                      items: visitTypes
+                          .map(
+                            (t) => DropdownMenuItem<String>(
+                              value: t,
+                              child: Text(t),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (val) => setSheetState(
+                        () => selectedVisitType = val ?? selectedVisitType,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.save_outlined, size: 18),
-                    label: const Text('Save Record'),
-                    onPressed: () async {
-                      final ok = await partner.issueMedicalRecord(
-                        patient.id,
-                        visitType: selectedVisitType,
-                        notes: notesCtrl.text.trim().isEmpty
-                            ? null
-                            : notesCtrl.text.trim(),
-                      );
-                      if (ctx.mounted) Navigator.of(ctx).pop(ok);
-                    },
+                  const SizedBox(height: AppSpacing.sm),
+                  TextField(
+                    controller: notesCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Clinical Notes',
+                      alignLabelWithHint: true,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.lg),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.save_outlined, size: 18),
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              setSheetState(() => isSubmitting = true);
+                              try {
+                                final ok = await partner.issueMedicalRecord(
+                                  patient.id,
+                                  visitType: selectedVisitType,
+                                  notes: notesCtrl.text.trim().isEmpty
+                                      ? null
+                                      : notesCtrl.text.trim(),
+                                );
+                                if (ctx.mounted) Navigator.of(ctx).pop(ok);
+                              } finally {
+                                if (ctx.mounted)
+                                  setSheetState(() => isSubmitting = false);
+                              }
+                            },
+                      label: isSubmitting
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save Record'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     if (!mounted || saved == null) return;
@@ -290,122 +307,143 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(AppRadii.xl),
+      builder: (ctx) {
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppRadii.xl),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.outlineVariant,
+                        borderRadius: BorderRadius.circular(AppRadii.full),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.add_reaction_outlined,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'Add Prescription — ${patient.fullName}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextField(
+                    controller: medicineCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Medicine Name',
+                      hintText: 'e.g. Lisinopril',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: dosageCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Dosage',
+                            hintText: 'e.g. 10mg',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: TextField(
+                          controller: durationCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Duration',
+                            hintText: 'e.g. 14 days',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextField(
+                    controller: notesCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Notes (optional)',
+                      hintText: 'Take after meals...',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.check, size: 18),
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              if (medicineCtrl.text.trim().isEmpty ||
+                                  dosageCtrl.text.trim().isEmpty ||
+                                  durationCtrl.text.trim().isEmpty) {
+                                return;
+                              }
+                              setSheetState(() => isSubmitting = true);
+                              try {
+                                final ok = await partner.addPrescription(
+                                  patient.id,
+                                  medicineName: medicineCtrl.text.trim(),
+                                  dosage: dosageCtrl.text.trim(),
+                                  duration: durationCtrl.text.trim(),
+                                  notes: notesCtrl.text.trim().isEmpty
+                                      ? null
+                                      : notesCtrl.text.trim(),
+                                );
+                                if (ctx.mounted) Navigator.of(ctx).pop(ok);
+                              } finally {
+                                if (ctx.mounted)
+                                  setSheetState(() => isSubmitting = false);
+                              }
+                            },
+                      label: isSubmitting
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save Prescription'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.md,
-            AppSpacing.lg,
-            AppSpacing.xl,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.outlineVariant,
-                    borderRadius: BorderRadius.circular(AppRadii.full),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.add_reaction_outlined,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    'Add Prescription — ${patient.fullName}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                controller: medicineCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Medicine Name',
-                  hintText: 'e.g. Lisinopril',
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: dosageCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Dosage',
-                        hintText: 'e.g. 10mg',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: TextField(
-                      controller: durationCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Duration',
-                        hintText: 'e.g. 14 days',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: notesCtrl,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Notes (optional)',
-                  hintText: 'Take after meals...',
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text('Save Prescription'),
-                  onPressed: () async {
-                    if (medicineCtrl.text.trim().isEmpty ||
-                        dosageCtrl.text.trim().isEmpty ||
-                        durationCtrl.text.trim().isEmpty) {
-                      return;
-                    }
-                    final ok = await partner.addPrescription(
-                      patient.id,
-                      medicineName: medicineCtrl.text.trim(),
-                      dosage: dosageCtrl.text.trim(),
-                      duration: durationCtrl.text.trim(),
-                      notes: notesCtrl.text.trim().isEmpty
-                          ? null
-                          : notesCtrl.text.trim(),
-                    );
-                    if (ctx.mounted) Navigator.of(ctx).pop(ok);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
 
     if (!mounted || saved == null) return;
@@ -489,31 +527,24 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Patient Directory', style: textTheme.headlineSmall),
-                const SizedBox(height: 2),
-                Text(
-                  'Manage and access your patient records.',
-                  style: textTheme.bodySmall,
-                ),
-                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) =>
-                            setState(() => _searchQuery = value),
-                        decoration: const InputDecoration(
-                          hintText: 'Search by name, email or ID...',
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: AppColors.outline,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Patient Directory',
+                            style: textTheme.headlineSmall,
                           ),
-                          isDense: true,
-                        ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Manage and access your patient records.',
+                            style: textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.person_add_outlined, size: 16),
                       label: const Text('New'),
@@ -529,6 +560,16 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                       onPressed: _showInvitePatientDialog,
                     ),
                   ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  decoration: const InputDecoration(
+                    hintText: 'Search by name, email or ID...',
+                    prefixIcon: Icon(Icons.search, color: AppColors.outline),
+                    isDense: true,
+                  ),
                 ),
               ],
             ),
