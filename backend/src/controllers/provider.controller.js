@@ -333,6 +333,10 @@ const issueMedicalRecord = asyncHandler(async (req, res) => {
     notes: req.body.notes,
   });
 
+  // Stamp the patient's lastVisitAt so the saved-patients list stays
+  // sorted correctly (most recent first) after a record is issued.
+  await patientModel.touchLastVisit(patientId);
+
   if (patient.linkedUserId) {
     await notificationService.notify(patient.linkedUserId, {
       type: 'medical_record',

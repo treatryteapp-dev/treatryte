@@ -253,7 +253,13 @@ class PartnerProvider extends ChangeNotifier {
   }) async {
     try {
       await _service.issueMedicalRecord(patientId, visitType: visitType, notes: notes);
-      await loadPatientDetail(patientId);
+      // Reload both the detail view and the patients list - the backend
+      // stamps lastVisitAt on issue, so the patients list sort order
+      // (most-recent-first) needs to be refreshed too.
+      await Future.wait([
+        loadPatientDetail(patientId),
+        loadPatients(),
+      ]);
       return true;
     } on ApiException catch (e) {
       patientDetailError = e.message;

@@ -60,6 +60,12 @@ class ApiClient {
 
   late final Dio _dio;
   late final Dio _refreshDio;
+  // Plain Dio with NO interceptors or base URL - used exclusively for
+  // presigned S3 PUT uploads.  S3 rejects requests that carry an
+  // Authorization header alongside the query-string auth embedded in the
+  // presigned URL ("Only one auth mechanism allowed"), so we must never
+  // let the auth interceptor touch these requests.
+  final Dio _s3Dio = Dio();
   final SecureStorageService _storage;
 
   // Prevents concurrent 401s from each independently calling /auth/refresh.
@@ -165,7 +171,11 @@ class ApiClient {
 
   Future<void> putRaw(String url, List<int> bytes, {required String contentType}) async {
     try {
-      await _dio.put(
+      // Use _s3Dio (no interceptors) so the Authorization header is never
+      // attached to the presigned URL request.  S3 returns a 400
+      // "InvalidArgument / Only one auth mechanism allowed" when both
+      // query-string auth (presigned URL) and header auth are present.
+      await _s3Dio.put(
         url,
         data: bytes,
         options: Options(headers: {'Content-Type': contentType}),
