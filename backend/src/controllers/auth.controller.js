@@ -20,6 +20,7 @@ const registerSchema = z.object({
   facilityName: z.string().optional(),
   licenseNumber: z.string().optional(),
   services: z.array(z.string()).optional(),
+  state: z.string().optional(),
   bankName: z.string().optional(),
   accountNumber: z.string().optional(),
 });

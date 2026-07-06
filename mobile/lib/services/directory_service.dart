@@ -14,22 +14,22 @@ class DirectoryService {
 
   /// All admin-approved labs, not just the curated "featured" subset -
   /// this is what makes an approved partner actually discoverable.
-  Future<List<Lab>> getApprovedLabs() => _api.get(
+  /// [type] filters by a partner's declared category (e.g. "Diagnostics"),
+  /// [query] performs a real backend name search, [state] filters by the
+  /// partner's registered state - all forwarded straight to the API.
+  Future<List<Lab>> getApprovedLabs({String? type, String? query, String? state}) => _api.get(
         '/directory/labs',
         (data) => (data['labs'] as List<dynamic>).map((l) => Lab.fromJson(l as Map<String, dynamic>)).toList(),
+        query: {
+          if (type != null && type != 'all') 'type': type,
+          if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+          if (state != null && state != 'all') 'state': state,
+        },
       );
 
   Future<List<LabTest>> getTrendingTests() => _api.get(
         '/directory/tests/trending',
         (data) =>
             (data['tests'] as List<dynamic>).map((t) => LabTest.fromJson(t as Map<String, dynamic>)).toList(),
-      );
-
-  Future<List<Clinic>> getClinics({String? type}) => _api.get(
-        '/directory/clinics',
-        (data) => (data['clinics'] as List<dynamic>)
-            .map((c) => Clinic.fromJson(c as Map<String, dynamic>))
-            .toList(),
-        query: type != null && type != 'all' ? {'type': type} : null,
       );
 }

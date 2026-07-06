@@ -7,7 +7,13 @@ const labs = asyncHandler(async (req, res) => {
   if (req.query.featured === 'true') {
     return res.json({ labs: await directoryService.getFeaturedLabs() });
   }
-  res.json({ labs: await directoryService.getApprovedLabs() });
+  res.json({
+    labs: await directoryService.getApprovedLabs({
+      type: req.query.type,
+      q: req.query.q,
+      state: req.query.state,
+    }),
+  });
 });
 
 const labTests = asyncHandler(async (req, res) => {
@@ -20,14 +26,4 @@ const trendingTests = asyncHandler(async (req, res) => {
   res.json({ tests });
 });
 
-const clinics = asyncHandler(async (req, res) => {
-  const results = await directoryService.getClinics(req.query.type);
-  res.json({ clinics: results });
-});
-
-const search = asyncHandler(async (req, res) => {
-  const results = await directoryService.search(req.query.q || '');
-  res.json(results);
-});
-
-module.exports = { labs, labTests, trendingTests, clinics, search };
+module.exports = { labs, labTests, trendingTests };

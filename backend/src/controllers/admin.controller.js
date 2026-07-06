@@ -378,8 +378,12 @@ const listPlatformSettings = asyncHandler(async (req, res) => {
 });
 
 const updatePlatformSettings = asyncHandler(async (req, res) => {
-  const { partnerStatusWebhookUrl } = req.body;
-  const settings = await platformSettingsModel.updateSettings({ partnerStatusWebhookUrl: partnerStatusWebhookUrl || '' });
+  const { partnerStatusWebhookUrl, serviceFeeKobo } = req.body;
+  const updates = { partnerStatusWebhookUrl: partnerStatusWebhookUrl || '' };
+  if (serviceFeeKobo !== undefined) {
+    updates.serviceFeeKobo = Number(serviceFeeKobo);
+  }
+  const settings = await platformSettingsModel.updateSettings(updates);
   res.json({ settings });
 });
 

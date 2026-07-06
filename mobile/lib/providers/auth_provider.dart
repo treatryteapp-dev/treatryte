@@ -37,6 +37,7 @@ class AuthProvider extends ChangeNotifier {
     String? facilityName,
     String? licenseNumber,
     List<String>? services,
+    String? state,
     String? bankName,
     String? accountNumber,
   }) =>
@@ -52,6 +53,7 @@ class AuthProvider extends ChangeNotifier {
             facilityName: facilityName,
             licenseNumber: licenseNumber,
             services: services,
+            state: state,
             bankName: bankName,
             accountNumber: accountNumber,
           ));

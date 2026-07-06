@@ -21,7 +21,8 @@ function parseObjectId(id) {
 
 const availability = asyncHandler(async (req, res) => {
   const days = await appointmentService.getAvailability(parseObjectId(req.query.labId));
-  res.json({ days });
+  const serviceFeeKobo = await appointmentService.getServiceFee(req.userId);
+  res.json({ days, serviceFeeKobo });
 });
 
 const create = asyncHandler(async (req, res) => {

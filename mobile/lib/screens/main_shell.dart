@@ -106,11 +106,7 @@ class _MainShellState extends State<MainShell> {
               tooltip: 'Issue Medical Record',
               child: const Icon(Icons.add, color: AppColors.onPrimary),
             )
-          : FloatingActionButton(
-              onPressed: () {},
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add, color: AppColors.onPrimary),
-            ),
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: tabIndex,
         onDestinationSelected: (index) => mainTab.setIndex(index),

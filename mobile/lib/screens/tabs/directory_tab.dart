@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -5,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../models/directory_models.dart';
 import '../../providers/directory_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/nigerian_states.dart';
 import '../book_test_screen.dart';
 
 class DirectoryTab extends StatefulWidget {
@@ -16,15 +19,41 @@ class DirectoryTab extends StatefulWidget {
 
 class _DirectoryTabState extends State<DirectoryTab> {
   String _filter = 'All';
+  String _state = 'All States';
+  final _searchController = TextEditingController();
+  Timer? _debounce;
 
-  static const _filters = ['All', 'Laboratories', 'Dental'];
-  static const _filterToType = {'All': 'all', 'Laboratories': 'laboratory', 'Dental': 'dental'};
+  // Mirrors the real "Services Offered" categories partners pick from at
+  // registration - this is what actually gets stored per-lab, so filtering
+  // on it returns real, matching results instead of guessed ones.
+  static const _filters = [
+    'All',
+    'General Practice',
+    'Diagnostics',
+    'Maternity Care',
+    'Pharmacy',
+    'Surgical Center',
+  ];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DirectoryProvider>().refresh();
+      context.read<DirectoryProvider>().refresh(type: _filter == 'All' ? 'all' : _filter);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      context.read<DirectoryProvider>().refresh(query: query);
     });
   }
 
@@ -35,7 +64,11 @@ class _DirectoryTabState extends State<DirectoryTab> {
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () => context.read<DirectoryProvider>().refresh(clinicType: _filterToType[_filter]),
+        onRefresh: () => context.read<DirectoryProvider>().refresh(
+              type: _filter == 'All' ? 'all' : _filter,
+              query: _searchController.text,
+              state: _state == 'All States' ? 'all' : _state,
+            ),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
@@ -49,8 +82,10 @@ class _DirectoryTabState extends State<DirectoryTab> {
             children: [
               Text('Directory', style: textTheme.headlineMedium),
               const SizedBox(height: AppSpacing.md),
-              const TextField(
-                decoration: InputDecoration(
+              TextField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                decoration: const InputDecoration(
                   hintText: 'Find diagnostic labs & clinics near you',
                   prefixIcon: Icon(Icons.search),
                 ),
@@ -70,7 +105,11 @@ class _DirectoryTabState extends State<DirectoryTab> {
                       selected: selected,
                       onSelected: (_) {
                         setState(() => _filter = label);
-                        context.read<DirectoryProvider>().filterClinics(_filterToType[label]!);
+                        context.read<DirectoryProvider>().refresh(
+                              type: label == 'All' ? 'all' : label,
+                              query: _searchController.text,
+                              state: _state == 'All States' ? 'all' : _state,
+                            );
                       },
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
@@ -84,6 +123,37 @@ class _DirectoryTabState extends State<DirectoryTab> {
                     );
                   },
                 ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined, size: 18, color: AppColors.outline),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _state,
+                        isDense: true,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+                        ),
+                        items: ['All States', ...kNigerianStates]
+                            .map((state) => DropdownMenuItem(value: state, child: Text(state)))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() => _state = value);
+                          context.read<DirectoryProvider>().refresh(
+                                type: _filter == 'All' ? 'all' : _filter,
+                                query: _searchController.text,
+                                state: value == 'All States' ? 'all' : value,
+                              );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.lg),
               if (directory.isLoading && directory.labs.isEmpty)
@@ -114,12 +184,6 @@ class _DirectoryTabState extends State<DirectoryTab> {
                     ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xl),
-              for (final clinic in directory.clinics)
-                _ClinicListTile(
-                  name: clinic.name,
-                  meta: '${clinic.distanceKm}km • ${clinic.address} • ${clinic.hours}',
-                ),
             ],
           ),
         ),
@@ -276,72 +340,6 @@ class _TestRow extends StatelessWidget {
             color: AppColors.primary,
           )),
         ],
-      ),
-    );
-  }
-}
-
-class _ClinicListTile extends StatelessWidget {
-  const _ClinicListTile({required this.name, required this.meta});
-
-  final String name;
-  final String meta;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(AppRadii.md),
-                  ),
-                  child: const Icon(Icons.local_hospital_outlined, color: AppColors.primary),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      Text(meta, style: textTheme.bodySmall),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 36)),
-                    child: const Text('Details'),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(0, 36)),
-                    child: const Text('Book'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

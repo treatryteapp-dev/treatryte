@@ -51,30 +51,3 @@ class Lab {
   final int reviewCount;
   final List<LabTest> tests;
 }
-
-class Clinic {
-  const Clinic({
-    required this.id,
-    required this.name,
-    required this.type,
-    required this.distanceKm,
-    required this.address,
-    required this.hours,
-  });
-
-  factory Clinic.fromJson(Map<String, dynamic> json) => Clinic(
-        id: json['_id'] as String,
-        name: json['name'] as String,
-        type: json['type'] as String,
-        distanceKm: (json['distanceKm'] as num).toDouble(),
-        address: json['address'] as String,
-        hours: json['hours'] as String,
-      );
-
-  final String id;
-  final String name;
-  final String type;
-  final double distanceKm;
-  final String address;
-  final String hours;
-}

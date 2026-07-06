@@ -11,6 +11,7 @@ async function getSettings() {
   const doc = await collection().findOne({ _id: SETTINGS_ID });
   return {
     partnerStatusWebhookUrl: doc?.partnerStatusWebhookUrl || '',
+    serviceFeeKobo: doc?.serviceFeeKobo ?? 100_000,
   };
 }
 

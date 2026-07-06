@@ -25,8 +25,6 @@ class BookTestArgs {
   final int priceKobo;
 }
 
-const _estimatedServiceFeeKobo = 100000; // ₦1,000 - mirrors the backend's fixed fee, confirmed at payment time
-
 class BookTestScreen extends StatefulWidget {
   const BookTestScreen({super.key, required this.booking});
 
@@ -87,7 +85,8 @@ class _BookTestScreenState extends State<BookTestScreen> {
     final appointments = context.watch<AppointmentProvider>();
     final wallet = context.watch<WalletProvider>();
     final subtotal = widget.booking.priceKobo;
-    final total = subtotal + _estimatedServiceFeeKobo;
+    final serviceFee = appointments.serviceFeeKobo;
+    final total = subtotal + serviceFee;
 
     return Scaffold(
       appBar: AppBar(
@@ -225,7 +224,7 @@ class _BookTestScreenState extends State<BookTestScreen> {
               Text('Payment Summary', style: textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.sm),
               _SummaryRow(label: 'Subtotal', value: _formatNaira(subtotal)),
-              _SummaryRow(label: 'Service Fee', value: _formatNaira(_estimatedServiceFeeKobo)),
+              _SummaryRow(label: 'Service Fee', value: _formatNaira(serviceFee)),
               const Divider(height: AppSpacing.lg),
               _SummaryRow(
                 label: 'Total',

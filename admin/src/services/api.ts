@@ -52,6 +52,7 @@ export interface Bank {
 
 export interface PlatformSettings {
   partnerStatusWebhookUrl: string;
+  serviceFeeKobo: number;
 }
 
 export interface AdminUser {
@@ -323,10 +324,10 @@ export const api = {
     return data.settings;
   },
 
-  async updatePlatformSettings(partnerStatusWebhookUrl: string): Promise<PlatformSettings> {
+  async updatePlatformSettings(partnerStatusWebhookUrl: string, serviceFeeKobo: number): Promise<PlatformSettings> {
     const res = await authFetch(`${API_BASE}/api/admin/settings`, {
       method: 'PATCH',
-      body: JSON.stringify({ partnerStatusWebhookUrl }),
+      body: JSON.stringify({ partnerStatusWebhookUrl, serviceFeeKobo }),
     });
     if (!res.ok) throw new Error('Failed to update platform settings');
     const data = await res.json();

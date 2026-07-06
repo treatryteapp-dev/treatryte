@@ -1,11 +1,13 @@
 const appointmentModel = require('../models/appointment.model');
 const testModel = require('../models/test.model');
+const labModel = require('../models/lab.model');
+const subscriptionModel = require('../models/subscription.model');
+const platformSettingsModel = require('../models/platformSettings.model');
 const walletService = require('./wallet.service');
 const activityService = require('./activity.service');
 const notificationService = require('./notification.service');
 const { ApiError } = require('../middleware/errorHandler');
 
-const SERVICE_FEE_KOBO = 100_000; // ₦1,000
 const SLOT_CAPACITY = 5;
 const TIME_SLOTS = ['09:00 AM', '10:30 AM', '11:00 AM', '01:30 PM', '03:00 PM', '04:30 PM'];
 const AVAILABILITY_DAYS = 4;
@@ -37,6 +39,16 @@ async function getAvailability(labId) {
   return days;
 }
 
+// Subscribers pay the lab's actual listed price with no markup - the
+// service fee only applies to patients without an active subscription, and
+// its amount is admin-configurable rather than hardcoded.
+async function getServiceFee(userId) {
+  const activeSubscription = await subscriptionModel.findActiveByUserId(userId);
+  if (activeSubscription) return 0;
+  const settings = await platformSettingsModel.getSettings();
+  return settings.serviceFeeKobo;
+}
+
 async function createAppointment(userId, { labId, testId, scheduledDate, scheduledTimeSlot }) {
   const test = await testModel.findById(testId);
   if (!test) {
@@ -50,7 +62,7 @@ async function createAppointment(userId, { labId, testId, scheduledDate, schedul
   }
 
   const subtotal = test.price;
-  const serviceFee = SERVICE_FEE_KOBO;
+  const serviceFee = await getServiceFee(userId);
   const total = subtotal + serviceFee;
 
   return appointmentModel.create({
@@ -98,6 +110,15 @@ async function payAppointment(userId, appointmentId) {
     body: 'Your booking is confirmed. Details are in your appointments list.',
   });
 
+  const lab = await labModel.findById(appointment.labId);
+  if (lab) {
+    await notificationService.notify(lab.userId, {
+      type: 'appointment',
+      title: 'New Appointment Booked',
+      body: `A patient booked and paid for a ${appointment.scheduledTimeSlot} slot on ${appointment.scheduledDate.toISOString().slice(0, 10)}.`,
+    });
+  }
+
   return { ...appointment, status: 'confirmed', transactionId: transaction._id };
 }
 
@@ -105,4 +126,4 @@ function listAppointments(userId) {
   return appointmentModel.list(userId);
 }
 
-module.exports = { getAvailability, createAppointment, payAppointment, listAppointments };
+module.exports = { getAvailability, getServiceFee, createAppointment, payAppointment, listAppointments };

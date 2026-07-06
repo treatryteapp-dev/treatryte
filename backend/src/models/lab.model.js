@@ -24,13 +24,14 @@ function search(query) {
     .toArray();
 }
 
-async function create({ userId, name, licenseNumber, address, services, bankDetails }) {
+async function create({ userId, name, licenseNumber, address, state, services, bankDetails }) {
   const now = new Date();
   const doc = {
     userId,
     name,
     licenseNumber,
     address,
+    state: state || '',
     services: services || [],
     bankDetails: bankDetails || {},
     isFeatured: false,

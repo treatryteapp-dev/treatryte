@@ -2,13 +2,13 @@ require('dotenv').config();
 const { getDb, getClient } = require('../db');
 
 async function main() {
-  // This script wipes and replaces the entire labs/tests/clinics
-  // collections with demo data - running it against production would
-  // destroy every real partner's lab profile. Local/dev bootstrap only.
+  // This script wipes and replaces the entire labs/tests collections with
+  // demo data - running it against production would destroy every real
+  // partner's lab profile. Local/dev bootstrap only.
   if (process.env.NODE_ENV === 'production' && !process.env.FORCE_SEED) {
     throw new Error(
       'Refusing to run seedDirectory.js against production (NODE_ENV=production). ' +
-      'Set FORCE_SEED=1 if you really intend to wipe labs/tests/clinics.'
+      'Set FORCE_SEED=1 if you really intend to wipe labs/tests.'
     );
   }
 
@@ -16,7 +16,6 @@ async function main() {
 
   await db.collection('labs').deleteMany({});
   await db.collection('tests').deleteMany({});
-  await db.collection('clinics').deleteMany({});
 
   const { insertedId: careDiagnosticsId } = await db.collection('labs').insertOne({
     name: 'Care Diagnostics Lab',
@@ -65,15 +64,6 @@ async function main() {
       createdAt: new Date(),
     },
   ]);
-
-  await db.collection('clinics').insertOne({
-    name: 'Lagos State Eye Clinic',
-    type: 'clinic',
-    distanceKm: 2.0,
-    address: 'Ikeja Ave',
-    hours: 'Opens 8:00 AM',
-    createdAt: new Date(),
-  });
 
   console.log('Directory seeded successfully.');
 }

@@ -37,9 +37,16 @@ export const Settings: React.FC = () => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalSuccess, setGlobalSuccess] = useState(false);
 
+  // Booking service fee charged to patients without an active subscription
+  // (backend-persisted, in naira for display; stored as kobo).
+  const [serviceFeeNaira, setServiceFeeNaira] = useState('1000');
+
   useEffect(() => {
     api.fetchPlatformSettings()
-      .then((settings) => setWebhookUrl(settings.partnerStatusWebhookUrl))
+      .then((settings) => {
+        setWebhookUrl(settings.partnerStatusWebhookUrl);
+        setServiceFeeNaira(String(settings.serviceFeeKobo / 100));
+      })
       .catch((err) => console.error('Failed to load platform settings', err))
       .finally(() => setWebhookLoading(false));
   }, []);
@@ -71,7 +78,7 @@ export const Settings: React.FC = () => {
       localStorage.setItem('adminPrimaryColor', primaryColor);
       localStorage.setItem('adminSessionTimeout', sessionTimeout);
 
-      await api.updatePlatformSettings(webhookUrl);
+      await api.updatePlatformSettings(webhookUrl, Math.round(Number(serviceFeeNaira) * 100));
 
       window.dispatchEvent(new Event('adminSettingsUpdated'));
       setGlobalSuccess(true);
@@ -223,6 +230,31 @@ export const Settings: React.FC = () => {
             <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '8px' }}>
               You'll be automatically logged out after this much time with no mouse, keyboard, or scroll activity.
             </p>
+          </div>
+        </div>
+
+        {/* Booking Commission */}
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '24px' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '4px' }}>
+            <KeyRound size={20} style={{ color: '#004e47' }} />
+            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0b1c30' }}>Booking Service Fee</h3>
+          </div>
+          <p style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '16px' }}>
+            Charged to patients without an active subscription on top of the test price. Subscribers pay the test price only.
+          </p>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#545f73', marginBottom: '8px' }}>SERVICE FEE (₦)</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={serviceFeeNaira}
+              onChange={(e) => setServiceFeeNaira(e.target.value)}
+              placeholder={webhookLoading ? 'Loading...' : ''}
+              disabled={webhookLoading}
+              style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px' }}
+            />
           </div>
         </div>
 

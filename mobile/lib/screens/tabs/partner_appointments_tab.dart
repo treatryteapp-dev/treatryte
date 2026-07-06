@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +17,23 @@ class PartnerAppointmentsTab extends StatefulWidget {
 class _PartnerAppointmentsTabState extends State<PartnerAppointmentsTab> {
   bool _loaded = false;
   String _activeFilter = 'All';
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // No websocket/push channel exists yet for new-booking events, so poll
+    // while this tab is visible to keep the list close to real-time.
+    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      context.read<PartnerProvider>().loadAppointments();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   static const _statusLabels = {
     'pending_payment': 'Pending',

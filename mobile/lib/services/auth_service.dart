@@ -38,6 +38,7 @@ class AuthService {
     String? facilityName,
     String? licenseNumber,
     List<String>? services,
+    String? state,
     String? bankName,
     String? accountNumber,
   }) async {
@@ -53,6 +54,7 @@ class AuthService {
       if (facilityName != null) 'facilityName': facilityName,
       if (licenseNumber != null) 'licenseNumber': licenseNumber,
       if (services != null) 'services': services,
+      if (state != null) 'state': state,
       if (bankName != null) 'bankName': bankName,
       if (accountNumber != null) 'accountNumber': accountNumber,
     });

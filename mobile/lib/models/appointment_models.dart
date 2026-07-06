@@ -10,6 +10,20 @@ class TimeSlot {
   final bool available;
 }
 
+class Availability {
+  const Availability({required this.days, required this.serviceFeeKobo});
+
+  factory Availability.fromJson(Map<String, dynamic> json) => Availability(
+        days: (json['days'] as List<dynamic>)
+            .map((d) => AvailabilityDay.fromJson(d as Map<String, dynamic>))
+            .toList(),
+        serviceFeeKobo: json['serviceFeeKobo'] as int,
+      );
+
+  final List<AvailabilityDay> days;
+  final int serviceFeeKobo;
+}
+
 class AvailabilityDay {
   const AvailabilityDay({required this.date, required this.slots});
 

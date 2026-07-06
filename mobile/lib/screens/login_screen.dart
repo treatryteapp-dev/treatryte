@@ -16,7 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _keepLoggedIn = true;
 
   @override
   void dispose() {
@@ -30,7 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final success = await auth.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      keepLoggedIn: _keepLoggedIn,
     );
 
     if (!mounted) return;
@@ -96,23 +94,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
-              Row(
-                children: [
-                  Checkbox(
-                    value: _keepLoggedIn,
-                    activeColor: AppColors.primary,
-                    onChanged: (value) {
-                      setState(() => _keepLoggedIn = value ?? true);
-                    },
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Keep me logged in for 30 days',
-                      style: textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(

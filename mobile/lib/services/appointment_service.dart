@@ -6,11 +6,9 @@ class AppointmentService {
 
   final ApiClient _api;
 
-  Future<List<AvailabilityDay>> getAvailability(String labId) => _api.get(
+  Future<Availability> getAvailability(String labId) => _api.get(
         '/appointments/availability',
-        (data) => (data['days'] as List<dynamic>)
-            .map((d) => AvailabilityDay.fromJson(d as Map<String, dynamic>))
-            .toList(),
+        (data) => Availability.fromJson(data as Map<String, dynamic>),
         query: {'labId': labId},
       );
 

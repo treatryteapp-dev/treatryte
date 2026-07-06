@@ -41,6 +41,7 @@ async function register({
   facilityName,
   licenseNumber,
   services,
+  state,
   bankName,
   accountNumber,
 }) {
@@ -68,6 +69,7 @@ async function register({
       name: facilityName || fullName,
       licenseNumber: licenseNumber || '',
       address: address,
+      state: state || '',
       services: services || [],
       bankDetails: {
         bankName: bankName || 'GTBank',

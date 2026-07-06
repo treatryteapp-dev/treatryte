@@ -10,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../providers/plan_provider.dart';
 import '../providers/vault_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/nigerian_states.dart';
 
 class PartnerRegisterScreen extends StatefulWidget {
   const PartnerRegisterScreen({super.key});
@@ -31,7 +32,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _addressController = TextEditingController();
-  final _stateController = TextEditingController(text: 'Lagos State');
+  String _selectedState = 'Lagos State';
   final _bankNameController = TextEditingController();
   final _accountNumberController = TextEditingController();
 
@@ -67,7 +68,6 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _addressController.dispose();
-    _stateController.dispose();
     _bankNameController.dispose();
     _accountNumberController.dispose();
     super.dispose();
@@ -111,7 +111,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       // Send dummy date and gender to pass backend registration validation
       dateOfBirth: '2000-01-01',
       gender: 'prefer_not_to_say',
-      address: '${_addressController.text.trim()}, ${_stateController.text.trim()}',
+      address: '${_addressController.text.trim()}, $_selectedState',
       email: _emailController.text.trim(),
       password: _passwordController.text,
       role: 'provider',
@@ -119,6 +119,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       facilityName: _facilityNameController.text.trim(),
       licenseNumber: _licenseController.text.trim(),
       services: _selectedServices.toList(),
+      state: _selectedState,
       bankName: _bankNameController.text.trim().isEmpty ? null : _bankNameController.text.trim(),
       accountNumber: _accountNumberController.text.trim().isEmpty ? null : _accountNumberController.text.trim(),
     );
@@ -422,10 +423,13 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           ),
           const SizedBox(height: AppSpacing.md),
           _FieldLabel('STATE'),
-          TextFormField(
-            controller: _stateController,
-            decoration: const InputDecoration(hintText: 'Lagos State'),
-            validator: (value) => (value == null || value.trim().isEmpty) ? 'Required' : null,
+          DropdownButtonFormField<String>(
+            initialValue: _selectedState,
+            items: kNigerianStates
+                .map((state) => DropdownMenuItem(value: state, child: Text(state)))
+                .toList(),
+            onChanged: (value) => setState(() => _selectedState = value ?? _selectedState),
+            validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
           ),
           const SizedBox(height: AppSpacing.xl),
           Row(
@@ -660,7 +664,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
           title: 'Location',
           icon: Icons.pin_drop,
           children: [
-            _buildAuditField('Physical Address', '${_addressController.text}, ${_stateController.text}'),
+            _buildAuditField('Physical Address', '${_addressController.text}, $_selectedState'),
             const SizedBox(height: AppSpacing.sm),
             Container(
               height: 100,

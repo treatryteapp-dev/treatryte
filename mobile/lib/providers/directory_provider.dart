@@ -12,24 +12,23 @@ class DirectoryProvider extends ChangeNotifier {
   // approved partner needs to actually be discoverable here.
   List<Lab> labs = [];
   List<LabTest> trendingTests = [];
-  List<Clinic> clinics = [];
   bool isLoading = false;
+  String _type = 'all';
+  String _query = '';
+  String _state = 'all';
 
-  Future<void> refresh({String? clinicType}) async {
+  Future<void> refresh({String? type, String? query, String? state}) async {
+    _type = type ?? _type;
+    _query = query ?? _query;
+    _state = state ?? _state;
     isLoading = true;
     notifyListeners();
     try {
-      labs = await _service.getApprovedLabs();
+      labs = await _service.getApprovedLabs(type: _type, query: _query, state: _state);
       trendingTests = await _service.getTrendingTests();
-      clinics = await _service.getClinics(type: clinicType);
     } finally {
       isLoading = false;
       notifyListeners();
     }
-  }
-
-  Future<void> filterClinics(String type) async {
-    clinics = await _service.getClinics(type: type);
-    notifyListeners();
   }
 }

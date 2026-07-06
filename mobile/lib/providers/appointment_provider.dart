@@ -10,6 +10,7 @@ class AppointmentProvider extends ChangeNotifier {
   final AppointmentService _service;
 
   List<AvailabilityDay> availability = [];
+  int serviceFeeKobo = 0;
   Appointment? currentAppointment;
   bool isLoading = false;
   String? errorMessage;
@@ -18,7 +19,9 @@ class AppointmentProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      availability = await _service.getAvailability(labId);
+      final result = await _service.getAvailability(labId);
+      availability = result.days;
+      serviceFeeKobo = result.serviceFeeKobo;
     } finally {
       isLoading = false;
       notifyListeners();
