@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../config/env.dart';
@@ -145,6 +147,13 @@ class ApiClient {
   /// field-level problem - surface that instead so users see e.g. "Email:
   /// Invalid email address" rather than a meaningless generic string.
   String? _extractErrorMessage(dynamic data) {
+    if (data is String) {
+      try {
+        data = jsonDecode(data);
+      } catch (_) {
+        return null;
+      }
+    }
     if (data is! Map) return null;
 
     final details = data['details'];
