@@ -292,9 +292,24 @@ export const PartnerVetting: React.FC = () => {
                   const isPdf = doc.mimeType === 'application/pdf';
                   const isImage = doc.mimeType.startsWith('image/');
                   const isPending = doc.status === 'pending_upload' || !doc.url;
+                  const isOctetStream = doc.mimeType === 'application/octet-stream';
+                  const ext = doc.fileName.split('.').pop()?.toLowerCase() ?? '';
+                  // Office files can't render natively — use Google Docs Viewer
+                  const looksLikeOffice = [
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-powerpoint',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                  ].includes(doc.mimeType) || (isOctetStream && ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext));
+                  const googleViewerUrl = doc.url
+                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(doc.url)}&embedded=true`
+                    : null;
+
                   return (
                     <div key={doc.id} style={{ backgroundColor: 'white', borderRadius: '10px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                      {/* Header row */}
+                      {/* Header */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <FileText size={16} style={{ color: '#004e47' }} />
@@ -311,24 +326,15 @@ export const PartnerVetting: React.FC = () => {
                             </p>
                           </div>
                         </div>
-                        {doc.url ? (
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: '#004e47', textDecoration: 'none', padding: '6px 12px', border: '1px solid #004e47', borderRadius: '6px' }}
-                          >
-                            <ExternalLink size={13} />
-                            Open
-                          </a>
-                        ) : (
+                        {/* No external download link — all review is inline for data protection */}
+                        {isPending && (
                           <span style={{ fontSize: '12px', color: '#94a3b8', padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
                             Not available
                           </span>
                         )}
                       </div>
 
-                      {/* Preview area */}
+                      {/* Preview */}
                       <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px', backgroundColor: '#fafafa' }}>
                         {isPending ? (
                           <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
@@ -336,22 +342,16 @@ export const PartnerVetting: React.FC = () => {
                             <p style={{ margin: 0 }}>Upload not confirmed — partner may need to retry</p>
                           </div>
                         ) : isPdf ? (
-                          <iframe
-                            src={doc.url!}
-                            title={doc.fileName}
-                            style={{ width: '100%', height: '480px', border: 'none', borderRadius: '4px' }}
-                          />
+                          <iframe src={doc.url!} title={doc.fileName} style={{ width: '100%', height: '520px', border: 'none', borderRadius: '4px' }} />
                         ) : isImage ? (
-                          <img
-                            src={doc.url!}
-                            alt={doc.fileName}
-                            style={{ maxWidth: '100%', maxHeight: '480px', borderRadius: '6px', objectFit: 'contain' }}
-                          />
+                          <img src={doc.url!} alt={doc.fileName} style={{ maxWidth: '100%', maxHeight: '520px', borderRadius: '6px', objectFit: 'contain' }} />
+                        ) : looksLikeOffice && googleViewerUrl ? (
+                          <iframe src={googleViewerUrl} title={doc.fileName} style={{ width: '100%', height: '520px', border: 'none', borderRadius: '4px' }} />
                         ) : (
                           <div style={{ textAlign: 'center', color: '#545f73', fontSize: '13px' }}>
                             <FileText size={32} style={{ marginBottom: '8px', color: '#CBD5E1' }} />
-                            <p style={{ margin: 0 }}>Preview not available</p>
-                            <a href={doc.url!} target="_blank" rel="noopener noreferrer" style={{ color: '#004e47', fontWeight: '600' }}>Download to view</a>
+                            <p style={{ margin: 0 }}>Preview not available for this file type</p>
+                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94a3b8' }}>{doc.fileName}</p>
                           </div>
                         )}
                       </div>

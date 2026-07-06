@@ -61,14 +61,22 @@ const ADMIN_DOC_TTL_SECONDS = 300;
  * a presigned S3 GetObject URL so admin can always preview documents even
  * when CloudFront signing keys aren't configured in the environment.
  */
-async function signAdminDocUrl(s3Key) {
+async function signAdminDocUrl(s3Key, mimeType) {
   try {
     return signVaultUrl(s3Key, { ttlSeconds: ADMIN_DOC_TTL_SECONDS });
   } catch {
     // CloudFront not configured - generate a presigned S3 URL instead.
+    // ResponseContentDisposition: 'inline' prevents the browser from
+    // treating this as a download; the Content-Type tells the browser
+    // how to render it (PDF viewer, image, etc.).
     return getS3PresignedUrl(
       getS3Client(),
-      new GetObjectCommand({ Bucket: env.aws.s3Bucket, Key: s3Key }),
+      new GetObjectCommand({
+        Bucket: env.aws.s3Bucket,
+        Key: s3Key,
+        ResponseContentDisposition: 'inline',
+        ResponseContentType: mimeType || 'application/octet-stream',
+      }),
       { expiresIn: ADMIN_DOC_TTL_SECONDS },
     );
   }
@@ -82,7 +90,7 @@ const listLabDocuments = asyncHandler(async (req, res) => {
       let url = null;
       if (f.status === 'uploaded') {
         try {
-          url = await signAdminDocUrl(f.s3Key);
+          url = await signAdminDocUrl(f.s3Key, f.mimeType);
         } catch (err) {
           console.error(`Failed to generate URL for vault file ${f._id}:`, err.message);
         }
