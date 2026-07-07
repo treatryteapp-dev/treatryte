@@ -271,15 +271,27 @@ class _StorageBanner extends StatelessWidget {
 
   final VaultStats? stats;
 
+  static String _humanSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
   @override
   Widget build(BuildContext context) {
     final usedBytes = stats?.usedBytes ?? 0;
-    final quotaBytes = stats?.quotaBytes ?? 1;
-    final fraction = (usedBytes / quotaBytes).clamp(0.0, 1.0);
-    final usedGb = (usedBytes / (1024 * 1024 * 1024)).toStringAsFixed(1);
-    final quotaGb = (quotaBytes / (1024 * 1024 * 1024)).toStringAsFixed(0);
     final maxFiles = stats?.maxVaultFiles;
     final fileCount = stats?.fileCount ?? 0;
+    // The real, enforced quota is a file count per plan (see
+    // getVaultLimits() on the backend) - there's no separate byte cap, so
+    // the progress bar reflects that instead of a made-up storage ceiling.
+    // An unlimited plan (maxFiles == null) shows a full, static bar.
+    final fraction = maxFiles == null
+        ? 1.0
+        : (fileCount / maxFiles).clamp(0.0, 1.0);
 
     return Container(
       width: double.infinity,
@@ -326,7 +338,7 @@ class _StorageBanner extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            '$usedGb GB / $quotaGb GB • $fileCount${maxFiles != null ? ' / $maxFiles' : ''} Files',
+            '$fileCount${maxFiles != null ? '/$maxFiles' : ''} Files • ${_humanSize(usedBytes)} used',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],

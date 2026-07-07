@@ -13,7 +13,6 @@ class VaultCategory {
 class VaultStats {
   const VaultStats({
     required this.usedBytes,
-    required this.quotaBytes,
     required this.fileCount,
     required this.folderCount,
     required this.maxVaultFolders,
@@ -22,7 +21,6 @@ class VaultStats {
 
   factory VaultStats.fromJson(Map<String, dynamic> json) => VaultStats(
     usedBytes: json['usedBytes'] as int,
-    quotaBytes: json['quotaBytes'] as int,
     fileCount: json['fileCount'] as int,
     folderCount: json['folderCount'] as int? ?? 0,
     maxVaultFolders: json['maxVaultFolders'] as int?,
@@ -30,10 +28,11 @@ class VaultStats {
   );
 
   final int usedBytes;
-  final int quotaBytes;
   final int fileCount;
   final int folderCount;
-  // null means unlimited.
+  // null means unlimited - the real, plan-enforced quota (see
+  // backend/src/services/vault.service.js getVaultLimits()). There is no
+  // separate byte/GB quota - uploads are gated by file/folder count only.
   final int? maxVaultFolders;
   final int? maxVaultFiles;
 }

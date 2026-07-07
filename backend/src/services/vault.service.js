@@ -189,7 +189,6 @@ async function getStats(userId) {
   return {
     usedBytes: stats?.usedBytes || 0,
     fileCount: stats?.fileCount || 0,
-    quotaBytes: env.vaultQuotaBytes,
     folderCount,
     maxVaultFolders: limits.maxVaultFolders,
     maxVaultFiles: limits.maxVaultFiles,
