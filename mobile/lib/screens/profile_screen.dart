@@ -104,6 +104,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (context.mounted) context.go('/login');
   }
 
+  Future<void> _changePassword(BuildContext context) async {
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    final confirmController = TextEditingController();
+    var obscure = true;
+    var submitting = false;
+    String? error;
+
+    final changed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Change Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: currentController,
+                obscureText: obscure,
+                decoration: const InputDecoration(labelText: 'Current password'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: newController,
+                obscureText: obscure,
+                decoration: const InputDecoration(
+                  labelText: 'New password',
+                  helperText: 'At least 8 characters',
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: confirmController,
+                obscureText: obscure,
+                decoration: InputDecoration(
+                  labelText: 'Confirm new password',
+                  errorText: error,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      if (currentController.text.isEmpty) {
+                        setDialogState(() => error = 'Enter your current password');
+                        return;
+                      }
+                      if (newController.text.length < 8) {
+                        setDialogState(
+                          () => error = 'New password must be at least 8 characters',
+                        );
+                        return;
+                      }
+                      if (newController.text != confirmController.text) {
+                        setDialogState(() => error = 'Passwords do not match');
+                        return;
+                      }
+                      setDialogState(() {
+                        submitting = true;
+                        error = null;
+                      });
+                      final ok = await context.read<AuthProvider>().changePassword(
+                        currentPassword: currentController.text,
+                        newPassword: newController.text,
+                      );
+                      if (ok) {
+                        if (dialogContext.mounted)
+                          Navigator.of(dialogContext).pop(true);
+                        return;
+                      }
+                      setDialogState(() {
+                        submitting = false;
+                        error =
+                            context.read<AuthProvider>().errorMessage ??
+                            'Failed to change password';
+                      });
+                    },
+              child: submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (changed == true && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Password updated.')));
+    }
+  }
+
   Future<void> _confirmDeleteAccount(BuildContext context) async {
     final passwordController = TextEditingController();
     var obscure = true;
@@ -309,6 +427,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
+            OutlinedButton.icon(
+              onPressed: () => _changePassword(context),
+              icon: const Icon(Icons.lock_outline, color: AppColors.primary),
+              label: const Text('Change Password'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                side: const BorderSide(color: AppColors.outlineVariant),
+                foregroundColor: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
               onPressed: () => _confirmLogout(context),
               icon: const Icon(Icons.logout, color: AppColors.error),

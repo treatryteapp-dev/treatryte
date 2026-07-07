@@ -169,6 +169,20 @@ const confirmAvatar = asyncHandler(async (req, res) => {
   res.json({ user });
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+const changePassword = asyncHandler(async (req, res) => {
+  const tokens = await authService.changePassword(
+    req.userId,
+    req.body.currentPassword,
+    req.body.newPassword
+  );
+  res.json(tokens);
+});
+
 const deleteAccountSchema = z.object({
   password: z.string().min(1),
 });
@@ -188,6 +202,7 @@ module.exports = {
   updateMedicalProfileSchema,
   presignAvatarSchema,
   confirmAvatarSchema,
+  changePasswordSchema,
   deleteAccountSchema,
   register,
   sendOtp,
@@ -200,5 +215,6 @@ module.exports = {
   updateMedicalProfile,
   presignAvatar,
   confirmAvatar,
+  changePassword,
   deleteAccount,
 };

@@ -196,6 +196,27 @@ class AuthService {
     );
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final tokens = await _api.post(
+      '/auth/me/password',
+      (data) => (
+        accessToken: data['accessToken'] as String,
+        refreshToken: data['refreshToken'] as String,
+      ),
+      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
+    );
+    // The backend revokes every other session's refresh token on a
+    // password change and issues this session a fresh pair so it isn't
+    // logged out by its own request - persist that new pair.
+    await _storage.saveTokens(
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    );
+  }
+
   Future<void> deleteAccount(String password) async {
     await _api.delete('/auth/me', (_) => null, body: {'password': password});
     await _storage.clear();

@@ -148,6 +148,25 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _authService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      errorMessage = null;
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      return false;
+    } finally {
+      notifyListeners();
+    }
+  }
+
   Future<bool> deleteAccount(String password) async {
     try {
       await _authService.deleteAccount(password);

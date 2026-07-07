@@ -32,6 +32,12 @@ router.post(
   validateBody(controller.confirmAvatarSchema),
   controller.confirmAvatar
 );
+router.post(
+  '/me/password',
+  requireAuth,
+  validateBody(controller.changePasswordSchema),
+  controller.changePassword
+);
 router.delete(
   '/me',
   requireAuth,

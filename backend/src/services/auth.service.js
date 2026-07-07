@@ -163,6 +163,27 @@ async function confirmAvatarUpload(userId, s3Key) {
   return userModel.toPublicWithAvatar(await userModel.findById(userId));
 }
 
+async function changePassword(userId, currentPassword, newPassword) {
+  const user = await userModel.findById(userId);
+  if (!user) {
+    throw new ApiError(404, 'User not found', 'NOT_FOUND');
+  }
+
+  const passwordMatches = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!passwordMatches) {
+    throw new ApiError(401, 'Current password is incorrect', 'INVALID_CREDENTIALS');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
+  await userModel.update(userId, { passwordHash });
+
+  // Every other session's refresh token is invalidated on a password change
+  // (standard security practice) - issue a fresh pair so this session stays
+  // logged in instead of being logged out by its own request.
+  await refreshTokenModel.revokeAllForUser(userId);
+  return issueTokenPair(userId);
+}
+
 async function deleteAccount(userId, password) {
   const user = await userModel.findById(userId);
   if (!user) {
@@ -200,5 +221,6 @@ module.exports = {
   issueTokenPair,
   presignAvatarUpload,
   confirmAvatarUpload,
+  changePassword,
   deleteAccount,
 };
