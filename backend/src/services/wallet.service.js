@@ -156,30 +156,6 @@ async function listBanks() {
   return nomba.listBanks();
 }
 
-/**
- * Generic "pay a provider by reference code" flow - debits the wallet
- * immediately. There's no billers/providers directory in scope yet, so this
- * intentionally does not integrate with any downstream provider API.
- */
-async function payProvider(userId, { amountKobo, providerCode, narration }) {
-  const transaction = await debitImmediate(userId, {
-    amountKobo,
-    category: 'service_payment',
-    description: `Payment to provider ${providerCode}`,
-    metadata: { providerCode, narration },
-    refs: {},
-  });
-
-  await activityService.record(userId, {
-    type: 'service_payment',
-    title: 'Provider Payment',
-    subtitle: `₦${(amountKobo / 100).toLocaleString()} paid to ${providerCode}`,
-    iconKey: 'arrow_upward',
-  });
-
-  return transaction;
-}
-
 async function lookupAccount({ accountNumber, bankCode }) {
   return nomba.lookupBankAccount({ accountNumber, bankCode });
 }
@@ -322,7 +298,6 @@ module.exports = {
   withdrawToBank,
   listBanks,
   lookupAccount,
-  payProvider,
   handleNombaWebhook,
   reconcileFunding,
   reconcileStalePendingFundings,

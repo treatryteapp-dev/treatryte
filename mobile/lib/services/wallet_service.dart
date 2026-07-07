@@ -74,17 +74,4 @@ class WalletService {
     },
   );
 
-  Future<void> payProvider({
-    required int amountKobo,
-    required String providerCode,
-    String? narration,
-  }) => _api.post(
-    '/wallet/pay-provider',
-    (_) => null,
-    body: {
-      'amountKobo': amountKobo,
-      'providerCode': providerCode,
-      if (narration != null) 'narration': narration,
-    },
-  );
 }

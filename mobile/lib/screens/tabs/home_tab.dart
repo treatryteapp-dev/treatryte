@@ -271,7 +271,7 @@ class _WalletCard extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () => context.push('/withdraw-pay'),
                   icon: const Icon(Icons.arrow_upward, size: 16),
-                  label: const Text('Withdraw/Pay'),
+                  label: const Text('Send Money'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppColors.primary,

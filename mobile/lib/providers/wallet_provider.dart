@@ -109,23 +109,4 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> payProvider({
-    required int amountKobo,
-    required String providerCode,
-    String? narration,
-  }) async {
-    try {
-      await _service.payProvider(
-        amountKobo: amountKobo,
-        providerCode: providerCode,
-        narration: narration,
-      );
-      await refresh();
-      return true;
-    } on ApiException catch (e) {
-      errorMessage = e.message;
-      notifyListeners();
-      return false;
-    }
-  }
 }

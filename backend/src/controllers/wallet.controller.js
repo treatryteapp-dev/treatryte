@@ -31,12 +31,6 @@ const verifyFundingSchema = z.object({
   orderReference: z.string().min(1),
 });
 
-const payProviderSchema = z.object({
-  amountKobo: z.number().int().positive(),
-  providerCode: z.string().min(1),
-  narration: z.string().optional(),
-});
-
 const getBalance = asyncHandler(async (req, res) => {
   const wallet = await walletService.getWallet(req.userId);
   res.json({ balanceKobo: wallet.balance, currency: wallet.currency });
@@ -126,18 +120,12 @@ const lookupAccount = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
-const payProvider = asyncHandler(async (req, res) => {
-  const transaction = await walletService.payProvider(req.userId, req.body);
-  res.status(201).json({ transaction });
-});
-
 module.exports = {
   devCreditSchema,
   fundSchema,
   verifyFundingSchema,
   withdrawSchema,
   lookupAccountSchema,
-  payProviderSchema,
   getBalance,
   listTransactions,
   devCredit,
@@ -147,5 +135,4 @@ module.exports = {
   withdraw,
   banks,
   lookupAccount,
-  payProvider,
 };
