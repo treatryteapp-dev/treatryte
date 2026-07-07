@@ -43,6 +43,20 @@ class _WithdrawPayScreenState extends State<WithdrawPayScreen> {
     super.dispose();
   }
 
+  Future<void> _pickBank() async {
+    final bank = await showModalBottomSheet<Bank>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _BankSearchSheet(banks: _banks),
+    );
+    if (bank == null) return;
+    setState(() {
+      _selectedBank = bank;
+      _resolvedAccountName = null;
+    });
+    _maybeLookupAccount();
+  }
+
   Future<void> _maybeLookupAccount() async {
     if (_accountNumberController.text.length != 10 || _selectedBank == null)
       return;
@@ -159,20 +173,30 @@ class _WithdrawPayScreenState extends State<WithdrawPayScreen> {
               const SizedBox(height: AppSpacing.xl),
               Text('Select Destination Bank', style: textTheme.labelSmall),
               const SizedBox(height: AppSpacing.sm),
-              DropdownButtonFormField<Bank>(
-                initialValue: _selectedBank,
-                hint: const Text('Select a bank'),
-                items: [
-                  for (final bank in _banks)
-                    DropdownMenuItem(value: bank, child: Text(bank.name)),
-                ],
-                onChanged: (bank) {
-                  setState(() {
-                    _selectedBank = bank;
-                    _resolvedAccountName = null;
-                  });
-                  _maybeLookupAccount();
-                },
+              InkWell(
+                onTap: _banks.isEmpty ? null : _pickBank,
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                child: InputDecorator(
+                  decoration: const InputDecoration(),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _selectedBank?.name ?? 'Select a bank',
+                          style: _selectedBank == null
+                              ? textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.outline,
+                                )
+                              : textTheme.bodyMedium,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_drop_down,
+                        color: AppColors.outline,
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               Text('Account Number', style: textTheme.labelSmall),
@@ -230,6 +254,88 @@ class _WithdrawPayScreenState extends State<WithdrawPayScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BankSearchSheet extends StatefulWidget {
+  const _BankSearchSheet({required this.banks});
+
+  final List<Bank> banks;
+
+  @override
+  State<_BankSearchSheet> createState() => _BankSearchSheetState();
+}
+
+class _BankSearchSheetState extends State<_BankSearchSheet> {
+  final _searchController = TextEditingController();
+  late List<Bank> _filtered = widget.banks;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_filter);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filter() {
+    final query = _searchController.text.trim().toLowerCase();
+    setState(() {
+      _filtered = query.isEmpty
+          ? widget.banks
+          : widget.banks
+                .where((b) => b.name.toLowerCase().contains(query))
+                .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.8,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search banks',
+                  prefixIcon: Icon(Icons.search),
+                ),
+              ),
+            ),
+            Expanded(
+              child: _filtered.isEmpty
+                  ? const Center(child: Text('No banks match your search.'))
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: _filtered.length,
+                      itemBuilder: (context, index) {
+                        final bank = _filtered[index];
+                        return ListTile(
+                          title: Text(bank.name),
+                          onTap: () => Navigator.of(context).pop(bank),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
