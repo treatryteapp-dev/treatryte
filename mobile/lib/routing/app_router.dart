@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/directory_models.dart';
 import '../models/vault_models.dart';
 import '../providers/auth_provider.dart';
+import '../screens/activity_list_screen.dart';
 import '../screens/book_test_screen.dart';
 import '../screens/fund_wallet_screen.dart';
 import '../screens/get_started_screen.dart';
@@ -74,6 +75,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/withdraw-pay',
         builder: (context, state) => const WithdrawPayScreen(),
+      ),
+      GoRoute(
+        path: '/activities',
+        builder: (context, state) => const ActivityListScreen(),
       ),
       GoRoute(
         path: '/notifications',

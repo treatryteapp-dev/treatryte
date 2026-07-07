@@ -8,6 +8,7 @@ import '../../providers/connection_provider.dart';
 import '../../providers/main_tab_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/activity_tile.dart';
 import '../../widgets/icon_mapper.dart';
 
 class HomeTab extends StatefulWidget {
@@ -89,7 +90,10 @@ class _HomeTabState extends State<HomeTab> {
                     'Recent Activity',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  TextButton(onPressed: () {}, child: const Text('See All')),
+                  TextButton(
+                    onPressed: () => context.push('/activities'),
+                    child: const Text('See All'),
+                  ),
                 ],
               ),
               if (activity.isLoading && activity.recent.isEmpty)
@@ -107,12 +111,13 @@ class _HomeTabState extends State<HomeTab> {
                 )
               else
                 for (final item in activity.recent)
-                  _ActivityTile(
+                  ActivityTile(
                     icon: iconForKey(item.iconKey),
                     iconColor: AppColors.secondary,
                     iconBackground: AppColors.secondaryContainer,
                     title: item.title,
                     subtitle: item.subtitle,
+                    onTap: () => handleActivityTap(context, item.type),
                   ),
               const SizedBox(height: AppSpacing.lg),
               const _InsuranceBanner(),
@@ -355,61 +360,6 @@ class _QuickServicesGrid extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _ActivityTile extends StatelessWidget {
-  const _ActivityTile({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBackground,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBackground;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: iconBackground,
-              borderRadius: BorderRadius.circular(AppRadii.md),
-            ),
-            child: Icon(icon, size: 20, color: iconColor),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-                Text(subtitle, style: textTheme.bodySmall),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.outline),
-        ],
-      ),
     );
   }
 }

@@ -11,6 +11,9 @@ class ActivityProvider extends ChangeNotifier {
   List<ActivityItem> recent = [];
   bool isLoading = false;
 
+  List<ActivityItem> all = [];
+  bool isLoadingAll = false;
+
   Future<void> refresh() async {
     isLoading = true;
     notifyListeners();
@@ -18,6 +21,19 @@ class ActivityProvider extends ChangeNotifier {
       recent = await _service.getRecent();
     } finally {
       isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // The backend only supports a limit, not real pagination yet - a large
+  // limit is a pragmatic stand-in for a full history until it does.
+  Future<void> loadAll() async {
+    isLoadingAll = true;
+    notifyListeners();
+    try {
+      all = await _service.getRecent(limit: 200);
+    } finally {
+      isLoadingAll = false;
       notifyListeners();
     }
   }
