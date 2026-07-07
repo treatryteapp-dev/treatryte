@@ -19,6 +19,7 @@ import '../screens/profile_screen.dart';
 import '../screens/subscription_plans_screen.dart';
 import '../screens/vault_folder_screen.dart';
 import '../screens/verify_email_screen.dart';
+import '../screens/wallet_transactions_screen.dart';
 import '../screens/withdraw_pay_screen.dart';
 import '../screens/scan_upload_screen.dart';
 import '../models/connection_models.dart';
@@ -71,6 +72,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/fund-wallet',
         builder: (context, state) => const FundWalletScreen(),
+      ),
+      GoRoute(
+        path: '/wallet-transactions',
+        builder: (context, state) => const WalletTransactionsScreen(),
       ),
       GoRoute(
         path: '/withdraw-pay',

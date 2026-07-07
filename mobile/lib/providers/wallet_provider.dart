@@ -15,6 +15,15 @@ class WalletProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
+  // Separate from `transactions` (the last-20 summary shown on Home) so the
+  // full history screen can paginate independently without disturbing it.
+  List<WalletTransaction> history = [];
+  bool isLoadingHistory = false;
+  bool hasMoreHistory = true;
+  String? historyCategory;
+  int _historyPage = 1;
+  static const _historyPageSize = 20;
+
   String get formattedBalance {
     final naira = balanceKobo / 100;
     return '₦${naira.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d)\.)'), (m) => '${m[1]},')}';
@@ -31,6 +40,38 @@ class WalletProvider extends ChangeNotifier {
       errorMessage = e.message;
     } finally {
       isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // [category] filters ('wallet_funding', 'withdrawal', 'refund',
+  // 'service_payment') or null for everything; changing it restarts paging.
+  Future<void> loadHistory({String? category}) async {
+    historyCategory = category;
+    _historyPage = 1;
+    history = [];
+    hasMoreHistory = true;
+    await loadMoreHistory();
+  }
+
+  Future<void> loadMoreHistory() async {
+    if (isLoadingHistory || !hasMoreHistory) return;
+    isLoadingHistory = true;
+    notifyListeners();
+    try {
+      final page = await _service.getTransactions(
+        page: _historyPage,
+        limit: _historyPageSize,
+        category: historyCategory,
+      );
+      history = [...history, ...page];
+      hasMoreHistory = page.length == _historyPageSize;
+      _historyPage++;
+      errorMessage = null;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+    } finally {
+      isLoadingHistory = false;
       notifyListeners();
     }
   }

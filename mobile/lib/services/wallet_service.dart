@@ -10,11 +10,20 @@ class WalletService {
   Future<int> getBalanceKobo() =>
       _api.get('/wallet', (data) => data['balanceKobo'] as int);
 
-  Future<List<WalletTransaction>> getTransactions() => _api.get(
+  Future<List<WalletTransaction>> getTransactions({
+    int page = 1,
+    int limit = 20,
+    String? category,
+  }) => _api.get(
     '/wallet/transactions',
     (data) => (data['transactions'] as List<dynamic>)
         .map((t) => WalletTransaction.fromJson(t as Map<String, dynamic>))
         .toList(),
+    query: {
+      'page': page,
+      'limit': limit,
+      if (category != null) 'category': category,
+    },
   );
 
   // Checks Nomba directly for this order's real status and settles it if

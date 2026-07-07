@@ -220,9 +220,24 @@ class _WalletCard extends StatelessWidget {
                 size: 18,
               ),
               const SizedBox(width: AppSpacing.xs),
-              Text(
-                'NOMBA DIGITAL WALLET',
-                style: textTheme.labelSmall?.copyWith(color: Colors.white70),
+              Expanded(
+                child: Text(
+                  'NOMBA DIGITAL WALLET',
+                  style: textTheme.labelSmall?.copyWith(color: Colors.white70),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => context.push('/wallet-transactions'),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'History',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    Icon(Icons.chevron_right, color: Colors.white70, size: 16),
+                  ],
+                ),
               ),
             ],
           ),
