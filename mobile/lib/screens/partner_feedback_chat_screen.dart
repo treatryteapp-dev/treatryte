@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:timeago/timeago.dart' as timeago;
-
 import '../providers/partner_provider.dart';
 import '../theme/app_theme.dart';
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 import '../providers/partner_provider.dart';
 import '../theme/app_theme.dart';
@@ -14,6 +13,31 @@ class PartnerFeedbacksScreen extends StatefulWidget {
 }
 
 class _PartnerFeedbacksScreenState extends State<PartnerFeedbacksScreen> {
+  String _formatTimeAgo(DateTime date) {
+    final difference = DateTime.now().difference(date);
+    if (difference.inDays > 8) {
+      return '${date.day}/${date.month}/${date.year}';
+    } else if ((difference.inDays / 7).floor() >= 1) {
+      return '1w ago';
+    } else if (difference.inDays >= 2) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inDays >= 1) {
+      return 'Yesterday';
+    } else if (difference.inHours >= 2) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inHours >= 1) {
+      return '1h ago';
+    } else if (difference.inMinutes >= 2) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inMinutes >= 1) {
+      return '1m ago';
+    } else if (difference.inSeconds >= 3) {
+      return '${difference.inSeconds}s ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -80,7 +104,7 @@ class _PartnerFeedbacksScreenState extends State<PartnerFeedbacksScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                timeago.format(lastLog.createdAt, locale: 'en_short'),
+                                _formatTimeAgo(lastLog.createdAt),
                                 style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.outline),
                               ),
                             ],

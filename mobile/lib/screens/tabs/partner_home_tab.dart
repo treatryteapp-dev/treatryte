@@ -255,15 +255,15 @@ void showIssueRecordSheet(BuildContext context) {
                             }
                           }
 
-                          final ok = await partner.issueMedicalRecord(
+                          final ok = await partner.issueMedicalRecords(
                             patient.id,
-                            visitType: selectedVisitType,
-                            notes: notesCtrl.text.trim().isEmpty
-                                ? null
-                                : notesCtrl.text.trim(),
-                            fileUrl: attachedFileUrl,
-                            fileName: attachedFileName,
-                            fileId: attachedFileId,
+                            records: [{
+                              'visitType': selectedVisitType,
+                              'notes': notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+                              'fileUrl': attachedFileUrl,
+                              'fileName': attachedFileName,
+                              'fileId': attachedFileId,
+                            }],
                           );
                           if (ctx.mounted) Navigator.of(ctx).pop();
                           if (context.mounted) {

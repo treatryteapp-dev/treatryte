@@ -620,9 +620,9 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
                                             'Patient ID: ${detail.patientCode}',
                                             style: textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
                                           ),
-                                          if (detail.dob != null)
+                                          if (detail.dateOfBirth != null)
                                             Text(
-                                              '${_ageFromDob(detail.dob)} yrs • ${detail.gender ?? 'Unknown gender'}',
+                                              '${_ageFromDob(detail.dateOfBirth)} yrs • ${detail.gender ?? 'Unknown gender'}',
                                               style: textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
                                             ),
                                         ],
@@ -630,14 +630,14 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
                                     ),
                                   ],
                                 ),
-                                if (detail.bloodGroup != null || detail.genotype != null) ...[
+                                if (detail.medicalProfile.bloodGroup != null) ...[
                                   const SizedBox(height: AppSpacing.md),
                                   const Divider(),
                                   const SizedBox(height: AppSpacing.sm),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                                     children: [
-                                      if (detail.bloodGroup != null)
+                                      if (detail.medicalProfile.bloodGroup != null)
                                         Column(
                                           children: [
                                             Text(
@@ -645,26 +645,10 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
                                               style: textTheme.labelSmall?.copyWith(color: AppColors.outline),
                                             ),
                                             Text(
-                                              detail.bloodGroup!,
+                                              detail.medicalProfile.bloodGroup!,
                                               style: textTheme.titleMedium?.copyWith(
                                                 fontWeight: FontWeight.bold,
                                                 color: AppColors.error,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      if (detail.genotype != null)
-                                        Column(
-                                          children: [
-                                            Text(
-                                              'Genotype',
-                                              style: textTheme.labelSmall?.copyWith(color: AppColors.outline),
-                                            ),
-                                            Text(
-                                              detail.genotype!,
-                                              style: textTheme.titleMedium?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.primary,
                                               ),
                                             ),
                                           ],
@@ -777,39 +761,37 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    for (final d in p.drugs) ...[
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.medication_outlined, color: AppColors.primary, size: 20),
-                                          const SizedBox(width: AppSpacing.sm),
-                                          Expanded(
-                                            child: Text(
-                                              d.medicineName,
-                                              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                                            ),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.medication_outlined, color: AppColors.primary, size: 20),
+                                        const SizedBox(width: AppSpacing.sm),
+                                        Expanded(
+                                          child: Text(
+                                            p.medicineName,
+                                            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                                           ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text('${d.dosage} • ${d.timesDaily} • ${d.duration}', style: textTheme.bodySmall),
-                                      if (d.notes.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text('Note: ${d.notes}', style: textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant)),
-                                      ],
-                                      if (d.fileUrl != null && d.fileUrl!.isNotEmpty) ...[
-                                        const SizedBox(height: AppSpacing.sm),
-                                        OutlinedButton.icon(
-                                          icon: const Icon(Icons.description_outlined, size: 16),
-                                          label: Text(
-                                            d.fileName?.isNotEmpty == true
-                                                ? d.fileName!
-                                                : 'View Attachment',
-                                          ),
-                                          onPressed: () => launchUrl(Uri.parse(d.fileUrl!)),
                                         ),
                                       ],
-                                      const Divider(),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text('${p.dosage} • ${p.timesDaily} • ${p.duration}', style: textTheme.bodySmall),
+                                    if (p.notes.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text('Note: ${p.notes}', style: textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant)),
                                     ],
+                                    if (p.fileUrl != null && p.fileUrl!.isNotEmpty) ...[
+                                      const SizedBox(height: AppSpacing.sm),
+                                      OutlinedButton.icon(
+                                        icon: const Icon(Icons.description_outlined, size: 16),
+                                        label: Text(
+                                          p.fileName?.isNotEmpty == true
+                                              ? p.fileName!
+                                              : 'View Attachment',
+                                        ),
+                                        onPressed: () => launchUrl(Uri.parse(p.fileUrl!)),
+                                      ),
+                                    ],
+                                    const Divider(),
                                     const SizedBox(height: AppSpacing.xs),
                                     Text(
                                       'Issued ${_formatDate(p.createdAt)}',
