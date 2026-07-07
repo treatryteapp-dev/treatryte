@@ -11,7 +11,6 @@ import '../../theme/app_theme.dart';
 class _PrescriptionDrugForm {
   final medicineCtrl = TextEditingController();
   final dosageCtrl = TextEditingController();
-  final durationCtrl = TextEditingController();
   final notesCtrl = TextEditingController();
   DateTime? startDate = DateTime.now();
   DateTime? endDate;
@@ -459,22 +458,9 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                       decoration: const InputDecoration(labelText: 'Medicine Name', hintText: 'e.g. Lisinopril'),
                                     ),
                                     const SizedBox(height: AppSpacing.sm),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextField(
-                                            controller: drugs[i].dosageCtrl,
-                                            decoration: const InputDecoration(labelText: 'Dosage', hintText: 'e.g. 10mg'),
-                                          ),
-                                        ),
-                                        const SizedBox(width: AppSpacing.sm),
-                                        Expanded(
-                                          child: TextField(
-                                            controller: drugs[i].durationCtrl,
-                                            decoration: const InputDecoration(labelText: 'Duration', hintText: 'e.g. 14 days'),
-                                          ),
-                                        ),
-                                      ],
+                                    TextField(
+                                      controller: drugs[i].dosageCtrl,
+                                      decoration: const InputDecoration(labelText: 'Dosage', hintText: 'e.g. 10mg'),
                                     ),
                                     const SizedBox(height: AppSpacing.sm),
                                     Row(
@@ -596,7 +582,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                 final payload = validDrugs.map((d) => {
                                   'medicineName': d.medicineCtrl.text.trim(),
                                   'dosage': d.dosageCtrl.text.trim(),
-                                  'duration': d.durationCtrl.text.trim(),
+                                  'duration': (d.startDate != null && d.endDate != null) ? '${d.endDate!.difference(d.startDate!).inDays + 1} days' : '',
                                   if (d.notesCtrl.text.trim().isNotEmpty) 'notes': d.notesCtrl.text.trim(),
                                   if (d.startDate != null) 'startDate': d.startDate!.toIso8601String(),
                                   if (d.endDate != null) 'endDate': d.endDate!.toIso8601String(),
