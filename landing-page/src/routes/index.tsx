@@ -737,6 +737,7 @@ function Footer() {
         <div className="flex gap-5 text-xs text-muted-foreground">
           <Link to="/privacy" className="hover:text-navy">Privacy</Link>
           <Link to="/terms" className="hover:text-navy">Terms</Link>
+          <Link to="/security" className="hover:text-navy">Security</Link>
           <a href="mailto:alexegbuchulamginika@gmail.com" className="hover:text-navy">Contact</a>
         </div>
       </div>

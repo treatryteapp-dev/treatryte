@@ -32,6 +32,9 @@ function Nav() {
           <Link to="/privacy" className="text-sm font-medium text-muted-foreground transition hover:text-navy">
             Privacy Policy
           </Link>
+          <Link to="/security" className="text-sm font-medium text-muted-foreground transition hover:text-navy">
+            Security
+          </Link>
         </nav>
         <div className="hidden items-center gap-3 md:flex">
           <Link
@@ -60,6 +63,9 @@ function Nav() {
             </Link>
             <Link to="/privacy" onClick={() => setOpen(false)} className="text-sm font-medium text-muted-foreground">
               Privacy Policy
+            </Link>
+            <Link to="/security" onClick={() => setOpen(false)} className="text-sm font-medium text-muted-foreground">
+              Security
             </Link>
             <Link
               to="/"
@@ -90,6 +96,7 @@ function Footer() {
         <div className="flex gap-5 text-xs text-muted-foreground">
           <Link to="/privacy" className="hover:text-navy">Privacy</Link>
           <Link to="/terms" className="hover:text-navy">Terms</Link>
+          <Link to="/security" className="hover:text-navy">Security</Link>
           <a href="mailto:alexegbuchulamginika@gmail.com" className="hover:text-navy">Contact</a>
         </div>
       </div>
