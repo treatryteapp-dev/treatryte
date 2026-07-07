@@ -17,6 +17,7 @@ const providerRoutes = require('./routes/provider.routes');
 const adminRoutes = require('./routes/admin.routes');
 const subscriptionsRoutes = require('./routes/subscriptions.routes');
 const connectionsRoutes = require('./routes/connections.routes');
+const downloadsRoutes = require('./routes/downloads.routes');
 
 const app = express();
 
@@ -74,6 +75,7 @@ app.use('/api/provider', providerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/connections', connectionsRoutes);
+app.use('/api/downloads', downloadsRoutes);
 
 const path = require('path');
 const fs = require('fs');
