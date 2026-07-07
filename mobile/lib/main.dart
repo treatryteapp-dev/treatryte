@@ -119,9 +119,21 @@ class _TreatRyteAppState extends State<TreatRyteApp> {
           if (!kIsWeb || child == null) return child ?? const SizedBox.shrink();
           return ColoredBox(
             color: AppColors.surfaceContainerHigh,
-            child: Center(
+            // Align + an explicit minHeight (not Center, which loosens both
+            // axes) - Center let the constrained column shrink-wrap to its
+            // own content height on short screens, which pushed
+            // bottomNavigationBar bars (e.g. the Continue button on
+            // LabDetailScreen) down into the unrendered gap below the
+            // content instead of pinning them to the visible viewport
+            // bottom. maxHeight is left unbounded so taller content can
+            // still scroll normally.
+            child: Align(
+              alignment: Alignment.topCenter,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
+                constraints: BoxConstraints(
+                  maxWidth: 480,
+                  minHeight: MediaQuery.sizeOf(context).height,
+                ),
                 child: child,
               ),
             ),
