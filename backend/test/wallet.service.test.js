@@ -127,6 +127,79 @@ describe('finalizePendingCredit idempotency', () => {
   });
 });
 
+describe('handleNombaWebhook payload parsing', () => {
+  // jest.mock('../src/nomba') above auto-mocks every export, including
+  // parseWebhookData - these tests need the real parsing logic (that's
+  // exactly what they're checking), so restore it here specifically.
+  const actualNomba = jest.requireActual('../src/nomba');
+  beforeEach(() => {
+    nomba.parseWebhookData.mockImplementation(actualNomba.parseWebhookData);
+  });
+
+  test('credits a checkout-order funding from a realistic nested payment_success payload', async () => {
+    const { user, wallet } = await makeUserWithWallet();
+    const pending = await transactionModel.recordPending({
+      userId: user._id,
+      walletId: wallet._id,
+      type: 'credit',
+      category: 'wallet_funding',
+      amount: 5000,
+      description: 'Wallet funding via Nomba',
+      metadata: {},
+      refs: {},
+    });
+    await transactionModel.collection().updateOne(
+      { _id: pending._id },
+      { $set: { nombaOrderReference: 'order-ref-abc' } }
+    );
+
+    await walletService.handleNombaWebhook('payment_success', {
+      merchant: { userId: user._id.toString(), walletId: wallet._id.toString() },
+      transaction: {
+        type: 'online_checkout',
+        transactionId: 'WEB-ONLINE_C-tx-1',
+        time: '2026-01-01T00:00:00Z',
+        responseCode: '',
+      },
+      order: { orderReference: 'order-ref-abc', amount: 50 },
+    });
+
+    const updated = await walletModel.findByUserId(user._id);
+    expect(updated.balance).toBe(5000);
+  });
+
+  test('credits a dedicated-virtual-account transfer identified only by aliasAccountReference (no data.order)', async () => {
+    const { user } = await makeUserWithWallet();
+    await walletModel.setVirtualAccount(user._id, {
+      virtualAccountNumber: '9171424534',
+      virtualBankName: 'Amucha MFB',
+      virtualAccountRef: user._id.toString(),
+    });
+
+    const vactPayload = {
+      merchant: { userId: user._id.toString(), walletId: 'w1' },
+      transaction: {
+        aliasAccountNumber: '9171424534',
+        type: 'vact_transfer',
+        transactionId: 'API-VACT_TRA-tx-1',
+        aliasAccountReference: user._id.toString(),
+        transactionAmount: 120, // naira, per Nomba's docs - not kobo
+        time: '2026-01-01T00:00:00Z',
+        responseCode: '',
+      },
+    };
+
+    await walletService.handleNombaWebhook('payment_success', vactPayload);
+    const updated = await walletModel.findByUserId(user._id);
+    expect(updated.balance).toBe(12000); // 120 naira -> 12000 kobo
+
+    // Webhook retry with the same transactionId must not double-credit.
+    await walletService.handleNombaWebhook('payment_success', vactPayload);
+    const afterRetry = await walletModel.findByUserId(user._id);
+    expect(afterRetry.balance).toBe(12000);
+  });
+});
+
 describe('withdrawToBank refund-on-failure', () => {
   test('refunds the reserved amount when Nomba rejects the transfer outright, leaving balance unchanged', async () => {
     const { user } = await makeUserWithWallet();

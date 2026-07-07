@@ -94,6 +94,36 @@ async function fundWallet(userId, { amountKobo, callbackUrl }) {
   return { checkoutLink: order.checkoutLink, orderReference: order.orderReference };
 }
 
+/**
+ * Returns this user's permanent dedicated virtual account, creating it on
+ * first use. accountRef is the userId itself - stable and unique, so it
+ * doubles as the natural idempotency key if this is ever called twice
+ * concurrently (Nomba would just return/reuse the same account).
+ */
+async function getOrCreateVirtualAccount(userId) {
+  const wallet = await getWallet(userId);
+  if (wallet.virtualAccountNumber) {
+    return {
+      accountNumber: wallet.virtualAccountNumber,
+      bankName: wallet.virtualBankName,
+    };
+  }
+
+  const user = await userModel.findById(userId);
+  const account = await nomba.createVirtualAccount({
+    accountRef: userId.toString(),
+    accountName: user.fullName,
+  });
+
+  await walletModel.setVirtualAccount(userId, {
+    virtualAccountNumber: account.bankAccountNumber,
+    virtualBankName: account.bankName,
+    virtualAccountRef: account.accountRef,
+  });
+
+  return { accountNumber: account.bankAccountNumber, bankName: account.bankName };
+}
+
 async function withdrawToBank(userId, { amountKobo, accountNumber, bankCode, accountName, narration }) {
   const merchantTxRef = `wd_${userId.toString()}_${crypto.randomUUID()}`;
   const user = await userModel.findById(userId);
@@ -184,13 +214,50 @@ async function finalizeFundingSuccess(pending, nombaTransactionId) {
  * Central handler for all 6 Nomba webhook event types. Idempotent: relies
  * on transactionModel's pending-row lookups only mutating state once.
  */
-async function handleNombaWebhook(eventType, data) {
+async function handleNombaWebhook(eventType, rawData) {
+  const data = nomba.parseWebhookData(rawData);
   switch (eventType) {
     case 'payment_success': {
-      const pending = await transactionModel.findByNombaOrderReference(data.orderReference);
-      if (!pending || pending.status !== 'pending') return; // unknown or already handled
+      // Checkout-order payments (card, or pay-by-transfer through the
+      // checkout page) carry data.order.orderReference; dedicated-virtual-
+      // account transfers don't - they're identified by aliasAccountReference
+      // instead and have no pre-existing pending row to finalize.
+      if (data.orderReference) {
+        const pending = await transactionModel.findByNombaOrderReference(data.orderReference);
+        if (!pending || pending.status !== 'pending') return; // unknown or already handled
 
-      await finalizeFundingSuccess(pending, data.transactionId);
+        await finalizeFundingSuccess(pending, data.transactionId);
+        return;
+      }
+
+      if (data.type === 'vact_transfer' && data.aliasAccountReference) {
+        if (data.transactionId) {
+          const existing = await transactionModel.findByNombaTransactionId(data.transactionId);
+          if (existing) return; // already credited - webhook retry
+        }
+        const wallet = await walletModel.findByVirtualAccountRef(data.aliasAccountReference);
+        if (!wallet || !data.amountKobo) return; // unknown virtual account, or unparseable amount
+
+        const credit = await creditImmediate(wallet.userId, {
+          amountKobo: data.amountKobo,
+          category: 'wallet_funding',
+          description: 'Wallet funding via bank transfer',
+          metadata: {},
+          refs: data.transactionId ? { nombaTransactionId: data.transactionId } : {},
+        });
+        await activityService.record(wallet.userId, {
+          type: 'wallet_funding',
+          title: 'Wallet Funded',
+          subtitle: `₦${(data.amountKobo / 100).toLocaleString()} credited`,
+          iconKey: 'account_balance_wallet',
+        });
+        await notificationService.notify(wallet.userId, {
+          type: 'wallet',
+          title: 'Wallet Funded',
+          body: `₦${(data.amountKobo / 100).toLocaleString()} has been credited to your wallet.`,
+        });
+        return credit;
+      }
       return;
     }
     case 'payment_failed':
@@ -295,6 +362,7 @@ module.exports = {
   creditImmediate,
   debitImmediate,
   fundWallet,
+  getOrCreateVirtualAccount,
   withdrawToBank,
   listBanks,
   lookupAccount,

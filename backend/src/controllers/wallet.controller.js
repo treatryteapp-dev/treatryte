@@ -105,6 +105,11 @@ const fundComplete = (req, res) => {
 </html>`);
 };
 
+const virtualAccount = asyncHandler(async (req, res) => {
+  const result = await walletService.getOrCreateVirtualAccount(req.userId);
+  res.json(result);
+});
+
 const withdraw = asyncHandler(async (req, res) => {
   const transaction = await walletService.withdrawToBank(req.userId, req.body);
   res.status(201).json({ transaction });
@@ -132,6 +137,7 @@ module.exports = {
   fund,
   fundComplete,
   verifyFunding,
+  virtualAccount,
   withdraw,
   banks,
   lookupAccount,

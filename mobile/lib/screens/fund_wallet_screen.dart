@@ -33,6 +33,15 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
   }
 
   Future<void> _proceed() async {
+    if (_method == _PaymentMethod.bankTransfer) {
+      // Bank transfer no longer goes through Nomba Checkout's pay-by-transfer
+      // option (a short-lived dynamic account that stops being reconcilable
+      // to an order once its window expires) - it shows the user's own
+      // permanent dedicated account instead, any amount, any time.
+      context.push('/bank-transfer-details');
+      return;
+    }
+
     final naira = double.tryParse(_amountController.text.replaceAll(',', ''));
     if (naira == null || naira <= 0) {
       ScaffoldMessenger.of(
@@ -187,12 +196,16 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Row(
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Proceed to Payment'),
-                            SizedBox(width: AppSpacing.sm),
-                            Icon(Icons.arrow_forward, size: 18),
+                            Text(
+                              _method == _PaymentMethod.bankTransfer
+                                  ? 'View Transfer Details'
+                                  : 'Proceed to Payment',
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            const Icon(Icons.arrow_forward, size: 18),
                           ],
                         ),
                 ),

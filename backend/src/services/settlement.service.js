@@ -126,7 +126,8 @@ async function triggerBatch() {
  * withdrawal instead) - the caller invokes both handlers for every
  * payout_* event.
  */
-async function handleSettlementWebhook(eventType, data) {
+async function handleSettlementWebhook(eventType, rawData) {
+  const data = nomba.parseWebhookData(rawData);
   switch (eventType) {
     case 'payout_success': {
       const existing = await settlementModel.findByNombaTransferRef(data.transferReference);

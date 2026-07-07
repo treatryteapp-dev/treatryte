@@ -10,6 +10,18 @@ class WalletService {
   Future<int> getBalanceKobo() =>
       _api.get('/wallet', (data) => data['balanceKobo'] as int);
 
+  // Permanent dedicated account (created on first call) - transfers to it
+  // reflect automatically via webhook, unlike Nomba Checkout's short-lived
+  // pay-by-transfer option.
+  Future<({String accountNumber, String bankName})> getVirtualAccount() =>
+      _api.get(
+        '/wallet/virtual-account',
+        (data) => (
+          accountNumber: data['accountNumber'] as String,
+          bankName: data['bankName'] as String? ?? '',
+        ),
+      );
+
   Future<List<WalletTransaction>> getTransactions({
     int page = 1,
     int limit = 20,

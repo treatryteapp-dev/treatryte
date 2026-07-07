@@ -13,6 +13,11 @@ async function createForUser(userId) {
     balance: 0, // kobo
     currency: 'NGN',
     nombaSubAccountId: null,
+    // Populated lazily on first "Bank Transfer" fund attempt - see
+    // wallet.service.js getOrCreateVirtualAccount().
+    virtualAccountNumber: null,
+    virtualBankName: null,
+    virtualAccountRef: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -24,4 +29,22 @@ function findByUserId(userId) {
   return collection().findOne({ userId });
 }
 
-module.exports = { COLLECTION, collection, createForUser, findByUserId };
+function findByVirtualAccountRef(virtualAccountRef) {
+  return collection().findOne({ virtualAccountRef });
+}
+
+function setVirtualAccount(userId, { virtualAccountNumber, virtualBankName, virtualAccountRef }) {
+  return collection().updateOne(
+    { userId },
+    { $set: { virtualAccountNumber, virtualBankName, virtualAccountRef, updatedAt: new Date() } },
+  );
+}
+
+module.exports = {
+  COLLECTION,
+  collection,
+  createForUser,
+  findByUserId,
+  findByVirtualAccountRef,
+  setVirtualAccount,
+};

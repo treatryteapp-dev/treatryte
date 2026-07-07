@@ -20,6 +20,7 @@ router.get('/banks', controller.banks);
 router.post('/lookup-account', validateBody(controller.lookupAccountSchema), controller.lookupAccount);
 router.post('/fund', validateBody(controller.fundSchema), controller.fund);
 router.post('/fund/verify', validateBody(controller.verifyFundingSchema), controller.verifyFunding);
+router.get('/virtual-account', controller.virtualAccount);
 router.post('/withdraw', validateBody(controller.withdrawSchema), controller.withdraw);
 
 // Dev-only shortcut to credit a wallet without going through Nomba.

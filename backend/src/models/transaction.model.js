@@ -30,6 +30,13 @@ function findByNombaTransferRef(nombaTransferRef) {
   return collection().findOne({ nombaTransferRef });
 }
 
+// Dedup key for virtual-account transfers, which (unlike checkout orders)
+// have no pre-existing pending row to flip to 'success' - idempotency has
+// to be keyed off Nomba's own transaction id directly instead.
+function findByNombaTransactionId(nombaTransactionId) {
+  return collection().findOne({ nombaTransactionId });
+}
+
 /**
  * Wallet-funding rows still 'pending' outside the normal webhook-delivery
  * window - candidates for reconciling directly against Nomba's API instead
@@ -175,6 +182,7 @@ module.exports = {
   list,
   findByNombaOrderReference,
   findByNombaTransferRef,
+  findByNombaTransactionId,
   findStalePendingFundings,
   recordPending,
   applyImmediate,

@@ -86,6 +86,24 @@ async function createCheckoutOrder({ amountKobo, customerEmail, customerId, orde
 }
 
 /**
+ * Creates a permanent dedicated virtual account for a customer (a real
+ * bank account number that always routes to us) - the reliable alternative
+ * to Nomba Checkout's inline pay-by-transfer option, which generates a
+ * short-lived dynamic account that stops being reconcilable to an order
+ * once its window expires. No BVN sent - it inherits the parent account's.
+ */
+async function createVirtualAccount({ accountRef, accountName }) {
+  const { json, ok } = await nombaFetch('/v1/accounts/virtual', {
+    method: 'POST',
+    body: { accountRef, accountName, currency: 'NGN' },
+  });
+  if (!ok || json.code !== '00') {
+    throw new Error(`Nomba virtual account creation failed: ${json.description || 'unknown error'}`);
+  }
+  return json.data; // { bankAccountNumber, bankAccountName, bankName, accountRef }
+}
+
+/**
  * Looks up a checkout order's real status directly from Nomba, independent
  * of whether their webhook ever reached us - the safety net for a missed,
  * rejected (e.g. bad signature), or simply undelivered webhook.
@@ -159,6 +177,41 @@ async function lookupBankAccount({ accountNumber, bankCode }) {
 }
 
 /**
+ * Nomba's webhook `data` object nests everything under `data.merchant`,
+ * `data.transaction`, and (for checkout-order payments only) `data.order` -
+ * confirmed against their signature-verification, checkout-order, and
+ * virtual-account docs, plus a live round-trip test. There is no flat
+ * `data.orderReference`/`data.transactionId`/etc - reading those directly
+ * silently gives undefined for every field, which is exactly what every
+ * webhook consumer in this codebase was doing. This is the single place
+ * that knows the real field paths, so every consumer reads through it
+ * instead of re-deriving (and re-breaking) it.
+ */
+function parseWebhookData(data) {
+  return {
+    userId: data.merchant?.userId,
+    walletId: data.merchant?.walletId,
+    transactionId: data.transaction?.transactionId,
+    type: data.transaction?.type,
+    time: data.transaction?.time,
+    responseCode: data.transaction?.responseCode,
+    // Only present for checkout-order payments (card, or pay-by-transfer
+    // through the checkout page) - absent for dedicated-virtual-account
+    // transfers (data.transaction.type === 'vact_transfer').
+    orderReference: data.order?.orderReference,
+    // The merchantTxRef we generate and send when initiating a payout -
+    // used to match a payout_* webhook back to the original transfer.
+    transferReference: data.transaction?.merchantTxRef,
+    amountKobo:
+      data.transaction?.transactionAmount != null
+        ? Math.round(data.transaction.transactionAmount * 100)
+        : null,
+    // Identifies which dedicated virtual account received a vact_transfer.
+    aliasAccountReference: data.transaction?.aliasAccountReference,
+  };
+}
+
+/**
  * Recomputes the HMAC-SHA256 signature Nomba expects and compares it to the
  * `nomba-signature` header using a timing-safe comparison.
  */
@@ -169,15 +222,16 @@ function verifyWebhookSignature({ eventType, requestId, data, headers }) {
     return false;
   }
 
+  const parsed = parseWebhookData(data);
   const payloadString = [
     eventType,
     requestId,
-    data.userId || '',
-    data.walletId || '',
-    data.transactionId || '',
-    data.type || '',
-    data.time || '',
-    data.responseCode || '',
+    parsed.userId || '',
+    parsed.walletId || '',
+    parsed.transactionId || '',
+    parsed.type || '',
+    parsed.time || '',
+    parsed.responseCode || '',
     timestamp,
   ].join(':');
 
@@ -195,9 +249,11 @@ function verifyWebhookSignature({ eventType, requestId, data, headers }) {
 module.exports = {
   getAccessToken,
   createCheckoutOrder,
+  createVirtualAccount,
   verifyTransaction,
   transferToBank,
   listBanks,
   lookupBankAccount,
   verifyWebhookSignature,
+  parseWebhookData,
 };

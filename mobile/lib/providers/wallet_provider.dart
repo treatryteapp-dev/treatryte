@@ -24,6 +24,18 @@ class WalletProvider extends ChangeNotifier {
   int _historyPage = 1;
   static const _historyPageSize = 20;
 
+  Future<({String accountNumber, String bankName})?> getVirtualAccount() async {
+    try {
+      final account = await _service.getVirtualAccount();
+      errorMessage = null;
+      return account;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
   String get formattedBalance {
     final naira = balanceKobo / 100;
     return '₦${naira.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d)\.)'), (m) => '${m[1]},')}';

@@ -82,7 +82,8 @@ async function cancelSubscription(userId) {
  * if the reference belongs to a wallet-funding transaction instead (handled
  * separately by walletService).
  */
-async function handleSubscriptionWebhook(eventType, data) {
+async function handleSubscriptionWebhook(eventType, rawData) {
+  const data = nomba.parseWebhookData(rawData);
   const subscription = await subscriptionModel.findByNombaOrderReference(data.orderReference);
   if (!subscription) return;
 
