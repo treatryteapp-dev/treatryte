@@ -11,7 +11,9 @@ const walletModel = require('../models/wallet.model');
 const refreshTokenModel = require('../models/refreshToken.model');
 const labModel = require('../models/lab.model');
 const subscriptionModel = require('../models/subscription.model');
+const planModel = require('../models/plan.model');
 const { ApiError } = require('../middleware/errorHandler');
+const { ROLE_TO_PLAN_TYPE } = require('../utils/planAccess');
 
 const AVATAR_PRESIGN_TTL_SECONDS = 300;
 
@@ -67,6 +69,20 @@ async function register({
     throw new ApiError(409, 'An account with this email already exists', 'EMAIL_TAKEN');
   }
 
+  // Every account starts on its role's free plan unless a paid planId was
+  // explicitly passed - so plan-gated limits (vault storage, sharing, etc.)
+  // are enforced from a real plan document from day one instead of every
+  // feature having to special-case a null planId as "assume free tier".
+  let resolvedPlanId = planId;
+  if (!resolvedPlanId) {
+    const freePlan = await planModel.collection().findOne({
+      type: ROLE_TO_PLAN_TYPE[role || 'patient'],
+      price: 0,
+      status: 'active',
+    });
+    if (freePlan) resolvedPlanId = freePlan._id.toString();
+  }
+
   const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
   const user = await userModel.create({
     fullName,
@@ -76,7 +92,7 @@ async function register({
     email,
     passwordHash,
     role,
-    planId,
+    planId: resolvedPlanId,
   });
   await walletModel.createForUser(user._id);
 
