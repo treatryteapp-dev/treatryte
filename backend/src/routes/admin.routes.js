@@ -1,6 +1,6 @@
 const express = require('express');
 const controller = require('../controllers/admin.controller');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
 
 const router = express.Router();
@@ -27,5 +27,6 @@ router.patch('/labs/:id/bank-details', controller.updateLabBankDetails);
 router.patch('/profile', validateBody(controller.updateProfileSchema), controller.updateProfile);
 router.get('/settings', controller.listPlatformSettings);
 router.patch('/settings', controller.updatePlatformSettings);
+router.get('/config-health', requireRole('admin'), controller.configHealth);
 
 module.exports = router;

@@ -15,6 +15,23 @@ class AppointmentProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
+  List<Appointment> appointments = [];
+  bool isLoadingAppointments = false;
+
+  Future<void> loadAppointments() async {
+    isLoadingAppointments = true;
+    notifyListeners();
+    try {
+      appointments = await _service.list();
+      errorMessage = null;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+    } finally {
+      isLoadingAppointments = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> loadAvailability(String labId) async {
     isLoading = true;
     notifyListeners();

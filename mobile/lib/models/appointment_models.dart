@@ -39,6 +39,19 @@ class AvailabilityDay {
   final List<TimeSlot> slots;
 }
 
+class AppointmentItem {
+  const AppointmentItem({required this.name, required this.priceKobo});
+
+  factory AppointmentItem.fromJson(Map<String, dynamic> json) =>
+      AppointmentItem(
+        name: json['name'] as String,
+        priceKobo: json['price'] as int,
+      );
+
+  final String name;
+  final int priceKobo;
+}
+
 class Appointment {
   const Appointment({
     required this.id,
@@ -52,6 +65,9 @@ class Appointment {
     this.scheduledDate,
     this.scheduledTimeSlot,
     this.createdAt,
+    this.labId,
+    this.labName,
+    this.items = const [],
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
@@ -68,6 +84,13 @@ class Appointment {
     createdAt: json['createdAt'] != null
         ? DateTime.tryParse(json['createdAt'] as String)
         : null,
+    labId: json['labId'] as String?,
+    labName: json['labName'] as String?,
+    items: json['items'] != null
+        ? (json['items'] as List<dynamic>)
+              .map((i) => AppointmentItem.fromJson(i as Map<String, dynamic>))
+              .toList()
+        : const [],
   );
 
   final String id;
@@ -83,4 +106,8 @@ class Appointment {
   final String? scheduledDate;
   final String? scheduledTimeSlot;
   final DateTime? createdAt;
+  // Patient-side "My Appointments" list fields.
+  final String? labId;
+  final String? labName;
+  final List<AppointmentItem> items;
 }

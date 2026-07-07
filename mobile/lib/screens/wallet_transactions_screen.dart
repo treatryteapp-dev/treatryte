@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/transaction.dart';
 import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/wallet_transaction_style.dart';
 
 const _categories = {
   null: 'All',
@@ -131,21 +132,6 @@ class _TransactionTile extends StatelessWidget {
 
   final WalletTransaction tx;
 
-  ({IconData icon, Color color}) get _style {
-    switch (tx.category) {
-      case 'wallet_funding':
-        return (icon: Icons.add_circle_outline, color: AppColors.secondary);
-      case 'withdrawal':
-        return (icon: Icons.arrow_upward, color: AppColors.error);
-      case 'service_payment':
-        return (icon: Icons.payments_outlined, color: AppColors.primary);
-      case 'refund':
-        return (icon: Icons.replay, color: AppColors.tertiary);
-      default:
-        return (icon: Icons.swap_horiz, color: AppColors.outline);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -153,7 +139,7 @@ class _TransactionTile extends StatelessWidget {
     final naira = tx.amountKobo / 100;
     final formattedAmount =
         '${isCredit ? '+' : '-'}₦${naira.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d)\.)'), (m) => '${m[1]},')}';
-    final style = _style;
+    final style = walletTransactionStyle(tx.category);
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),

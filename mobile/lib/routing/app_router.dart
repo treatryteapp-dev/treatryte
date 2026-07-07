@@ -4,6 +4,7 @@ import '../models/directory_models.dart';
 import '../models/vault_models.dart';
 import '../providers/auth_provider.dart';
 import '../screens/activity_list_screen.dart';
+import '../screens/appointments_screen.dart';
 import '../screens/book_test_screen.dart';
 import '../screens/fund_wallet_screen.dart';
 import '../screens/get_started_screen.dart';
@@ -92,6 +93,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/appointments',
+        builder: (context, state) => const AppointmentsScreen(),
       ),
       GoRoute(
         path: '/book-test',

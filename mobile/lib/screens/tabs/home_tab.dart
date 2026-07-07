@@ -308,7 +308,8 @@ class _WalletCard extends StatelessWidget {
 class _QuickServicesGrid extends StatelessWidget {
   const _QuickServicesGrid();
 
-  // tabIndex refers to MainShell's patient tab order: Home, Vault, Directory, Meds.
+  // tabIndex refers to MainShell's patient tab order: Home, Vault, Directory,
+  // Meds - used unless `route` is set, which pushes a screen instead.
   static const _services = [
     (
       icon: Icons.folder_shared_outlined,
@@ -316,6 +317,7 @@ class _QuickServicesGrid extends StatelessWidget {
       color: AppColors.secondaryContainer,
       onColor: AppColors.onSecondaryContainer,
       tabIndex: 1,
+      route: null,
     ),
     (
       icon: Icons.biotech_outlined,
@@ -323,6 +325,7 @@ class _QuickServicesGrid extends StatelessWidget {
       color: Color(0xFFDAE2FD),
       onColor: AppColors.tertiary,
       tabIndex: 2,
+      route: null,
     ),
     (
       icon: Icons.alarm,
@@ -330,6 +333,15 @@ class _QuickServicesGrid extends StatelessWidget {
       color: AppColors.errorContainer,
       onColor: AppColors.error,
       tabIndex: 3,
+      route: null,
+    ),
+    (
+      icon: Icons.event_available_outlined,
+      label: 'My Appointments',
+      color: Color(0xFFDCEFE3),
+      onColor: AppColors.secondary,
+      tabIndex: 0,
+      route: '/appointments',
     ),
     (
       icon: Icons.share_outlined,
@@ -337,6 +349,7 @@ class _QuickServicesGrid extends StatelessWidget {
       color: Color(0xFFE0E3E5),
       onColor: AppColors.onSurfaceVariant,
       tabIndex: 1,
+      route: null,
     ),
   ];
 
@@ -358,8 +371,9 @@ class _QuickServicesGrid extends StatelessWidget {
               margin: EdgeInsets.zero,
               child: InkWell(
                 borderRadius: BorderRadius.circular(AppRadii.md),
-                onTap: () =>
-                    context.read<MainTabProvider>().setIndex(service.tabIndex),
+                onTap: () => service.route != null
+                    ? context.push(service.route!)
+                    : context.read<MainTabProvider>().setIndex(service.tabIndex),
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.sm),
                   child: Row(

@@ -31,6 +31,13 @@ class AppointmentService {
     },
   );
 
+  Future<List<Appointment>> list() => _api.get(
+    '/appointments',
+    (data) => (data['appointments'] as List<dynamic>)
+        .map((a) => Appointment.fromJson(a as Map<String, dynamic>))
+        .toList(),
+  );
+
   Future<List<Appointment>> listForProvider() => _api.get(
     '/provider/appointments',
     (data) => (data['appointments'] as List<dynamic>)

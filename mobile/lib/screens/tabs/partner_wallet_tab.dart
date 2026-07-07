@@ -6,6 +6,7 @@ import '../../models/transaction.dart';
 import '../../providers/partner_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/wallet_transaction_style.dart';
 
 class PartnerWalletTab extends StatefulWidget {
   const PartnerWalletTab({super.key});
@@ -315,23 +316,9 @@ class _PartnerWalletTabState extends State<PartnerWalletTab> {
     final year = tx.createdAt.year;
     final formattedDate = '$day $month $year';
 
-    // Pick an icon based on category
-    IconData iconData;
-    Color iconColor;
-    switch (tx.category.toLowerCase()) {
-      case 'funding':
-        iconData = Icons.add_circle_outline;
-        iconColor = AppColors.secondary;
-      case 'withdrawal':
-        iconData = Icons.arrow_upward;
-        iconColor = AppColors.error;
-      case 'payment':
-        iconData = Icons.payments_outlined;
-        iconColor = AppColors.primary;
-      default:
-        iconData = Icons.swap_horiz;
-        iconColor = AppColors.outline;
-    }
+    final style = walletTransactionStyle(tx.category);
+    final iconData = style.icon;
+    final iconColor = style.color;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),

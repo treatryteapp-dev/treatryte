@@ -46,8 +46,10 @@ Future<void> handleActivityTap(BuildContext context, ActivityItem item) async {
     case 'wallet_funding':
     case 'wallet_withdrawal':
     case 'service_payment':
-    case 'appointment_booked':
       context.read<MainTabProvider>().setIndex(0); // Home (wallet/summary)
+      break;
+    case 'appointment_booked':
+      context.push('/appointments');
       break;
     default:
       break;

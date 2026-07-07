@@ -139,8 +139,22 @@ async function createAppointment(userId, { labId, testIds, scheduledDate, schedu
   return appointment;
 }
 
-function listAppointments(userId) {
-  return appointmentModel.list(userId);
+// Appointment docs only store labId - batch-join lab names the same way
+// vault.service.js's enrichFiles() joins vault files to their source lab,
+// so the patient-side list has something displayable without an extra
+// round trip per appointment.
+async function listAppointments(userId) {
+  const appointments = await appointmentModel.list(userId);
+  if (appointments.length === 0) return [];
+
+  const labIds = appointments.map((a) => a.labId).filter(Boolean);
+  const labs = await labModel.collection().find({ _id: { $in: labIds } }).toArray();
+  const labsById = new Map(labs.map((l) => [l._id.toString(), l]));
+
+  return appointments.map((appointment) => ({
+    ...appointment,
+    labName: labsById.get(appointment.labId?.toString())?.name || null,
+  }));
 }
 
 module.exports = { getAvailability, getServiceFee, createAppointment, listAppointments };

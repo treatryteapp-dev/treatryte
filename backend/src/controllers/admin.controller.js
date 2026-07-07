@@ -454,6 +454,26 @@ const updatePlatformSettings = asyncHandler(async (req, res) => {
 
 const { getDb } = require('../db');
 
+// Presence checks only - booleans, never the actual secret values - so a
+// misconfigured deployment (e.g. an empty NOMBA_WEBHOOK_SECRET silently
+// failing closed) shows up here instead of only being discoverable once a
+// real feature breaks in production.
+const configHealth = asyncHandler(async (req, res) => {
+  res.json({
+    jwtAccessSecret: Boolean(env.jwtAccessSecret),
+    awsS3Bucket: Boolean(env.aws.s3Bucket),
+    cloudfrontKeyPairId: Boolean(env.aws.cloudfrontKeyPairId),
+    cloudfrontPrivateKey: Boolean(
+      env.aws.cloudfrontPrivateKeyBase64 || env.aws.cloudfrontPrivateKeyPath
+    ),
+    nombaWebhookSecret: Boolean(env.nomba.webhookSecret),
+    nombaClientId: Boolean(env.nomba.clientId),
+    nombaClientSecret: Boolean(env.nomba.clientSecret),
+    brevoApiKey: Boolean(env.email.brevoApiKey),
+    emailFromAddress: Boolean(env.email.fromAddress),
+  });
+});
+
 module.exports = {
   listLabs,
   listLabDocuments,
@@ -476,4 +496,5 @@ module.exports = {
   updateProfile,
   listPlatformSettings,
   updatePlatformSettings,
+  configHealth,
 };
