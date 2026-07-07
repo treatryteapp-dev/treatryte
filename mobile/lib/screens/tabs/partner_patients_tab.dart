@@ -1139,7 +1139,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                                       fontSize: 11,
                                                       color: report.sourceType == 'partner' || (report.uploadedBy != null && report.uploadedBy != 'Patient Uploaded')
                                                           ? AppColors.primary
-                                                          : AppColors.textSecondary,
+                                                          : AppColors.onSurfaceVariant,
                                                       fontWeight: report.sourceType == 'partner' || (report.uploadedBy != null && report.uploadedBy != 'Patient Uploaded')
                                                           ? FontWeight.w600
                                                           : FontWeight.normal,
@@ -1148,7 +1148,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                                 ],
                                               ),
                                             ),
-                                            const Icon(Icons.open_in_new, size: 16, color: AppColors.textSecondary),
+                                            const Icon(Icons.open_in_new, size: 16, color: AppColors.onSurfaceVariant),
                                           ],
                                         ),
                                       ),

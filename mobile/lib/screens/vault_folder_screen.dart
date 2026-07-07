@@ -237,7 +237,7 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
                             fontSize: 12,
                             color: file.sourceType == 'partner' || (file.uploadedBy != null && file.uploadedBy != 'Patient Uploaded')
                                 ? AppColors.primary
-                                : AppColors.textSecondary,
+                                : AppColors.onSurfaceVariant,
                             fontWeight: file.sourceType == 'partner' || (file.uploadedBy != null && file.uploadedBy != 'Patient Uploaded')
                                 ? FontWeight.w600
                                 : FontWeight.normal,
