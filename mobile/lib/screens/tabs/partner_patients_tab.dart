@@ -848,7 +848,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                   ),
                                 ],
                               ),
-                              if (detail.linkedUserId == null) ...[
+                              if (detail.connectionStatus != 'accepted' && detail.connectionStatus != 'pending') ...[
                                 const SizedBox(height: AppSpacing.sm),
                                 SizedBox(
                                   width: double.infinity,

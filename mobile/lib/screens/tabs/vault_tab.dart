@@ -244,8 +244,8 @@ class _VaultTabState extends State<VaultTab> {
                       ),
                       subtitle: Text(
                         partner.shareAll
-                            ? 'Access to all folders'
-                            : '${partner.sharedFolderIds.length} folders shared',
+                            ? 'Tap to view records • Access to all folders'
+                            : 'Tap to view records • ${partner.sharedFolderIds.length} folders shared',
                         style: textTheme.bodySmall,
                       ),
                       trailing: const Icon(

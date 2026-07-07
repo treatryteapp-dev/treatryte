@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/activity_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/connection_provider.dart';
 import '../../providers/main_tab_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../theme/app_theme.dart';
@@ -23,6 +24,7 @@ class _HomeTabState extends State<HomeTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WalletProvider>().refresh();
       context.read<ActivityProvider>().refresh();
+      context.read<ConnectionProvider>().refresh();
     });
   }
 
@@ -33,10 +35,11 @@ class _HomeTabState extends State<HomeTab> {
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () => Future.wait([
-          context.read<WalletProvider>().refresh(),
-          context.read<ActivityProvider>().refresh(),
-        ]),
+        onRefresh: () async {
+          context.read<WalletProvider>().refresh();
+          context.read<ActivityProvider>().refresh();
+          context.read<ConnectionProvider>().refresh();
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
@@ -49,7 +52,27 @@ class _HomeTabState extends State<HomeTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _DashboardHeader(),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
+              Consumer<ConnectionProvider>(
+                builder: (context, connections, _) {
+                  if (connections.pending.isEmpty) return const SizedBox.shrink();
+                  return Card(
+                    color: AppColors.secondaryContainer.withValues(alpha: 0.6),
+                    margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: ListTile(
+                      leading: const Icon(Icons.mail_outline, color: AppColors.secondary),
+                      title: Text(
+                        '${connections.pending.length} pending invitation${connections.pending.length == 1 ? '' : 's'}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text('Tap to review partner access requests.'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/invitations'),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
               _WalletCard(wallet: wallet),
               const SizedBox(height: AppSpacing.xl),
               Text(

@@ -254,8 +254,10 @@ const getPatientDetail = asyncHandler(async (req, res) => {
   // a share request, and only for the folders (or "all") they granted -
   // being a registered patient of this lab is not enough on its own.
   let reports = [];
+  let connectionStatus = null;
   if (linkedUser) {
     const connection = await connectionModel.findByLabAndPatient(lab._id, patient.linkedUserId);
+    connectionStatus = connection?.status;
     if (connection?.status === 'accepted') {
       reports = connection.shareAll
         ? await vaultFileModel.findByUserId(patient.linkedUserId)
@@ -276,6 +278,8 @@ const getPatientDetail = asyncHandler(async (req, res) => {
       email: patient.email,
       dateOfBirth: patient.dateOfBirth,
       gender: patient.gender,
+      linkedUserId: patient.linkedUserId,
+      connectionStatus: connectionStatus,
       medicalProfile: linkedUser?.medicalProfile || { bloodGroup: null, allergies: [], conditions: [] },
     },
     reports,
