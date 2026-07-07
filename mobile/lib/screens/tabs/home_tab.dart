@@ -6,6 +6,7 @@ import '../../providers/activity_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connection_provider.dart';
 import '../../providers/main_tab_provider.dart';
+import '../../providers/medication_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../theme/app_theme.dart';
@@ -28,6 +29,7 @@ class _HomeTabState extends State<HomeTab> {
       context.read<ActivityProvider>().refresh();
       context.read<ConnectionProvider>().refresh();
       context.read<NotificationProvider>().refresh();
+      context.read<MedicationProvider>().refresh();
     });
   }
 
@@ -42,6 +44,7 @@ class _HomeTabState extends State<HomeTab> {
           context.read<WalletProvider>().refresh();
           context.read<ActivityProvider>().refresh();
           context.read<ConnectionProvider>().refresh();
+          context.read<MedicationProvider>().refresh();
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -324,6 +327,7 @@ class _QuickServicesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasPendingMeds = context.watch<MedicationProvider>().schedule.any((d) => d.status == 'pending');
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -333,39 +337,43 @@ class _QuickServicesGrid extends StatelessWidget {
       childAspectRatio: 2.6,
       children: [
         for (final service in _services)
-          Card(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              onTap: () =>
-                  context.read<MainTabProvider>().setIndex(service.tabIndex),
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: service.color,
-                        borderRadius: BorderRadius.circular(AppRadii.sm),
-                      ),
-                      child: Icon(
-                        service.icon,
-                        size: 18,
-                        color: service.onColor,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        service.label,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface,
+          _RotatingGlowCard(
+            isGlowing: service.label == 'Med Alarms' && hasPendingMeds,
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                onTap: () =>
+                    context.read<MainTabProvider>().setIndex(service.tabIndex),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: service.color,
+                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                        ),
+                        child: Icon(
+                          service.icon,
+                          size: 18,
+                          color: service.onColor,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          service.label,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -420,3 +428,63 @@ class _InsuranceBanner extends StatelessWidget {
     );
   }
 }
+
+class _RotatingGlowCard extends StatefulWidget {
+  const _RotatingGlowCard({required this.child, required this.isGlowing});
+  final Widget child;
+  final bool isGlowing;
+  @override
+  State<_RotatingGlowCard> createState() => _RotatingGlowCardState();
+}
+
+class _RotatingGlowCardState extends State<_RotatingGlowCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+  }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isGlowing) return widget.child;
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadii.md + 2),
+            gradient: SweepGradient(
+              center: Alignment.center,
+              startAngle: 0.0,
+              endAngle: 3.1415926535 * 2,
+              colors: const [
+                Colors.red,
+                Colors.redAccent,
+                Colors.transparent,
+                Colors.transparent,
+                Colors.red,
+              ],
+              transform: GradientRotation(_controller.value * 3.1415926535 * 2),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red.withOpacity(0.5),
+                blurRadius: 8,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(2.5),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+

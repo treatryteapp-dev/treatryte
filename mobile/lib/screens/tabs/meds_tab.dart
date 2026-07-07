@@ -92,34 +92,40 @@ class _MedsTabState extends State<MedsTab> {
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
                   child: Center(child: CircularProgressIndicator()),
                 )
-              else ...[
-                if (medications.nextDose != null)
-                  _ActiveMedicationCard(dose: medications.nextDose!),
-                const SizedBox(height: AppSpacing.xl),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("Today's Schedule", style: textTheme.headlineSmall),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text('View History'),
-                    ),
-                  ],
-                ),
-                if (medications.schedule.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.md,
-                    ),
-                    child: Text(
-                      'No medications scheduled for today.',
-                      style: textTheme.bodySmall,
-                    ),
-                  )
-                else
-                  for (final dose in medications.schedule)
-                    _DoseTile(dose: dose),
-              ],
+              else if (medications.schedule.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                    border: Border.all(color: AppColors.outlineVariant),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.medication_outlined,
+                        size: 48,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'No Meds for Today',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'You have no active prescriptions or medications scheduled for today.',
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                )
+              else
+                _GroupedPrescriptionAlarmCard(schedule: medications.schedule),
               const SizedBox(height: AppSpacing.xl),
               Text('Feedback Log', style: textTheme.headlineSmall),
               const SizedBox(height: 4),
@@ -196,59 +202,124 @@ class _MedsTabState extends State<MedsTab> {
   }
 }
 
-class _ActiveMedicationCard extends StatefulWidget {
-  const _ActiveMedicationCard({required this.dose});
-
-  final DoseScheduleItem dose;
+class _GroupedPrescriptionAlarmCard extends StatefulWidget {
+  const _GroupedPrescriptionAlarmCard({required this.schedule});
+  final List<DoseScheduleItem> schedule;
 
   @override
-  State<_ActiveMedicationCard> createState() => _ActiveMedicationCardState();
+  State<_GroupedPrescriptionAlarmCard> createState() => _GroupedPrescriptionAlarmCardState();
 }
 
-class _ActiveMedicationCardState extends State<_ActiveMedicationCard> {
-  Timer? _timer;
-  Duration _remaining = Duration.zero;
+class _GroupedPrescriptionAlarmCardState extends State<_GroupedPrescriptionAlarmCard> {
+  bool _expanded = false;
   bool _logging = false;
+  bool _askingConfirmation = false;
+  Timer? _countdownTimer;
+  Duration _timeUntilMidnight = Duration.zero;
 
   @override
   void initState() {
     super.initState();
-    _updateRemaining();
-    _timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _updateRemaining(),
-    );
+    _updateCountdown();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) => _updateCountdown());
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
-  void _updateRemaining() {
-    final diff = widget.dose.scheduledFor.difference(DateTime.now());
-    setState(() => _remaining = diff.isNegative ? Duration.zero : diff);
+  void _updateCountdown() {
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    final diff = midnight.difference(now);
+    if (mounted) {
+      setState(() => _timeUntilMidnight = diff.isNegative ? Duration.zero : diff);
+    }
   }
 
   String get _formattedCountdown {
-    final hours = _remaining.inHours.toString().padLeft(2, '0');
-    final minutes = (_remaining.inMinutes % 60).toString().padLeft(2, '0');
-    final seconds = (_remaining.inSeconds % 60).toString().padLeft(2, '0');
+    final hours = _timeUntilMidnight.inHours.toString().padLeft(2, '0');
+    final minutes = (_timeUntilMidnight.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (_timeUntilMidnight.inSeconds % 60).toString().padLeft(2, '0');
     return '$hours:$minutes:$seconds';
   }
 
-  Future<void> _logDose() async {
+  String _ordinal(int n) {
+    if (n % 100 >= 11 && n % 100 <= 13) return '${n}th';
+    switch (n % 10) {
+      case 1: return '${n}st';
+      case 2: return '${n}nd';
+      case 3: return '${n}rd';
+      default: return '${n}th';
+    }
+  }
+
+  void _showCelebrationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 40),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎉 🎊 ❤️ 💖 💕 ✨', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 16),
+                const Text('Awesome Job!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                const SizedBox(height: 8),
+                const Text('You logged your dose for today! Keep up the great streak!', textAlign: TextAlign.center, style: TextStyle(fontSize: 14)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                    child: const Text('Continue 💖'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmAndLogDose(DoseScheduleItem dose) async {
     setState(() => _logging = true);
-    await context.read<MedicationProvider>().logDose(widget.dose.doseLogId);
-    if (mounted) setState(() => _logging = false);
+    try {
+      await context.read<MedicationProvider>().logDose(dose.doseLogId);
+      if (!mounted) return;
+      setState(() {
+        _logging = false;
+        _askingConfirmation = false;
+      });
+      _showCelebrationDialog(context);
+    } catch (e) {
+      if (mounted) setState(() => _logging = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final pendingDoses = widget.schedule.where((d) => d.status == 'pending').toList();
+    final takenDoses = widget.schedule.where((d) => d.status == 'taken').toList();
+    final allDone = pendingDoses.isEmpty;
+    final nextIndex = takenDoses.length + 1;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -256,73 +327,163 @@ class _ActiveMedicationCardState extends State<_ActiveMedicationCard> {
           colors: [AppColors.primaryContainer, AppColors.primary],
         ),
         borderRadius: BorderRadius.circular(AppRadii.lg),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: 2,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(AppRadii.full),
-            ),
-            child: const Text(
-              'UPCOMING DOSE',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            widget.dose.medicationName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          Text(
-            'Dosage: ${widget.dose.dosage}',
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            _formattedCountdown,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const Text(
-            'Next dose in',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _logging ? null : _logDose,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.primary,
-              ),
-              child: _logging
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(AppRadii.full),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.alarm, color: Colors.white, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            allDone ? 'ALL COMPLETED' : 'ACTIVE PRESCRIPTION ALARM',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => setState(() => _expanded = !_expanded),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _expanded ? 'Hide Drugs' : 'View Prescription Drugs (${widget.schedule.length})',
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(_expanded ? Icons.expand_less : Icons.expand_more, color: Colors.white, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                if (allDone) ...[
+                  const Text(
+                    'All Medications Taken for Today! 🎉',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Great job adhering to your prescription plan. Next cycle resets in:',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    _formattedCountdown,
+                    style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w700, letterSpacing: 2),
+                  ),
+                ] else ...[
+                  Text(
+                    pendingDoses.first.medicationName,
+                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    'Dosage: ${pendingDoses.first.dosage} • Dose ${_ordinal(nextIndex)} of ${widget.schedule.length}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  if (!_askingConfirmation)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => setState(() => _askingConfirmation = true),
+                        icon: const Icon(Icons.check_circle_outline),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        label: Text(
+                          'Have you taken your ${_ordinal(nextIndex)} medication for today?',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                      ),
                     )
-                  : const Text('Log Dose'),
+                  else ...[
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(AppRadii.md),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Confirm: Have you taken your ${_ordinal(nextIndex)} medication (${pendingDoses.first.medicationName}) for today?',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: _logging ? null : () => setState(() => _askingConfirmation = false),
+                                  style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white54)),
+                                  child: const Text('No / Not Yet'),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: _logging ? null : () => _confirmAndLogDose(pendingDoses.first),
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.primary),
+                                  child: _logging
+                                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                      : const Text('Yes, I Have! ❤️', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ],
             ),
           ),
+          if (_expanded) ...[
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Prescription Drugs Schedule', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onSurface)),
+                  const SizedBox(height: AppSpacing.sm),
+                  for (final dose in widget.schedule)
+                    _DoseTile(dose: dose),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
