@@ -1,10 +1,26 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/patient_models.dart';
 import '../../providers/partner_provider.dart';
 import '../../theme/app_theme.dart';
+
+class _PrescriptionDrugForm {
+  final medicineCtrl = TextEditingController();
+  final dosageCtrl = TextEditingController();
+  final durationCtrl = TextEditingController();
+  final notesCtrl = TextEditingController();
+  DateTime? startDate = DateTime.now();
+  DateTime? endDate;
+  String timesDaily = '1 time daily';
+  String? fileName;
+  String? fileUrl;
+  String? fileId;
+  bool isUploading = false;
+}
 
 class PartnerPatientsTab extends StatefulWidget {
   const PartnerPatientsTab({super.key});
@@ -131,6 +147,10 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         bool isSubmitting = false;
+        bool isUploading = false;
+        String? attachedFileName;
+        String? attachedFileUrl;
+        String? attachedFileId;
         return StatefulBuilder(
           builder: (ctx, setSheetState) => Padding(
             padding: EdgeInsets.only(
@@ -189,12 +209,56 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                       alignLabelWithHint: true,
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+                  OutlinedButton.icon(
+                    icon: isUploading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            attachedFileName != null ? Icons.check_circle : Icons.upload_file,
+                            size: 18,
+                            color: attachedFileName != null ? AppColors.primary : null,
+                          ),
+                    label: Text(
+                      attachedFileName != null ? 'Attached: $attachedFileName' : 'Attach Medical Record / Document',
+                    ),
+                    onPressed: isUploading
+                        ? null
+                        : () async {
+                            final result = await FilePicker.platform.pickFiles(withData: true);
+                            final file = result?.files.single;
+                            if (file?.bytes != null) {
+                              setSheetState(() => isUploading = true);
+                              try {
+                                final res = await partner.uploadPatientFile(
+                                  patient.id,
+                                  fileName: file!.name,
+                                  mimeType: 'application/octet-stream',
+                                  bytes: file.bytes as Uint8List,
+                                  category: 'Medical Reports',
+                                );
+                                if (res != null) {
+                                  setSheetState(() {
+                                    attachedFileId = res['fileId'];
+                                    attachedFileName = res['fileName'];
+                                    attachedFileUrl = res['fileUrl'];
+                                  });
+                                }
+                              } finally {
+                                setSheetState(() => isUploading = false);
+                              }
+                            }
+                          },
+                  ),
                   const SizedBox(height: AppSpacing.lg),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
                       icon: const Icon(Icons.save_outlined, size: 18),
-                      onPressed: isSubmitting
+                      onPressed: isSubmitting || isUploading
                           ? null
                           : () async {
                               setSheetState(() => isSubmitting = true);
@@ -205,6 +269,9 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                   notes: notesCtrl.text.trim().isEmpty
                                       ? null
                                       : notesCtrl.text.trim(),
+                                  fileUrl: attachedFileUrl,
+                                  fileName: attachedFileName,
+                                  fileId: attachedFileId,
                                 );
                                 if (ctx.mounted) Navigator.of(ctx).pop(ok);
                               } finally {
@@ -298,11 +365,8 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
   }
 
   Future<void> _showAddPrescriptionSheet(PartnerPatient patient) async {
-    final medicineCtrl = TextEditingController();
-    final dosageCtrl = TextEditingController();
-    final durationCtrl = TextEditingController();
-    final notesCtrl = TextEditingController();
     final partner = context.read<PartnerProvider>();
+    final drugs = <_PrescriptionDrugForm>[_PrescriptionDrugForm()];
 
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -316,6 +380,9 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
               bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
             child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+              ),
               decoration: const BoxDecoration(
                 color: AppColors.surfaceContainerLowest,
                 borderRadius: BorderRadius.vertical(
@@ -350,57 +417,171 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                         color: AppColors.primary,
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'Add Prescription — ${patient.fullName}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      Expanded(
+                        child: Text(
+                          'Add Prescriptions — ${patient.fullName}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  TextField(
-                    controller: medicineCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Medicine Name',
-                      hintText: 'e.g. Lisinopril',
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < drugs.length; i++) ...[
+                            Card(
+                              margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                              color: AppColors.surfaceContainerLow,
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Drug #${i + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        if (drugs.length > 1)
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                            onPressed: () => setSheetState(() => drugs.removeAt(i)),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    TextField(
+                                      controller: drugs[i].medicineCtrl,
+                                      decoration: const InputDecoration(labelText: 'Medicine Name', hintText: 'e.g. Lisinopril'),
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: drugs[i].dosageCtrl,
+                                            decoration: const InputDecoration(labelText: 'Dosage', hintText: 'e.g. 10mg'),
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.sm),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: drugs[i].durationCtrl,
+                                            decoration: const InputDecoration(labelText: 'Duration', hintText: 'e.g. 14 days'),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () async {
+                                              final picked = await showDatePicker(
+                                                context: ctx,
+                                                initialDate: drugs[i].startDate ?? DateTime.now(),
+                                                firstDate: DateTime(2020),
+                                                lastDate: DateTime(2030),
+                                              );
+                                              if (picked != null) setSheetState(() => drugs[i].startDate = picked);
+                                            },
+                                            child: InputDecorator(
+                                              decoration: const InputDecoration(labelText: 'Start Date'),
+                                              child: Text(drugs[i].startDate != null ? '${drugs[i].startDate!.day}/${drugs[i].startDate!.month}/${drugs[i].startDate!.year}' : 'Select'),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.sm),
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () async {
+                                              final picked = await showDatePicker(
+                                                context: ctx,
+                                                initialDate: drugs[i].endDate ?? (drugs[i].startDate ?? DateTime.now()).add(const Duration(days: 14)),
+                                                firstDate: DateTime(2020),
+                                                lastDate: DateTime(2030),
+                                              );
+                                              if (picked != null) setSheetState(() => drugs[i].endDate = picked);
+                                            },
+                                            child: InputDecorator(
+                                              decoration: const InputDecoration(labelText: 'End Date'),
+                                              child: Text(drugs[i].endDate != null ? '${drugs[i].endDate!.day}/${drugs[i].endDate!.month}/${drugs[i].endDate!.year}' : 'Select'),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    InputDecorator(
+                                      decoration: const InputDecoration(labelText: 'Number of times daily'),
+                                      child: DropdownButton<String>(
+                                        value: drugs[i].timesDaily,
+                                        isExpanded: true,
+                                        underline: const SizedBox.shrink(),
+                                        items: ['1 time daily', '2 times daily', '3 times daily', '4 times daily', 'As needed']
+                                            .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                                            .toList(),
+                                        onChanged: (val) => setSheetState(() => drugs[i].timesDaily = val ?? '1 time daily'),
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    TextField(
+                                      controller: drugs[i].notesCtrl,
+                                      maxLines: 2,
+                                      decoration: const InputDecoration(labelText: 'Notes (optional)', hintText: 'Take after meals...'),
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    OutlinedButton.icon(
+                                      icon: drugs[i].isUploading
+                                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                          : Icon(drugs[i].fileName != null ? Icons.check_circle : Icons.upload_file, size: 18),
+                                      label: Text(drugs[i].fileName != null ? 'Attached: ${drugs[i].fileName}' : 'Attach Medical Record / Document'),
+                                      onPressed: drugs[i].isUploading ? null : () async {
+                                        final result = await FilePicker.platform.pickFiles(withData: true);
+                                        final file = result?.files.single;
+                                        if (file?.bytes != null) {
+                                          setSheetState(() => drugs[i].isUploading = true);
+                                          try {
+                                            final res = await partner.uploadPatientFile(
+                                              patient.id,
+                                              fileName: file!.name,
+                                              mimeType: 'application/octet-stream',
+                                              bytes: file.bytes as Uint8List,
+                                              category: 'Prescriptions',
+                                            );
+                                            if (res != null) {
+                                              setSheetState(() {
+                                                drugs[i].fileId = res['fileId'];
+                                                drugs[i].fileName = res['fileName'];
+                                                drugs[i].fileUrl = res['fileUrl'];
+                                              });
+                                            }
+                                          } finally {
+                                            setSheetState(() => drugs[i].isUploading = false);
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                          TextButton.icon(
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Another Drug'),
+                            onPressed: () => setSheetState(() => drugs.add(_PrescriptionDrugForm())),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: dosageCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Dosage',
-                            hintText: 'e.g. 10mg',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: TextField(
-                          controller: durationCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Duration',
-                            hintText: 'e.g. 14 days',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  TextField(
-                    controller: notesCtrl,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes (optional)',
-                      hintText: 'Take after meals...',
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -408,21 +589,26 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                       onPressed: isSubmitting
                           ? null
                           : () async {
-                              if (medicineCtrl.text.trim().isEmpty ||
-                                  dosageCtrl.text.trim().isEmpty ||
-                                  durationCtrl.text.trim().isEmpty) {
-                                return;
-                              }
+                              final validDrugs = drugs.where((d) => d.medicineCtrl.text.trim().isNotEmpty && d.dosageCtrl.text.trim().isNotEmpty).toList();
+                              if (validDrugs.isEmpty) return;
                               setSheetState(() => isSubmitting = true);
                               try {
+                                final payload = validDrugs.map((d) => {
+                                  'medicineName': d.medicineCtrl.text.trim(),
+                                  'dosage': d.dosageCtrl.text.trim(),
+                                  'duration': d.durationCtrl.text.trim(),
+                                  if (d.notesCtrl.text.trim().isNotEmpty) 'notes': d.notesCtrl.text.trim(),
+                                  if (d.startDate != null) 'startDate': d.startDate!.toIso8601String(),
+                                  if (d.endDate != null) 'endDate': d.endDate!.toIso8601String(),
+                                  'timesDaily': d.timesDaily,
+                                  if (d.fileUrl != null) 'fileUrl': d.fileUrl,
+                                  if (d.fileName != null) 'fileName': d.fileName,
+                                  if (d.fileId != null) 'fileId': d.fileId,
+                                }).toList();
+
                                 final ok = await partner.addPrescription(
                                   patient.id,
-                                  medicineName: medicineCtrl.text.trim(),
-                                  dosage: dosageCtrl.text.trim(),
-                                  duration: durationCtrl.text.trim(),
-                                  notes: notesCtrl.text.trim().isEmpty
-                                      ? null
-                                      : notesCtrl.text.trim(),
+                                  drugs: payload,
                                 );
                                 if (ctx.mounted) Navigator.of(ctx).pop(ok);
                               } finally {
@@ -436,7 +622,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                               width: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Save Prescription'),
+                          : const Text('Save Prescriptions'),
                     ),
                   ),
                 ],
@@ -452,8 +638,8 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
       SnackBar(
         content: Text(
           saved
-              ? 'Prescription saved for ${patient.fullName}'
-              : 'Failed to save prescription.',
+              ? 'Prescriptions saved for ${patient.fullName}'
+              : 'Failed to save prescriptions.',
         ),
       ),
     );
@@ -960,6 +1146,28 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                                         fontSize: 11,
                                                       ),
                                                 ),
+                                                if (record.fileUrl != null && record.fileUrl!.isNotEmpty) ...[
+                                                  const SizedBox(height: 4),
+                                                  InkWell(
+                                                    onTap: () async {
+                                                      final uri = Uri.parse(record.fileUrl!);
+                                                      if (await canLaunchUrl(uri)) {
+                                                        await launchUrl(uri, mode: LaunchMode.platformDefault, webOnlyWindowName: '_blank');
+                                                      }
+                                                    },
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        const Icon(Icons.attach_file, size: 14, color: AppColors.primary),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          record.fileName ?? 'Attached Document',
+                                                          style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
                                               ],
                                             ),
                                           ),
@@ -1039,9 +1247,31 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                                 ),
                                               ),
                                               Text(
-                                                '${rx.duration}${rx.notes.isNotEmpty ? ' • ${rx.notes}' : ''}',
+                                                '${rx.duration}${rx.timesDaily != null ? ' • ${rx.timesDaily}' : ''}${rx.notes.isNotEmpty ? ' • ${rx.notes}' : ''}',
                                                 style: textTheme.bodySmall,
                                               ),
+                                              if (rx.fileUrl != null && rx.fileUrl!.isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                InkWell(
+                                                  onTap: () async {
+                                                    final uri = Uri.parse(rx.fileUrl!);
+                                                    if (await canLaunchUrl(uri)) {
+                                                      await launchUrl(uri, mode: LaunchMode.platformDefault, webOnlyWindowName: '_blank');
+                                                    }
+                                                  },
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.attach_file, size: 14, color: AppColors.primary),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        rx.fileName ?? 'Attached Document',
+                                                        style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),
@@ -1093,7 +1323,7 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                         if (report.url != null && report.url!.isNotEmpty) {
                                           final uri = Uri.parse(report.url!);
                                           if (await canLaunchUrl(uri)) {
-                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                            await launchUrl(uri, mode: LaunchMode.platformDefault, webOnlyWindowName: '_blank');
                                           } else {
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open file.')));
@@ -1133,17 +1363,22 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                                     ),
                                                   ),
                                                   const SizedBox(height: 2),
-                                                  Text(
-                                                    report.uploadedBy ?? 'Patient Uploaded',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: report.sourceType == 'partner' || (report.uploadedBy != null && report.uploadedBy != 'Patient Uploaded')
-                                                          ? AppColors.primary
-                                                          : AppColors.onSurfaceVariant,
-                                                      fontWeight: report.sourceType == 'partner' || (report.uploadedBy != null && report.uploadedBy != 'Patient Uploaded')
-                                                          ? FontWeight.w600
-                                                          : FontWeight.normal,
-                                                    ),
+                                                  Builder(
+                                                    builder: (context) {
+                                                      final isPatientUploaded = report.uploadedBy == null || report.uploadedBy == 'Patient Uploaded' || report.sourceType == 'patient';
+                                                      return Text(
+                                                        isPatientUploaded ? 'Patient Uploaded' : 'Uploaded by ${report.uploadedBy}',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color: !isPatientUploaded
+                                                              ? AppColors.primary
+                                                              : AppColors.onSurfaceVariant,
+                                                          fontWeight: !isPatientUploaded
+                                                              ? FontWeight.w600
+                                                              : FontWeight.normal,
+                                                        ),
+                                                      );
+                                                    },
                                                   ),
                                                 ],
                                               ),

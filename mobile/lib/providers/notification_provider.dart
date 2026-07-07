@@ -13,6 +13,9 @@ class NotificationProvider extends ChangeNotifier {
   List<NotificationItem> earlier = [];
   bool isLoading = false;
 
+  int get unreadCount =>
+      [...today, ...yesterday, ...earlier].where((n) => !n.isRead).length;
+
   Future<void> refresh() async {
     isLoading = true;
     notifyListeners();

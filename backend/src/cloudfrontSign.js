@@ -31,15 +31,20 @@ function getPrivateKey() {
  * CloudFront itself.
  */
 function signVaultUrl(s3Key, { ttlSeconds = 300 } = {}) {
-  const url = `https://${env.aws.cloudfrontDomain}/${s3Key}`;
-  const dateLessThan = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+  try {
+    const url = `https://${env.aws.cloudfrontDomain}/${s3Key}`;
+    const dateLessThan = new Date(Date.now() + ttlSeconds * 1000).toISOString();
 
-  return getSignedUrl({
-    url,
-    keyPairId: env.aws.cloudfrontKeyPairId,
-    privateKey: getPrivateKey(),
-    dateLessThan,
-  });
+    return getSignedUrl({
+      url,
+      keyPairId: env.aws.cloudfrontKeyPairId,
+      privateKey: getPrivateKey(),
+      dateLessThan,
+    });
+  } catch (err) {
+    console.error('Failed to sign CloudFront URL:', err.message);
+    return null;
+  }
 }
 
 module.exports = { signVaultUrl };

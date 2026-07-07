@@ -58,6 +58,8 @@ class MedicalRecord {
     required this.visitType,
     required this.notes,
     required this.createdAt,
+    this.fileUrl,
+    this.fileName,
   });
 
   factory MedicalRecord.fromJson(Map<String, dynamic> json) => MedicalRecord(
@@ -65,12 +67,16 @@ class MedicalRecord {
     visitType: json['visitType'] as String,
     notes: json['notes'] as String? ?? '',
     createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+    fileUrl: json['fileUrl'] as String?,
+    fileName: json['fileName'] as String?,
   );
 
   final String id;
   final String visitType;
   final String notes;
   final DateTime? createdAt;
+  final String? fileUrl;
+  final String? fileName;
 }
 
 class Prescription {
@@ -81,6 +87,11 @@ class Prescription {
     required this.duration,
     required this.notes,
     required this.createdAt,
+    this.startDate,
+    this.endDate,
+    this.timesDaily,
+    this.fileUrl,
+    this.fileName,
   });
 
   factory Prescription.fromJson(Map<String, dynamic> json) => Prescription(
@@ -90,6 +101,11 @@ class Prescription {
     duration: json['duration'] as String,
     notes: json['notes'] as String? ?? '',
     createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+    startDate: DateTime.tryParse(json['startDate'] as String? ?? ''),
+    endDate: DateTime.tryParse(json['endDate'] as String? ?? ''),
+    timesDaily: json['timesDaily'] as String?,
+    fileUrl: json['fileUrl'] as String?,
+    fileName: json['fileName'] as String?,
   );
 
   final String id;
@@ -98,6 +114,11 @@ class Prescription {
   final String duration;
   final String notes;
   final DateTime? createdAt;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final String? timesDaily;
+  final String? fileUrl;
+  final String? fileName;
 }
 
 class PatientDetail {

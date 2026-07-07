@@ -217,10 +217,17 @@ class PartnerProvider extends ChangeNotifier {
 
   Future<bool> addPrescription(
     String patientId, {
-    required String medicineName,
-    required String dosage,
-    required String duration,
+    String medicineName = '',
+    String dosage = '',
+    String duration = '',
     String? notes,
+    String? startDate,
+    String? endDate,
+    String? timesDaily,
+    String? fileUrl,
+    String? fileName,
+    String? fileId,
+    List<Map<String, dynamic>>? drugs,
   }) async {
     try {
       await _service.addPrescription(
@@ -229,6 +236,13 @@ class PartnerProvider extends ChangeNotifier {
         dosage: dosage,
         duration: duration,
         notes: notes,
+        startDate: startDate,
+        endDate: endDate,
+        timesDaily: timesDaily,
+        fileUrl: fileUrl,
+        fileName: fileName,
+        fileId: fileId,
+        drugs: drugs,
       );
       await loadPatientDetail(patientId);
       return true;
@@ -278,22 +292,49 @@ class PartnerProvider extends ChangeNotifier {
     String patientId, {
     required String visitType,
     String? notes,
+    String? fileUrl,
+    String? fileName,
+    String? fileId,
   }) async {
     try {
       await _service.issueMedicalRecord(
         patientId,
         visitType: visitType,
         notes: notes,
+        fileUrl: fileUrl,
+        fileName: fileName,
+        fileId: fileId,
       );
-      // Reload both the detail view and the patients list - the backend
-      // stamps lastVisitAt on issue, so the patients list sort order
-      // (most-recent-first) needs to be refreshed too.
       await Future.wait([loadPatientDetail(patientId), loadPatients()]);
       return true;
     } on ApiException catch (e) {
       patientDetailError = e.message;
       notifyListeners();
       return false;
+    }
+  }
+
+  Future<Map<String, String>?> uploadPatientFile(
+    String patientId, {
+    required String fileName,
+    required String mimeType,
+    required List<int> bytes,
+    required String category,
+  }) async {
+    try {
+      final res = await _service.uploadPatientFile(
+        patientId,
+        fileName: fileName,
+        mimeType: mimeType,
+        bytes: bytes,
+        category: category,
+      );
+      await loadPatientDetail(patientId);
+      return res;
+    } on ApiException catch (e) {
+      patientDetailError = e.message;
+      notifyListeners();
+      return null;
     }
   }
 }

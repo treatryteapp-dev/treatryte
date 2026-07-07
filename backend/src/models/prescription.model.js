@@ -6,7 +6,7 @@ function collection() {
   return getDb().collection(COLLECTION);
 }
 
-async function create({ labId, patientId, userId, medicineName, dosage, duration, notes }) {
+async function create({ labId, patientId, userId, medicineName, dosage, duration, notes, startDate, endDate, timesDaily, fileUrl, fileName, fileId }) {
   const now = new Date();
   const doc = {
     labId,
@@ -14,8 +14,14 @@ async function create({ labId, patientId, userId, medicineName, dosage, duration
     userId: userId || null,
     medicineName,
     dosage,
-    duration,
+    duration: duration || '',
     notes: notes || '',
+    startDate: startDate || now,
+    endDate: endDate || null,
+    timesDaily: timesDaily || '1 time daily',
+    fileUrl: fileUrl || null,
+    fileName: fileName || null,
+    fileId: fileId || null,
     createdAt: now,
     updatedAt: now,
   };

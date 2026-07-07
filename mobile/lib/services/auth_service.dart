@@ -80,6 +80,7 @@ class AuthService {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
     );
+    await _storage.saveKeepLoggedIn(true);
     return AuthResult(result.user);
   }
 
@@ -137,14 +138,20 @@ class AuthService {
 
           final refreshed = await _api.post(
             '/auth/refresh',
-            _parseAuthResponse,
+            (data) => {
+              'accessToken': data['accessToken'] as String,
+              'refreshToken': data['refreshToken'] as String,
+            },
             body: {'refreshToken': refreshToken},
           );
           await _storage.saveTokens(
-            accessToken: refreshed.accessToken,
-            refreshToken: refreshed.refreshToken,
+            accessToken: refreshed['accessToken']!,
+            refreshToken: refreshed['refreshToken']!,
           );
-          return refreshed.user;
+          return await _api.get(
+            '/auth/me',
+            (data) => AppUser.fromJson(data['user']),
+          );
         } on ApiException {
           // Refresh also failed — session is fully expired. Clear credentials.
           await _storage.clear();

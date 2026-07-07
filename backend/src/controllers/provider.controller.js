@@ -302,10 +302,32 @@ const getPatientDetail = asyncHandler(async (req, res) => {
 });
 
 const addPrescriptionSchema = z.object({
-  medicineName: z.string().min(1),
-  dosage: z.string().min(1),
-  duration: z.string().min(1),
+  medicineName: z.string().optional(),
+  dosage: z.string().optional(),
+  duration: z.string().optional(),
   notes: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  timesDaily: z.string().optional(),
+  fileUrl: z.string().optional(),
+  fileName: z.string().optional(),
+  fileId: z.string().optional(),
+  drugs: z
+    .array(
+      z.object({
+        medicineName: z.string().min(1),
+        dosage: z.string().min(1),
+        duration: z.string().optional(),
+        notes: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        timesDaily: z.string().optional(),
+        fileUrl: z.string().optional(),
+        fileName: z.string().optional(),
+        fileId: z.string().optional(),
+      })
+    )
+    .optional(),
 });
 
 const addPrescription = asyncHandler(async (req, res) => {
@@ -313,40 +335,65 @@ const addPrescription = asyncHandler(async (req, res) => {
   const patientId = parseObjectId(req.params.id);
   const patient = await getOwnedPatient(lab, patientId);
 
-  const prescription = await prescriptionModel.create({
-    labId: lab._id,
-    patientId,
-    userId: patient.linkedUserId,
-    medicineName: req.body.medicineName,
-    dosage: req.body.dosage,
-    duration: req.body.duration,
-    notes: req.body.notes,
-  });
+  const drugsList =
+    Array.isArray(req.body.drugs) && req.body.drugs.length > 0
+      ? req.body.drugs
+      : [req.body];
 
-  if (patient.linkedUserId) {
-    await medicationModel.create({
+  const createdPrescriptions = [];
+
+  for (const drug of drugsList) {
+    if (!drug.medicineName || !drug.dosage) continue;
+    const prescription = await prescriptionModel.create({
+      labId: lab._id,
+      patientId,
       userId: patient.linkedUserId,
-      name: req.body.medicineName,
-      dosage: req.body.dosage,
-      scheduleTimes: ['8:00 AM', '2:00 PM', '8:00 PM'],
-      planStatus: 'active',
-      startDate: new Date(),
-      endDate: null,
+      medicineName: drug.medicineName,
+      dosage: drug.dosage,
+      duration: drug.duration || '',
+      notes: drug.notes || '',
+      startDate: drug.startDate ? new Date(drug.startDate) : new Date(),
+      endDate: drug.endDate ? new Date(drug.endDate) : null,
+      timesDaily: drug.timesDaily || '1 time daily',
+      fileUrl: drug.fileUrl || req.body.fileUrl || null,
+      fileName: drug.fileName || req.body.fileName || null,
+      fileId: drug.fileId || req.body.fileId || null,
     });
+    createdPrescriptions.push(prescription);
 
+    if (patient.linkedUserId) {
+      await medicationModel.create({
+        userId: patient.linkedUserId,
+        name: drug.medicineName,
+        dosage: drug.dosage,
+        scheduleTimes: [drug.timesDaily || '1 time daily'],
+        planStatus: 'active',
+        startDate: drug.startDate ? new Date(drug.startDate) : new Date(),
+        endDate: drug.endDate ? new Date(drug.endDate) : null,
+      });
+    }
+  }
+
+  if (patient.linkedUserId && createdPrescriptions.length > 0) {
     await notificationService.notify(patient.linkedUserId, {
       type: 'prescription',
       title: 'New Prescription',
-      body: `${lab.name} added a new prescription: ${req.body.medicineName}.`,
+      body: `${lab.name} added ${createdPrescriptions.length} new prescription(s).`,
     });
   }
 
-  res.status(201).json({ prescription });
+  res.status(201).json({
+    prescription: createdPrescriptions[0],
+    prescriptions: createdPrescriptions,
+  });
 });
 
 const issueMedicalRecordSchema = z.object({
   visitType: z.string().min(1),
   notes: z.string().optional(),
+  fileUrl: z.string().optional(),
+  fileName: z.string().optional(),
+  fileId: z.string().optional(),
 });
 
 const issueMedicalRecord = asyncHandler(async (req, res) => {
@@ -360,10 +407,11 @@ const issueMedicalRecord = asyncHandler(async (req, res) => {
     userId: patient.linkedUserId,
     visitType: req.body.visitType,
     notes: req.body.notes,
+    fileUrl: req.body.fileUrl || null,
+    fileName: req.body.fileName || null,
+    fileId: req.body.fileId || null,
   });
 
-  // Stamp the patient's lastVisitAt so the saved-patients list stays
-  // sorted correctly (most recent first) after a record is issued.
   await patientModel.touchLastVisit(patientId);
 
   if (patient.linkedUserId) {
@@ -377,6 +425,58 @@ const issueMedicalRecord = asyncHandler(async (req, res) => {
   res.status(201).json({ record });
 });
 
+const presignPatientFileUploadSchema = z.object({
+  fileName: z.string().min(1),
+  mimeType: z.string().min(1),
+  sizeBytes: z.number().int().positive(),
+  category: z.string().min(1),
+  folderId: z.string().optional(),
+});
+
+const presignPatientFileUpload = asyncHandler(async (req, res) => {
+  const lab = await getProviderLab(req.userId);
+  const patient = await getOwnedPatient(lab, parseObjectId(req.params.id));
+
+  const folderId = req.body.folderId ? parseObjectId(req.body.folderId) : undefined;
+  const targetUserId = patient.linkedUserId || patient._id;
+
+  const result = await vaultService.presignUpload(targetUserId, {
+    fileName: req.body.fileName,
+    mimeType: req.body.mimeType,
+    sizeBytes: req.body.sizeBytes,
+    category: req.body.category || 'Medical Reports',
+    labId: lab._id,
+    folderId,
+    source: lab.name,
+    hospitalName: lab.name,
+  });
+
+  res.status(201).json(result);
+});
+
+const confirmPatientFileUploadSchema = z.object({
+  fileId: z.string().optional(),
+});
+
+const confirmPatientFileUpload = asyncHandler(async (req, res) => {
+  const lab = await getProviderLab(req.userId);
+  const patient = await getOwnedPatient(lab, parseObjectId(req.params.id));
+  const targetUserId = patient.linkedUserId || patient._id;
+
+  const fileId = parseObjectId(req.body.fileId || req.params.fileId);
+  const file = await vaultService.confirmUpload(targetUserId, fileId);
+
+  if (patient.linkedUserId) {
+    await notificationService.notify(patient.linkedUserId, {
+      type: 'medical_record',
+      title: 'New Report Uploaded',
+      body: `${lab.name} uploaded a new document: ${file.fileName}`,
+    });
+  }
+
+  res.json({ file });
+});
+
 const invitePatientSchema = z.object({
   email: z.string().email(),
 });
@@ -388,8 +488,6 @@ const invitePatient = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'No TreatRyte account found for this email', 'USER_NOT_FOUND');
   }
 
-  // Idempotent - re-inviting an already-pending/accepted patient doesn't
-  // create a duplicate connection.
   await connectionModel.findOrCreatePending(lab._id, invitee._id);
 
   await notificationService.notify(invitee._id, {
@@ -408,6 +506,8 @@ module.exports = {
   addPrescriptionSchema,
   createPatientSchema,
   issueMedicalRecordSchema,
+  presignPatientFileUploadSchema,
+  confirmPatientFileUploadSchema,
   invitePatientSchema,
   getProfile,
   resubmitApplication,
@@ -424,5 +524,7 @@ module.exports = {
   getPatientDetail,
   addPrescription,
   issueMedicalRecord,
+  presignPatientFileUpload,
+  confirmPatientFileUpload,
   invitePatient,
 };

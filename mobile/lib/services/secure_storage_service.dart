@@ -1,7 +1,13 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorageService {
-  SecureStorageService() : _storage = const FlutterSecureStorage();
+  SecureStorageService()
+      : _storage = const FlutterSecureStorage(
+          webOptions: WebOptions(
+            dbName: 'treatryte_secure_storage',
+            publicKey: 'treatryte_public_key',
+          ),
+        );
 
   final FlutterSecureStorage _storage;
 

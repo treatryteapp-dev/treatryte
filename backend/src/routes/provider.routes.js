@@ -27,5 +27,8 @@ router.post('/patients/invite', validateBody(controller.invitePatientSchema), co
 router.get('/patients/:id', controller.getPatientDetail);
 router.post('/patients/:id/prescriptions', validateBody(controller.addPrescriptionSchema), controller.addPrescription);
 router.post('/patients/:id/records', validateBody(controller.issueMedicalRecordSchema), controller.issueMedicalRecord);
+router.post('/patients/:id/files/presign', validateBody(controller.presignPatientFileUploadSchema), controller.presignPatientFileUpload);
+router.post('/patients/:id/files/confirm', validateBody(controller.confirmPatientFileUploadSchema), controller.confirmPatientFileUpload);
+router.post('/patients/:id/files/:fileId/confirm', validateBody(controller.confirmPatientFileUploadSchema), controller.confirmPatientFileUpload);
 
 module.exports = router;

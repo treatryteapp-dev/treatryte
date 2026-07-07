@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/appointment_models.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/partner_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -36,6 +39,9 @@ void showIssueRecordSheet(BuildContext context) {
   final notesCtrl = TextEditingController();
   String selectedVisitType = 'General Consultation';
   var submitting = false;
+  var isUploading = false;
+  Uint8List? pickedBytes;
+  String? pickedName;
   const visitTypes = [
     'General Consultation',
     'Follow-up Visit',
@@ -141,11 +147,45 @@ void showIssueRecordSheet(BuildContext context) {
                   alignLabelWithHint: true,
                 ),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                icon: isUploading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        pickedName != null
+                            ? Icons.check_circle
+                            : Icons.upload_file,
+                        size: 18,
+                      ),
+                label: Text(
+                  pickedName != null
+                      ? 'Attached: $pickedName'
+                      : 'Attach Medical Record / Document',
+                ),
+                onPressed: isUploading
+                    ? null
+                    : () async {
+                        final result = await FilePicker.platform.pickFiles(
+                          withData: true,
+                        );
+                        final file = result?.files.single;
+                        if (file?.bytes != null) {
+                          setSheetState(() {
+                            pickedBytes = file!.bytes as Uint8List;
+                            pickedName = file.name;
+                          });
+                        }
+                      },
+              ),
               const SizedBox(height: AppSpacing.lg),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  icon: submitting
+                  icon: submitting || isUploading
                       ? const SizedBox(
                           width: 16,
                           height: 16,
@@ -155,8 +195,8 @@ void showIssueRecordSheet(BuildContext context) {
                           ),
                         )
                       : const Icon(Icons.save_outlined, size: 18),
-                  label: Text(submitting ? 'Saving...' : 'Save Record'),
-                  onPressed: submitting
+                  label: Text(submitting || isUploading ? 'Saving...' : 'Save Record'),
+                  onPressed: submitting || isUploading
                       ? null
                       : () async {
                           final name = nameCtrl.text.trim();
@@ -192,12 +232,38 @@ void showIssueRecordSheet(BuildContext context) {
                             return;
                           }
 
+                          String? attachedFileId;
+                          String? attachedFileUrl;
+                          String? attachedFileName;
+                          if (pickedBytes != null && pickedName != null) {
+                            setSheetState(() => isUploading = true);
+                            try {
+                              final res = await partner.uploadPatientFile(
+                                patient.id,
+                                fileName: pickedName!,
+                                mimeType: 'application/octet-stream',
+                                bytes: pickedBytes!,
+                                category: 'Medical Records',
+                              );
+                              if (res != null) {
+                                attachedFileId = res['fileId'];
+                                attachedFileUrl = res['fileUrl'];
+                                attachedFileName = res['fileName'];
+                              }
+                            } finally {
+                              setSheetState(() => isUploading = false);
+                            }
+                          }
+
                           final ok = await partner.issueMedicalRecord(
                             patient.id,
                             visitType: selectedVisitType,
                             notes: notesCtrl.text.trim().isEmpty
                                 ? null
                                 : notesCtrl.text.trim(),
+                            fileUrl: attachedFileUrl,
+                            fileName: attachedFileName,
+                            fileId: attachedFileId,
                           );
                           if (ctx.mounted) Navigator.of(ctx).pop();
                           if (context.mounted) {
@@ -325,11 +391,16 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
     final user = context.watch<AuthProvider>().currentUser;
     final textTheme = Theme.of(context).textTheme;
     final partner = context.watch<PartnerProvider>();
+    final unreadCount = context.watch<NotificationProvider>().unreadCount;
 
     if (!_loaded) {
       _loaded = true;
       final provider = context.read<PartnerProvider>();
-      Future.microtask(() => provider.loadAppointments());
+      final notifProvider = context.read<NotificationProvider>();
+      Future.microtask(() {
+        provider.loadAppointments();
+        notifProvider.refresh();
+      });
     }
 
     final all = partner.appointments;
@@ -368,7 +439,15 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
                 ),
                 IconButton.filledTonal(
                   onPressed: () => context.push('/notifications'),
-                  icon: const Icon(Icons.notifications_none),
+                  icon: Badge(
+                    isLabelVisible: unreadCount > 0,
+                    label: Text(
+                      '$unreadCount',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    backgroundColor: Colors.red,
+                    child: const Icon(Icons.notifications_none),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 GestureDetector(

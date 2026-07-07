@@ -101,10 +101,19 @@ class ProviderService {
     String patientId, {
     required String visitType,
     String? notes,
+    String? fileUrl,
+    String? fileName,
+    String? fileId,
   }) => _api.post(
     '/provider/patients/$patientId/records',
     (data) => MedicalRecord.fromJson(data['record'] as Map<String, dynamic>),
-    body: {'visitType': visitType, if (notes != null) 'notes': notes},
+    body: {
+      'visitType': visitType,
+      if (notes != null) 'notes': notes,
+      if (fileUrl != null) 'fileUrl': fileUrl,
+      if (fileName != null) 'fileName': fileName,
+      if (fileId != null) 'fileId': fileId,
+    },
   );
 
   Future<void> addPrescription(
@@ -113,16 +122,69 @@ class ProviderService {
     required String dosage,
     required String duration,
     String? notes,
+    String? startDate,
+    String? endDate,
+    String? timesDaily,
+    String? fileUrl,
+    String? fileName,
+    String? fileId,
+    List<Map<String, dynamic>>? drugs,
   }) => _api.post(
     '/provider/patients/$patientId/prescriptions',
     (_) => null,
     body: {
-      'medicineName': medicineName,
-      'dosage': dosage,
-      'duration': duration,
-      if (notes != null) 'notes': notes,
+      if (drugs != null && drugs.isNotEmpty)
+        'drugs': drugs
+      else ...{
+        'medicineName': medicineName,
+        'dosage': dosage,
+        'duration': duration,
+        if (notes != null) 'notes': notes,
+        if (startDate != null) 'startDate': startDate,
+        if (endDate != null) 'endDate': endDate,
+        if (timesDaily != null) 'timesDaily': timesDaily,
+        if (fileUrl != null) 'fileUrl': fileUrl,
+        if (fileName != null) 'fileName': fileName,
+        if (fileId != null) 'fileId': fileId,
+      }
     },
   );
+
+  Future<Map<String, String>> uploadPatientFile(
+    String patientId, {
+    required String fileName,
+    required String mimeType,
+    required List<int> bytes,
+    required String category,
+  }) async {
+    final presign = await _api.post(
+      '/provider/patients/$patientId/files/presign',
+      (data) => {
+        'fileId': data['fileId'] as String,
+        'uploadUrl': data['uploadUrl'] as String,
+      },
+      body: {
+        'fileName': fileName,
+        'mimeType': mimeType,
+        'sizeBytes': bytes.length,
+        'category': category,
+      },
+    );
+
+    await _api.putRaw(presign['uploadUrl']!, bytes, contentType: mimeType);
+
+    final confirmed = await _api.post(
+      '/provider/patients/$patientId/files/${presign['fileId']}/confirm',
+      (data) => data['file'] as Map<String, dynamic>,
+      body: {'fileId': presign['fileId']},
+    );
+
+    return {
+      'fileId': presign['fileId']!,
+      'fileName': fileName,
+      'fileUrl': confirmed['url'] as String? ?? '',
+    };
+  }
 
   Future<void> invitePatient(String email) => _api.post(
     '/provider/patients/invite',

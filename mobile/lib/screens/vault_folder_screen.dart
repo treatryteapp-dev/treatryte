@@ -210,7 +210,7 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
                           if (file.url != null && file.url!.isNotEmpty) {
                             final uri = Uri.parse(file.url!);
                             if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              await launchUrl(uri, mode: LaunchMode.platformDefault, webOnlyWindowName: '_blank');
                             } else {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open file.')));

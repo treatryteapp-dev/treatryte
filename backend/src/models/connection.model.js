@@ -1,3 +1,4 @@
+const { ObjectId } = require('mongodb');
 const { getDb } = require('../db');
 
 const COLLECTION = 'connections';
@@ -6,12 +7,23 @@ function collection() {
   return getDb().collection(COLLECTION);
 }
 
+function idVariant(id) {
+  if (!id) return id;
+  if (typeof id === 'string' && ObjectId.isValid(id)) {
+    return { $in: [id, new ObjectId(id)] };
+  }
+  if (id instanceof ObjectId) {
+    return { $in: [id, id.toString()] };
+  }
+  return id;
+}
+
 // A partner<->patient sharing relationship. Pending until the patient
 // explicitly accepts, at which point they choose exactly what to share
 // (shareAll, or a specific list of their own vault folders) - a partner
 // never sees a patient's vault contents just by inviting them.
 async function findOrCreatePending(labId, patientUserId) {
-  const existing = await collection().findOne({ labId, patientUserId });
+  const existing = await collection().findOne({ labId: idVariant(labId), patientUserId: idVariant(patientUserId) });
   if (existing) return existing;
 
   const now = new Date();
@@ -29,15 +41,15 @@ async function findOrCreatePending(labId, patientUserId) {
 }
 
 function findByLabAndPatient(labId, patientUserId) {
-  return collection().findOne({ labId, patientUserId });
+  return collection().findOne({ labId: idVariant(labId), patientUserId: idVariant(patientUserId) });
 }
 
 function findByPatient(patientUserId) {
-  return collection().find({ patientUserId }).sort({ createdAt: -1 }).toArray();
+  return collection().find({ patientUserId: idVariant(patientUserId) }).sort({ createdAt: -1 }).toArray();
 }
 
 function findById(patientUserId, connectionId) {
-  return collection().findOne({ _id: connectionId, patientUserId });
+  return collection().findOne({ _id: idVariant(connectionId), patientUserId: idVariant(patientUserId) });
 }
 
 function accept(connectionId, { shareAll, sharedFolderIds }) {

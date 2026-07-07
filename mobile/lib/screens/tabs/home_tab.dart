@@ -6,6 +6,7 @@ import '../../providers/activity_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connection_provider.dart';
 import '../../providers/main_tab_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/activity_tile.dart';
@@ -26,6 +27,7 @@ class _HomeTabState extends State<HomeTab> {
       context.read<WalletProvider>().refresh();
       context.read<ActivityProvider>().refresh();
       context.read<ConnectionProvider>().refresh();
+      context.read<NotificationProvider>().refresh();
     });
   }
 
@@ -136,6 +138,7 @@ class _DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final user = context.watch<AuthProvider>().currentUser;
+    final unreadCount = context.watch<NotificationProvider>().unreadCount;
 
     return Row(
       children: [
@@ -154,7 +157,15 @@ class _DashboardHeader extends StatelessWidget {
         ),
         IconButton.filledTonal(
           onPressed: () => context.push('/notifications'),
-          icon: const Icon(Icons.notifications_none),
+          icon: Badge(
+            isLabelVisible: unreadCount > 0,
+            label: Text(
+              '$unreadCount',
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            child: const Icon(Icons.notifications_none),
+          ),
         ),
         const SizedBox(width: AppSpacing.sm),
         GestureDetector(

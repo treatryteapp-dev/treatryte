@@ -413,7 +413,7 @@ class _PartnerConnectionDetailScreenState
                   if (report.url != null && report.url!.isNotEmpty) {
                     final uri = Uri.parse(report.url!);
                     if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(uri, mode: LaunchMode.platformDefault, webOnlyWindowName: '_blank');
                     } else {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open file.')));
