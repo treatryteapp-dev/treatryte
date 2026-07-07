@@ -59,6 +59,10 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
   // the await window before auth.isLoading flips to true.
   bool _submitting = false;
 
+  // Set once the email OTP step (between Step 1 and Step 2) succeeds -
+  // required by the backend to actually create the account in _submit().
+  String? _emailVerificationToken;
+
   @override
   void dispose() {
     _facilityNameController.dispose();
@@ -98,6 +102,32 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
     }
   }
 
+  Future<void> _verifyEmailThenAdvance() async {
+    final email = _emailController.text.trim();
+    final auth = context.read<AuthProvider>();
+
+    setState(() => _submitting = true);
+    final otpSent = await auth.sendOtp(email);
+    if (!mounted) return;
+    if (!otpSent) {
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(auth.errorMessage ?? 'Could not send verification code')),
+      );
+      return;
+    }
+
+    final token = await context.push<String>('/verify-email', extra: email);
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (token == null) return;
+
+    setState(() {
+      _emailVerificationToken = token;
+      _currentStep = 1;
+    });
+  }
+
   Future<void> _submit() async {
     if (_submitting) return; // guard against double-tap
     if (!_attested) {
@@ -106,6 +136,14 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       );
       return;
     }
+    final emailVerificationToken = _emailVerificationToken;
+    if (emailVerificationToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please verify your email first.')),
+      );
+      return;
+    }
+
     setState(() => _submitting = true);
 
     final auth = context.read<AuthProvider>();
@@ -117,6 +155,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
       address: '${_addressController.text.trim()}, $_selectedState',
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      emailVerificationToken: emailVerificationToken,
       role: 'provider',
       facilityName: _facilityNameController.text.trim(),
       licenseNumber: _licenseController.text.trim(),
@@ -930,7 +969,7 @@ class _PartnerRegisterScreenState extends State<PartnerRegisterScreen> {
                   : () {
                       if (_currentStep == 0) {
                         if (_formKey.currentState?.validate() ?? false) {
-                          setState(() => _currentStep = 1);
+                          _verifyEmailThenAdvance();
                         }
                       } else if (_currentStep == 1) {
                         setState(() => _currentStep = 2);

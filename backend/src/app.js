@@ -20,6 +20,11 @@ const connectionsRoutes = require('./routes/connections.routes');
 
 const app = express();
 
+// Railway terminates TLS at its proxy - without this, req.protocol always
+// reports 'http', which breaks the https callback URL built in
+// wallet.controller.js's fund().
+app.set('trust proxy', 1);
+
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())

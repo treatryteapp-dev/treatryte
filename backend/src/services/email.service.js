@@ -69,4 +69,20 @@ function partnerRejectionEmail({ facilityName, reason }) {
   };
 }
 
-module.exports = { sendEmail, partnerRejectionEmail };
+function otpEmail({ code }) {
+  return {
+    subject: 'Your TreatRyte verification code',
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #0b1c30; max-width: 480px;">
+        <h2 style="color: #004E47;">Verify your email</h2>
+        <p>Use the code below to finish creating your TreatRyte account. It expires in 10 minutes.</p>
+        <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 24px 0;">${code}</p>
+        <p style="color: #545f73; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
+        <p style="margin-top: 24px; color: #545f73; font-size: 13px;">- The TreatRyte Team</p>
+      </div>
+    `,
+    text: `Your TreatRyte verification code is ${code}. It expires in 10 minutes.\n\nIf you didn't request this, you can safely ignore this email.\n\n- The TreatRyte Team`,
+  };
+}
+
+module.exports = { sendEmail, partnerRejectionEmail, otpEmail };

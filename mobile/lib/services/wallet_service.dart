@@ -17,16 +17,27 @@ class WalletService {
         .toList(),
   );
 
+  // Checks Nomba directly for this order's real status and settles it if
+  // Nomba has already confirmed success/failure - the on-demand counterpart
+  // to waiting for their webhook to arrive. Returns 'success' | 'failed' |
+  // 'pending'.
+  Future<String> verifyFunding(String orderReference) => _api.post(
+    '/wallet/fund/verify',
+    (data) => data['status'] as String,
+    body: {'orderReference': orderReference},
+  );
+
   Future<Map<String, String>> fund({
     required int amountKobo,
     required String method,
+    required String platform,
   }) => _api.post(
     '/wallet/fund',
     (data) => {
       'checkoutLink': data['checkoutLink'] as String,
       'orderReference': data['orderReference'] as String,
     },
-    body: {'amountKobo': amountKobo, 'method': method},
+    body: {'amountKobo': amountKobo, 'method': method, 'platform': platform},
   );
 
   Future<List<Bank>> getBanks() => _api.get(

@@ -6,6 +6,8 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+router.post('/send-otp', validateBody(controller.sendOtpSchema), controller.sendOtp);
+router.post('/verify-otp', validateBody(controller.verifyOtpSchema), controller.verifyOtp);
 router.post('/register', validateBody(controller.registerSchema), controller.register);
 router.post('/login', validateBody(controller.loginSchema), controller.login);
 router.post('/refresh', validateBody(controller.refreshSchema), controller.refresh);

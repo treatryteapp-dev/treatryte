@@ -17,12 +17,20 @@ import '../screens/partner_register_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/subscription_plans_screen.dart';
 import '../screens/vault_folder_screen.dart';
+import '../screens/verify_email_screen.dart';
 import '../screens/withdraw_pay_screen.dart';
 import '../screens/scan_upload_screen.dart';
 import '../models/connection_models.dart';
 import '../screens/partner_connection_detail_screen.dart';
 
-const _publicPaths = {'/', '/join', '/login', '/register', '/partner-register'};
+const _publicPaths = {
+  '/',
+  '/join',
+  '/login',
+  '/register',
+  '/partner-register',
+  '/verify-email',
+};
 
 GoRouter createAppRouter(AuthProvider authProvider) {
   return GoRouter(
@@ -49,6 +57,11 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/partner-register',
         builder: (context, state) => const PartnerRegisterScreen(),
+      ),
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) =>
+            VerifyEmailScreen(email: state.extra as String),
       ),
       GoRoute(
         path: '/dashboard',

@@ -34,6 +34,7 @@ class AuthProvider extends ChangeNotifier {
     required String address,
     required String email,
     required String password,
+    required String emailVerificationToken,
     String? role,
     String? planId,
     String? facilityName,
@@ -50,6 +51,7 @@ class AuthProvider extends ChangeNotifier {
       address: address,
       email: email,
       password: password,
+      emailVerificationToken: emailVerificationToken,
       role: role,
       planId: planId,
       facilityName: facilityName,
@@ -60,6 +62,32 @@ class AuthProvider extends ChangeNotifier {
       accountNumber: accountNumber,
     ),
   );
+
+  Future<bool> sendOtp(String email) async {
+    try {
+      await _authService.sendOtp(email);
+      errorMessage = null;
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      return false;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<String?> verifyOtp(String email, String code) async {
+    try {
+      final token = await _authService.verifyOtp(email, code);
+      errorMessage = null;
+      return token;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      return null;
+    } finally {
+      notifyListeners();
+    }
+  }
 
   Future<bool> login({
     required String email,

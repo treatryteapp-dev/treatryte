@@ -2,11 +2,14 @@ const { z } = require('zod');
 const { ObjectId } = require('mongodb');
 
 const authService = require('../services/auth.service');
+const otpService = require('../services/otp.service');
 const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 const { ROLE_TO_PLAN_TYPE } = require('../utils/planAccess');
+
+const EMAIL_VERIFY_PURPOSE = 'email_verify';
 
 const registerSchema = z.object({
   fullName: z.string().min(1),
@@ -23,6 +26,16 @@ const registerSchema = z.object({
   state: z.string().optional(),
   bankName: z.string().optional(),
   accountNumber: z.string().optional(),
+  emailVerificationToken: z.string().min(1),
+});
+
+const sendOtpSchema = z.object({
+  email: z.string().email(),
+});
+
+const verifyOtpSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
 });
 
 const loginSchema = z.object({
@@ -37,6 +50,20 @@ const refreshSchema = z.object({
 const register = asyncHandler(async (req, res) => {
   const result = await authService.register(req.body);
   res.status(201).json(result);
+});
+
+const sendOtp = asyncHandler(async (req, res) => {
+  await otpService.sendOtp(req.body.email, EMAIL_VERIFY_PURPOSE);
+  res.status(204).send();
+});
+
+const verifyOtp = asyncHandler(async (req, res) => {
+  const emailVerificationToken = await otpService.verifyOtp(
+    req.body.email,
+    req.body.code,
+    EMAIL_VERIFY_PURPOSE
+  );
+  res.json({ emailVerificationToken });
 });
 
 const login = asyncHandler(async (req, res) => {
@@ -155,12 +182,16 @@ module.exports = {
   registerSchema,
   loginSchema,
   refreshSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
   updatePlanSchema,
   updateMedicalProfileSchema,
   presignAvatarSchema,
   confirmAvatarSchema,
   deleteAccountSchema,
   register,
+  sendOtp,
+  verifyOtp,
   login,
   refresh,
   logout,

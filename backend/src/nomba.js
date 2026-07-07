@@ -82,6 +82,22 @@ async function createCheckoutOrder({ amountKobo, customerEmail, customerId, orde
   return json.data; // { checkoutLink, orderReference }
 }
 
+/**
+ * Looks up a checkout order's real status directly from Nomba, independent
+ * of whether their webhook ever reached us - the safety net for a missed,
+ * rejected (e.g. bad signature), or simply undelivered webhook.
+ * Returns null if Nomba has no record of this order yet.
+ */
+async function verifyTransaction({ orderReference }) {
+  const { json, ok } = await nombaFetch(
+    `/v1/transactions/accounts/single?orderReference=${encodeURIComponent(orderReference)}`
+  );
+  if (!ok || json.code !== '00' || !json.data) {
+    return null;
+  }
+  return json.data; // { id, status: 'SUCCESS' | 'FAILED' | ..., amount, ... }
+}
+
 async function transferToBank({ amountKobo, accountNumber, bankCode, accountName, senderName, merchantTxRef, narration }) {
   const { json, status } = await nombaFetch('/v2/transfers/bank', {
     method: 'POST',
@@ -164,6 +180,7 @@ function verifyWebhookSignature({ eventType, requestId, data, headers }) {
 module.exports = {
   getAccessToken,
   createCheckoutOrder,
+  verifyTransaction,
   transferToBank,
   listBanks,
   lookupBankAccount,

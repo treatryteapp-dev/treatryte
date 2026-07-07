@@ -26,6 +26,18 @@ class AuthService {
   final ApiClient _api;
   final SecureStorageService _storage;
 
+  Future<void> sendOtp(String email) => _api.post(
+    '/auth/send-otp',
+    (_) => null,
+    body: {'email': email},
+  );
+
+  Future<String> verifyOtp(String email, String code) => _api.post(
+    '/auth/verify-otp',
+    (data) => data['emailVerificationToken'] as String,
+    body: {'email': email, 'code': code},
+  );
+
   Future<AuthResult> register({
     required String fullName,
     required String dateOfBirth,
@@ -33,6 +45,7 @@ class AuthService {
     required String address,
     required String email,
     required String password,
+    required String emailVerificationToken,
     String? role,
     String? planId,
     String? facilityName,
@@ -52,6 +65,7 @@ class AuthService {
         'address': address,
         'email': email,
         'password': password,
+        'emailVerificationToken': emailVerificationToken,
         if (role != null) 'role': role,
         if (planId != null) 'planId': planId,
         if (facilityName != null) 'facilityName': facilityName,

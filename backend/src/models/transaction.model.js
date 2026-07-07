@@ -31,6 +31,25 @@ function findByNombaTransferRef(nombaTransferRef) {
 }
 
 /**
+ * Wallet-funding rows still 'pending' outside the normal webhook-delivery
+ * window - candidates for reconciling directly against Nomba's API instead
+ * of waiting on a webhook that may have been missed or rejected. Bounded on
+ * the old end too: Nomba's own webhook retries and this record's usefulness
+ * both taper off after a few days, so there's no point checking forever.
+ */
+function findStalePendingFundings({ olderThanMs, newerThanMs }) {
+  const now = Date.now();
+  return collection()
+    .find({
+      category: 'wallet_funding',
+      status: 'pending',
+      nombaOrderReference: { $exists: true },
+      createdAt: { $lt: new Date(now - olderThanMs), $gt: new Date(now - newerThanMs) },
+    })
+    .toArray();
+}
+
+/**
  * Inserts a transaction row without touching the wallet balance.
  * Used for funding orders that only become real money once Nomba confirms
  * payment via webhook.
@@ -156,6 +175,7 @@ module.exports = {
   list,
   findByNombaOrderReference,
   findByNombaTransferRef,
+  findStalePendingFundings,
   recordPending,
   applyImmediate,
   finalizePendingCredit,

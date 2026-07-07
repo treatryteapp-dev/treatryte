@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -41,14 +43,15 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
 
     setState(() => _submitting = true);
     final wallet = context.read<WalletProvider>();
-    final checkoutLink = await wallet.fund(
+    final order = await wallet.fund(
       (naira * 100).round(),
       method: _method == _PaymentMethod.bankTransfer ? 'bank_transfer' : 'card',
+      platform: kIsWeb ? 'web' : 'mobile',
     );
     if (!mounted) return;
     setState(() => _submitting = false);
 
-    if (checkoutLink == null) {
+    if (order == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(wallet.errorMessage ?? 'Could not start payment'),
@@ -56,13 +59,16 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
       );
       return;
     }
+    final checkoutLink = order['checkoutLink']!;
+    final orderReference = order['orderReference']!;
 
     if (kIsWeb) {
       // webview_flutter has no web support, and payment pages generally
       // refuse to render inside an embedded iframe anyway - open a real
-      // browser tab instead. The wallet balance updates via the backend's
-      // Nomba webhook the same way it does after the mobile embedded
-      // webview closes, so the refresh-then-pop flow is unchanged.
+      // browser tab instead. Nomba redirects that tab to a plain https
+      // "payment received" page (see backend platform=web callback), and
+      // wallet crediting itself happens via the Nomba webhook independent
+      // of this tab, so there's nothing here to await a return from.
       await launchUrl(Uri.parse(checkoutLink), webOnlyWindowName: '_blank');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,7 +86,21 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
       );
     }
     if (!mounted) return;
-    await context.read<WalletProvider>().refresh();
+    final walletProvider = context.read<WalletProvider>();
+    // Check Nomba directly rather than just waiting on their webhook - this
+    // is what actually credits the wallet promptly even if the webhook is
+    // delayed, rejected, or never arrives (see backend reconcileFunding).
+    final status = await walletProvider.verifyFunding(orderReference);
+    if (status == 'pending') {
+      // Nomba may not have finished processing yet - one delayed retry
+      // covers that without building a full polling loop (a background
+      // sweep on the backend catches anything still unresolved after this).
+      unawaited(
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted) walletProvider.verifyFunding(orderReference);
+        }),
+      );
+    }
     if (mounted) context.pop();
   }
 

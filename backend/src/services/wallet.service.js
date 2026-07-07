@@ -185,6 +185,26 @@ async function lookupAccount({ accountNumber, bankCode }) {
 }
 
 /**
+ * Shared by the webhook path and the direct-reconciliation path below - both
+ * end with the same credit + activity + notification once Nomba confirms a
+ * funding order actually succeeded.
+ */
+async function finalizeFundingSuccess(pending, nombaTransactionId) {
+  await transactionModel.finalizePendingCredit(pending._id, nombaTransactionId);
+  await activityService.record(pending.userId, {
+    type: 'wallet_funding',
+    title: 'Wallet Funded',
+    subtitle: `₦${(pending.amount / 100).toLocaleString()} credited`,
+    iconKey: 'account_balance_wallet',
+  });
+  await notificationService.notify(pending.userId, {
+    type: 'wallet',
+    title: 'Wallet Funded',
+    body: `₦${(pending.amount / 100).toLocaleString()} has been credited to your wallet.`,
+  });
+}
+
+/**
  * Central handler for all 6 Nomba webhook event types. Idempotent: relies
  * on transactionModel's pending-row lookups only mutating state once.
  */
@@ -194,18 +214,7 @@ async function handleNombaWebhook(eventType, data) {
       const pending = await transactionModel.findByNombaOrderReference(data.orderReference);
       if (!pending || pending.status !== 'pending') return; // unknown or already handled
 
-      await transactionModel.finalizePendingCredit(pending._id, data.transactionId);
-      await activityService.record(pending.userId, {
-        type: 'wallet_funding',
-        title: 'Wallet Funded',
-        subtitle: `₦${(pending.amount / 100).toLocaleString()} credited`,
-        iconKey: 'account_balance_wallet',
-      });
-      await notificationService.notify(pending.userId, {
-        type: 'wallet',
-        title: 'Wallet Funded',
-        body: `₦${(pending.amount / 100).toLocaleString()} has been credited to your wallet.`,
-      });
+      await finalizeFundingSuccess(pending, data.transactionId);
       return;
     }
     case 'payment_failed':
@@ -252,6 +261,58 @@ async function handleNombaWebhook(eventType, data) {
   }
 }
 
+/**
+ * Looks up a specific pending funding order directly against Nomba and
+ * settles it - the on-demand counterpart to handleNombaWebhook, for the
+ * moment right after checkout when we don't want to just sit and hope the
+ * webhook shows up. Scoped to userId so a caller can't probe/settle another
+ * user's order by guessing an orderReference.
+ */
+async function reconcileFunding(userId, orderReference) {
+  const pending = await transactionModel.findByNombaOrderReference(orderReference);
+  if (!pending || pending.userId.toString() !== userId.toString()) {
+    throw new ApiError(404, 'Funding order not found', 'ORDER_NOT_FOUND');
+  }
+  if (pending.status !== 'pending') {
+    return { status: pending.status };
+  }
+
+  const result = await nomba.verifyTransaction({ orderReference });
+  if (!result) return { status: 'pending' };
+
+  if (result.status === 'SUCCESS') {
+    await finalizeFundingSuccess(pending, result.id);
+    return { status: 'success' };
+  }
+  if (result.status === 'FAILED') {
+    await transactionModel.markFailed(pending._id);
+    return { status: 'failed' };
+  }
+  return { status: 'pending' };
+}
+
+/**
+ * Sweeps funding orders stuck 'pending' well past the normal webhook-delivery
+ * window and settles them directly against Nomba - the background safety net
+ * for a webhook that was missed, rejected, or never delivered. Meant to be
+ * run on an interval (see server.js); failures for one order never block the
+ * rest of the sweep.
+ */
+async function reconcileStalePendingFundings() {
+  const stale = await transactionModel.findStalePendingFundings({
+    olderThanMs: 5 * 60 * 1000, // give the webhook 5 minutes before we check
+    newerThanMs: 3 * 24 * 60 * 60 * 1000, // beyond 3 days, Nomba's own record is unlikely to help either
+  });
+
+  for (const pending of stale) {
+    try {
+      await reconcileFunding(pending.userId, pending.nombaOrderReference);
+    } catch (error) {
+      console.error(`Stale funding reconciliation failed for ${pending.nombaOrderReference}:`, error.message);
+    }
+  }
+}
+
 module.exports = {
   getWallet,
   listTransactions,
@@ -263,4 +324,6 @@ module.exports = {
   lookupAccount,
   payProvider,
   handleNombaWebhook,
+  reconcileFunding,
+  reconcileStalePendingFundings,
 };

@@ -77,6 +77,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  bool _submitting = false;
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false) ||
         _dateOfBirth == null ||
@@ -87,17 +89,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    final email = _emailController.text.trim();
     final auth = context.read<AuthProvider>();
+
+    setState(() => _submitting = true);
+    final otpSent = await auth.sendOtp(email);
+    if (!mounted) return;
+    if (!otpSent) {
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(auth.errorMessage ?? 'Could not send verification code')),
+      );
+      return;
+    }
+
+    final token = await context.push<String>('/verify-email', extra: email);
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (token == null) return;
+
+    setState(() => _submitting = true);
     final success = await auth.register(
       fullName: _fullNameController.text.trim(),
       dateOfBirth: _dateOfBirth!.toIso8601String(),
       gender: _gender!,
       address: _addressController.text.trim(),
-      email: _emailController.text.trim(),
+      email: email,
       password: _passwordController.text,
+      emailVerificationToken: token,
     );
 
     if (!mounted) return;
+    setState(() => _submitting = false);
     if (success) {
       context.go('/dashboard');
     } else {
@@ -110,7 +133,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final auth = context.watch<AuthProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -262,10 +284,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: (_agreedToTerms && !auth.isLoading)
+                    onPressed: (_agreedToTerms && !_submitting)
                         ? _submit
                         : null,
-                    child: auth.isLoading
+                    child: _submitting
                         ? const SizedBox(
                             width: 20,
                             height: 20,

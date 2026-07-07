@@ -26,6 +26,9 @@ async function main() {
   await db.collection('notifications').createIndex({ userId: 1, createdAt: -1 });
   await db.collection('activities').createIndex({ userId: 1, createdAt: -1 });
 
+  await db.collection('otps').createIndex({ email: 1, purpose: 1 });
+  await db.collection('otps').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
   console.log('Indexes created successfully.');
 }
 

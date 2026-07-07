@@ -84,7 +84,9 @@ class ApiClient {
   bool _isAuthEndpoint(String path) =>
       path.contains('/auth/login') ||
       path.contains('/auth/register') ||
-      path.contains('/auth/refresh');
+      path.contains('/auth/refresh') ||
+      path.contains('/auth/send-otp') ||
+      path.contains('/auth/verify-otp');
 
   Future<void> _refreshTokens() {
     _refreshInFlight ??= _doRefresh().whenComplete(

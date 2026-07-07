@@ -50,7 +50,18 @@ async function register({
   state,
   bankName,
   accountNumber,
+  emailVerificationToken,
 }) {
+  let decoded;
+  try {
+    decoded = jwt.verify(emailVerificationToken, env.jwtAccessSecret);
+  } catch {
+    throw new ApiError(400, 'Email verification expired - request a new code', 'EMAIL_NOT_VERIFIED');
+  }
+  if (decoded.purpose !== 'email_verify' || decoded.email !== email.toLowerCase()) {
+    throw new ApiError(400, 'Email not verified', 'EMAIL_NOT_VERIFIED');
+  }
+
   const existing = await userModel.findByEmail(email);
   if (existing) {
     throw new ApiError(409, 'An account with this email already exists', 'EMAIL_TAKEN');

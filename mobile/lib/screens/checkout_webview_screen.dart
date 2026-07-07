@@ -25,6 +25,16 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) => setState(() => _loading = false),
+          onNavigationRequest: (request) {
+            // The custom app scheme has no browser meaning - Nomba redirects
+            // here on completion, but the webview must never actually try to
+            // resolve it. Catch it and close the screen instead.
+            if (request.url.startsWith('treatryte://wallet/fund/callback')) {
+              Navigator.of(context).pop();
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
         ),
       )
       ..loadRequest(Uri.parse(widget.checkoutUrl));

@@ -15,6 +15,16 @@ const handleNombaWebhook = asyncHandler(async (req, res) => {
     headers: req.headers,
   });
   if (!isValid) {
+    // Loud on purpose - a rejected webhook here silently leaves the
+    // matching wallet-funding/payout order stuck 'pending' until the
+    // background reconciliation sweep catches it, so this needs to be
+    // visible in logs/alerts immediately, not discovered via a user report.
+    console.error('Nomba webhook signature verification failed', {
+      eventType,
+      requestId,
+      orderReference: data?.orderReference,
+      transferReference: data?.transferReference,
+    });
     throw new ApiError(401, 'Invalid webhook signature', 'INVALID_SIGNATURE');
   }
 

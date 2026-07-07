@@ -35,17 +35,35 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<String?> fund(int amountKobo, {required String method}) async {
+  Future<Map<String, String>?> fund(
+    int amountKobo, {
+    required String method,
+    required String platform,
+  }) async {
     try {
-      final result = await _service.fund(
+      return await _service.fund(
         amountKobo: amountKobo,
         method: method,
+        platform: platform,
       );
-      return result['checkoutLink'];
     } on ApiException catch (e) {
       errorMessage = e.message;
       notifyListeners();
       return null;
+    }
+  }
+
+  // Checks Nomba directly instead of just waiting on their webhook, then
+  // refreshes local state so the balance reflects it right away if settled.
+  Future<String> verifyFunding(String orderReference) async {
+    try {
+      final status = await _service.verifyFunding(orderReference);
+      await refresh();
+      return status;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+      return 'pending';
     }
   }
 
