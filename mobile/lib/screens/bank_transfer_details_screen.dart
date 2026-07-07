@@ -6,10 +6,12 @@ import 'package:provider/provider.dart';
 import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
 
-// Shows the user's permanent dedicated Nomba account - transfers to it
-// reflect automatically via webhook (see backend wallet.service.js
-// getOrCreateVirtualAccount / vact_transfer webhook handling), unlike the
-// short-lived pay-by-transfer option inside Nomba Checkout.
+// The whole "Fund Wallet" flow: shows the user's permanent dedicated Nomba
+// account - transfers to it reflect automatically via webhook (see backend
+// wallet.service.js getOrCreateVirtualAccount / vact_transfer webhook
+// handling). Card checkout was removed - its "pay by transfer" option
+// generated a short-lived dynamic account that stopped being reconcilable
+// once its window expired, which is what caused funds to go unreflected.
 class BankTransferDetailsScreen extends StatefulWidget {
   const BankTransferDetailsScreen({super.key});
 
@@ -67,7 +69,7 @@ class _BankTransferDetailsScreenState
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Bank Transfer'),
+        title: const Text('Fund Wallet'),
       ),
       body: SafeArea(
         child: _loading

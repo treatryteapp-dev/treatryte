@@ -33,6 +33,10 @@ function findByVirtualAccountRef(virtualAccountRef) {
   return collection().findOne({ virtualAccountRef });
 }
 
+function findByVirtualAccountNumber(virtualAccountNumber) {
+  return collection().findOne({ virtualAccountNumber });
+}
+
 function setVirtualAccount(userId, { virtualAccountNumber, virtualBankName, virtualAccountRef }) {
   return collection().updateOne(
     { userId },
@@ -46,5 +50,6 @@ module.exports = {
   createForUser,
   findByUserId,
   findByVirtualAccountRef,
+  findByVirtualAccountNumber,
   setVirtualAccount,
 };

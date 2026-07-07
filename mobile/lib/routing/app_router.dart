@@ -7,7 +7,6 @@ import '../screens/activity_list_screen.dart';
 import '../screens/appointments_screen.dart';
 import '../screens/bank_transfer_details_screen.dart';
 import '../screens/book_test_screen.dart';
-import '../screens/fund_wallet_screen.dart';
 import '../screens/get_started_screen.dart';
 import '../screens/invitations_screen.dart';
 import '../screens/join_screen.dart';
@@ -76,10 +75,6 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       ),
       GoRoute(
         path: '/fund-wallet',
-        builder: (context, state) => const FundWalletScreen(),
-      ),
-      GoRoute(
-        path: '/bank-transfer-details',
         builder: (context, state) => const BankTransferDetailsScreen(),
       ),
       GoRoute(

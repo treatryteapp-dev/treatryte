@@ -207,7 +207,13 @@ function parseWebhookData(data) {
         ? Math.round(data.transaction.transactionAmount * 100)
         : null,
     // Identifies which dedicated virtual account received a vact_transfer.
+    // aliasAccountReference in Nomba's sample payloads looks like an
+    // internal session id ("122320250916PM"), not the accountRef we send
+    // when creating the account - aliasAccountNumber (the literal bank
+    // account number) is the unambiguous one, since that's exactly what we
+    // already store as wallet.virtualAccountNumber.
     aliasAccountReference: data.transaction?.aliasAccountReference,
+    aliasAccountNumber: data.transaction?.aliasAccountNumber,
   };
 }
 

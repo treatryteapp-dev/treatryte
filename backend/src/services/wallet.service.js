@@ -220,7 +220,7 @@ async function handleNombaWebhook(eventType, rawData) {
     case 'payment_success': {
       // Checkout-order payments (card, or pay-by-transfer through the
       // checkout page) carry data.order.orderReference; dedicated-virtual-
-      // account transfers don't - they're identified by aliasAccountReference
+      // account transfers don't - they're identified by aliasAccountNumber
       // instead and have no pre-existing pending row to finalize.
       if (data.orderReference) {
         const pending = await transactionModel.findByNombaOrderReference(data.orderReference);
@@ -230,12 +230,19 @@ async function handleNombaWebhook(eventType, rawData) {
         return;
       }
 
-      if (data.type === 'vact_transfer' && data.aliasAccountReference) {
+      if (data.type === 'vact_transfer' && (data.aliasAccountNumber || data.aliasAccountReference)) {
         if (data.transactionId) {
           const existing = await transactionModel.findByNombaTransactionId(data.transactionId);
           if (existing) return; // already credited - webhook retry
         }
-        const wallet = await walletModel.findByVirtualAccountRef(data.aliasAccountReference);
+        // Match by account number first (unambiguous - it's literally what
+        // we store as virtualAccountNumber); accountRef as a fallback in
+        // case Nomba ever omits the number on some payload variant.
+        const wallet =
+          (data.aliasAccountNumber &&
+            (await walletModel.findByVirtualAccountNumber(data.aliasAccountNumber))) ||
+          (data.aliasAccountReference &&
+            (await walletModel.findByVirtualAccountRef(data.aliasAccountReference)));
         if (!wallet || !data.amountKobo) return; // unknown virtual account, or unparseable amount
 
         const credit = await creditImmediate(wallet.userId, {
