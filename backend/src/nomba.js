@@ -194,7 +194,11 @@ function parseWebhookData(data) {
     transactionId: data.transaction?.transactionId,
     type: data.transaction?.type,
     time: data.transaction?.time,
-    responseCode: data.transaction?.responseCode,
+    // A literal string "null" (not JSON null/absent) must sign as empty -
+    // a real gotcha other Nomba integrations have hit; guard it here so it
+    // can only ever be fixed in one place.
+    responseCode:
+      data.transaction?.responseCode === 'null' ? '' : data.transaction?.responseCode,
     // Only present for checkout-order payments (card, or pay-by-transfer
     // through the checkout page) - absent for dedicated-virtual-account
     // transfers (data.transaction.type === 'vact_transfer').

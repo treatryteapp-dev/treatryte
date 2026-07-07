@@ -7,6 +7,24 @@ const { ApiError } = require('../middleware/errorHandler');
 
 const handleNombaWebhook = asyncHandler(async (req, res) => {
   const { event_type: eventType, requestId, data } = req.body;
+  const parsed = nomba.parseWebhookData(data || {});
+
+  // Always log a compact summary of what actually arrived - this is the
+  // one place that can tell us what Nomba really sent (field names, whether
+  // orderReference/aliasAccountNumber is even present) instead of guessing
+  // from documentation. Deliberately excludes card/bank PII (data.customer,
+  // data.tokenizedCardData) - only the identifiers needed to debug routing.
+  console.log('Nomba webhook received', {
+    eventType,
+    requestId,
+    type: parsed.type,
+    orderReference: parsed.orderReference,
+    transferReference: parsed.transferReference,
+    aliasAccountNumber: parsed.aliasAccountNumber,
+    aliasAccountReference: parsed.aliasAccountReference,
+    amountKobo: parsed.amountKobo,
+    transactionId: parsed.transactionId,
+  });
 
   const isValid = nomba.verifyWebhookSignature({
     eventType,
@@ -22,8 +40,20 @@ const handleNombaWebhook = asyncHandler(async (req, res) => {
     console.error('Nomba webhook signature verification failed', {
       eventType,
       requestId,
-      orderReference: data?.orderReference,
-      transferReference: data?.transferReference,
+      orderReference: parsed.orderReference,
+      transferReference: parsed.transferReference,
+      // The exact fields fed into the HMAC, so a mismatch is diagnosable
+      // without reconstructing it from the raw payload by hand.
+      signedFields: {
+        userId: parsed.userId,
+        walletId: parsed.walletId,
+        transactionId: parsed.transactionId,
+        type: parsed.type,
+        time: parsed.time,
+        responseCode: parsed.responseCode,
+      },
+      hasSignatureHeader: Boolean(req.headers['nomba-signature']),
+      hasTimestampHeader: Boolean(req.headers['nomba-timestamp']),
     });
     throw new ApiError(401, 'Invalid webhook signature', 'INVALID_SIGNATURE');
   }
