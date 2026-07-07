@@ -50,3 +50,44 @@ class PartnerService {
   final int priceKobo;
   final String category;
 }
+
+class PatientFeedbackLog {
+  const PatientFeedbackLog({
+    required this.id,
+    required this.mood,
+    this.note,
+    required this.createdAt,
+  });
+
+  factory PatientFeedbackLog.fromJson(Map<String, dynamic> json) => PatientFeedbackLog(
+    id: json['_id'] as String,
+    mood: json['mood'] as String,
+    note: json['note'] as String?,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+  );
+
+  final String id;
+  final String mood;
+  final String? note;
+  final DateTime createdAt;
+}
+
+class PatientFeedbackGroup {
+  const PatientFeedbackGroup({
+    required this.patientId,
+    required this.patientName,
+    required this.logs,
+  });
+
+  factory PatientFeedbackGroup.fromJson(Map<String, dynamic> json) => PatientFeedbackGroup(
+    patientId: json['patientId'] as String,
+    patientName: json['patientName'] as String,
+    logs: (json['logs'] as List<dynamic>)
+        .map((l) => PatientFeedbackLog.fromJson(l as Map<String, dynamic>))
+        .toList(),
+  );
+
+  final String patientId;
+  final String patientName;
+  final List<PatientFeedbackLog> logs;
+}

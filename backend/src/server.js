@@ -17,3 +17,7 @@ setInterval(() => {
     console.error('Stale funding reconciliation sweep failed:', error.message);
   });
 }, RECONCILE_INTERVAL_MS);
+
+// Start daily cron jobs
+const { startDailyMedicationEmails } = require('./jobs/dailyMedicationEmail');
+startDailyMedicationEmails();

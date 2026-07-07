@@ -97,12 +97,41 @@ async function logDose(userId, doseLogId) {
   return { ...doseLog, status: 'taken', takenAt: new Date() };
 }
 
-async function submitMood(userId, doseLogId, { mood, note }) {
+async function getProviders(userId) {
+  const medications = await medicationModel.findActiveByUser(userId);
+  const providersMap = new Map();
+  for (const med of medications) {
+    if (med.providerId && med.providerName) {
+      providersMap.set(med.providerId.toString(), {
+        id: med.providerId.toString(),
+        name: med.providerName,
+      });
+    }
+  }
+  return Array.from(providersMap.values());
+}
+
+async function createPersonalMedication(userId, { name, dosage, scheduleTimes, startDate, endDate }) {
+  const medication = await medicationModel.create({
+    userId,
+    name,
+    dosage,
+    scheduleTimes,
+    planStatus: 'active',
+    startDate: startDate ? new Date(startDate) : new Date(),
+    endDate: endDate ? new Date(endDate) : null,
+    providerId: null,
+    providerName: null,
+  });
+  return medication;
+}
+
+async function submitMood(userId, doseLogId, { mood, note, partnerId }) {
   const doseLog = await doseLogModel.findById(userId, doseLogId);
   if (!doseLog) {
     throw new ApiError(404, 'Dose not found', 'DOSE_NOT_FOUND');
   }
-  return moodLogModel.create({ userId, doseLogId, mood, note });
+  return moodLogModel.create({ userId, doseLogId, mood, note, partnerId: partnerId || null });
 }
 
-module.exports = { getMedications, getTodaySchedule, logDose, submitMood };
+module.exports = { getMedications, getTodaySchedule, getProviders, createPersonalMedication, logDose, submitMood };

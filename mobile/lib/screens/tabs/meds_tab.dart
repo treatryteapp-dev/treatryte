@@ -16,14 +16,19 @@ class MedsTab extends StatefulWidget {
 
 class _MedsTabState extends State<MedsTab> {
   String? _selectedMood;
+  String? _selectedPartnerId;
+  List<Map<String, dynamic>> _providers = [];
   final _notesController = TextEditingController();
   bool _submittingFeedback = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MedicationProvider>().refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final medProv = context.read<MedicationProvider>();
+      await medProv.refresh();
+      final provs = await medProv.getProviders();
+      if (mounted) setState(() => _providers = provs);
     });
   }
 
@@ -42,6 +47,7 @@ class _MedsTabState extends State<MedsTab> {
       note: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),
+      partnerId: _selectedPartnerId,
     );
     if (!mounted) return;
     setState(() => _submittingFeedback = false);
@@ -55,6 +61,135 @@ class _MedsTabState extends State<MedsTab> {
     (icon: Icons.sick_outlined, label: 'Mild nausea'),
     (icon: Icons.bedtime_outlined, label: 'Fatigue'),
   ];
+  Future<void> _showPersonalMedReminderSheet(BuildContext context) async {
+    final titleCtrl = TextEditingController();
+    final drugCtrl = TextEditingController();
+    final dosageCtrl = TextEditingController();
+    TimeOfDay? selectedTime;
+    DateTime? startDate;
+    DateTime? endDate;
+    bool isVibrationOn = true;
+    bool isSubmitting = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+            ),
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Set Personal Med Reminder', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(ctx).pop()),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Reminder Title (e.g. Morning Meds)')),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(controller: drugCtrl, decoration: const InputDecoration(labelText: 'Drug(s) (e.g. Vitamin C)')),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(controller: dosageCtrl, decoration: const InputDecoration(labelText: 'Dosage (e.g. 1 Tablet)')),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Text(startDate != null ? '${startDate!.day}/${startDate!.month}/${startDate!.year}' : 'Start Date'),
+                        onPressed: () async {
+                          final d = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime(2030));
+                          if (d != null) setSheetState(() => startDate = d);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Text(endDate != null ? '${endDate!.day}/${endDate!.month}/${endDate!.year}' : 'End Date'),
+                        onPressed: () async {
+                          final d = await showDatePicker(context: context, initialDate: startDate ?? DateTime.now(), firstDate: startDate ?? DateTime.now(), lastDate: DateTime(2030));
+                          if (d != null) setSheetState(() => endDate = d);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.access_time, size: 16),
+                        label: Text(selectedTime != null ? selectedTime!.format(context) : 'Reminder Time'),
+                        onPressed: () async {
+                          final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                          if (t != null) setSheetState(() => selectedTime = t);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                SwitchListTile(
+                  title: const Text('App Vibration', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Vibrate when alarm rings', style: TextStyle(fontSize: 12)),
+                  value: isVibrationOn,
+                  onChanged: (val) => setSheetState(() => isVibrationOn = val),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (titleCtrl.text.isEmpty || drugCtrl.text.isEmpty || selectedTime == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill required fields (Title, Drug, Time)')));
+                              return;
+                            }
+                            setSheetState(() => isSubmitting = true);
+                            try {
+                              final formattedTime = '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
+                              await context.read<MedicationProvider>().createPersonalMedication(
+                                name: drugCtrl.text,
+                                dosage: dosageCtrl.text,
+                                scheduleTimes: [formattedTime],
+                                startDate: startDate?.toIso8601String(),
+                                endDate: endDate?.toIso8601String(),
+                              );
+                              if (ctx.mounted) Navigator.of(ctx).pop();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Personal reminder set!')));
+                              }
+                            } finally {
+                              if (ctx.mounted) setSheetState(() => isSubmitting = false);
+                            }
+                          },
+                    child: isSubmitting
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Save Reminder'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +215,17 @@ class _MedsTabState extends State<MedsTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Daily Meds', style: textTheme.headlineMedium),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Daily Meds', style: textTheme.headlineMedium),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.alarm_add, size: 16),
+                    label: const Text('Set Reminder'),
+                    onPressed: () => _showPersonalMedReminderSheet(context),
+                  ),
+                ],
+              ),
               const SizedBox(height: 2),
               Text(
                 'Manage your health and financial wellness seamlessly.',
@@ -161,13 +306,27 @@ class _MedsTabState extends State<MedsTab> {
                     ),
                 ],
               ),
+              if (_providers.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Select Partner to send feedback to'),
+                  value: _selectedPartnerId,
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Don\'t send to partner')),
+                    ..._providers.map((p) => DropdownMenuItem(
+                      value: p['_id'] as String,
+                      child: Text(p['name'] as String),
+                    )),
+                  ],
+                  onChanged: (val) => setState(() => _selectedPartnerId = val),
+                ),
+              ],
               const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: _notesController,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                  hintText:
-                      'Additional notes (e.g., Slightly dizzy but manageable)',
+                  hintText: 'Additional notes (e.g., Slightly dizzy but manageable)',
                 ),
               ),
               const SizedBox(height: AppSpacing.md),

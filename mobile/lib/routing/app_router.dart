@@ -25,6 +25,9 @@ import '../screens/withdraw_pay_screen.dart';
 import '../screens/scan_upload_screen.dart';
 import '../models/connection_models.dart';
 import '../screens/partner_connection_detail_screen.dart';
+import '../screens/partner_patient_detail_screen.dart';
+import '../screens/partner_feedbacks_screen.dart';
+import '../screens/partner_feedback_chat_screen.dart';
 
 const _publicPaths = {
   '/',
@@ -133,6 +136,24 @@ GoRouter createAppRouter(AuthProvider authProvider) {
             connectionId: id,
             initialConnection: connection,
           );
+        },
+      ),
+      GoRoute(
+        path: '/partner-patients/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return PartnerPatientDetailScreen(patientId: id);
+        },
+      ),
+      GoRoute(
+        path: '/partner-feedbacks',
+        builder: (context, state) => const PartnerFeedbacksScreen(),
+      ),
+      GoRoute(
+        path: '/partner-feedbacks/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return PartnerFeedbackChatScreen(patientId: id);
         },
       ),
     ],

@@ -10,7 +10,7 @@ function findActiveByUser(userId) {
   return collection().find({ userId, planStatus: 'active' }).toArray();
 }
 
-async function create({ userId, name, dosage, scheduleTimes, planStatus, startDate, endDate }) {
+async function create({ userId, name, dosage, scheduleTimes, planStatus, startDate, endDate, providerId, providerName }) {
   const now = new Date();
   let mappedTimes = scheduleTimes || ['8:00 AM', '2:00 PM', '8:00 PM'];
   if (Array.isArray(mappedTimes)) {
@@ -32,6 +32,8 @@ async function create({ userId, name, dosage, scheduleTimes, planStatus, startDa
     planStatus: planStatus || 'active',
     startDate: startDate || now,
     endDate: endDate || null,
+    providerId: providerId || null,
+    providerName: providerName || null,
     createdAt: now,
     updatedAt: now,
   };

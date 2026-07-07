@@ -8,6 +8,15 @@ const { ApiError } = require('../middleware/errorHandler');
 const moodSchema = z.object({
   mood: z.string().min(1),
   note: z.string().optional(),
+  partnerId: z.string().optional(),
+});
+
+const personalSchema = z.object({
+  name: z.string().min(1),
+  dosage: z.string().min(1),
+  scheduleTimes: z.array(z.string()).min(1),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 function parseObjectId(id) {
@@ -27,6 +36,16 @@ const today = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+const providers = asyncHandler(async (req, res) => {
+  const result = await medicationService.getProviders(req.userId);
+  res.json(result);
+});
+
+const createPersonal = asyncHandler(async (req, res) => {
+  const result = await medicationService.createPersonalMedication(req.userId, req.body);
+  res.status(201).json(result);
+});
+
 const logDose = asyncHandler(async (req, res) => {
   const doseLog = await medicationService.logDose(req.userId, parseObjectId(req.params.doseLogId));
   res.json({ doseLog });
@@ -41,4 +60,4 @@ const submitMood = asyncHandler(async (req, res) => {
   res.status(201).json({ moodLog });
 });
 
-module.exports = { moodSchema, list, today, logDose, submitMood };
+module.exports = { moodSchema, personalSchema, list, today, providers, createPersonal, logDose, submitMood };

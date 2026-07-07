@@ -38,6 +38,13 @@ class ProviderService {
         .toList(),
   );
 
+  Future<List<PatientFeedbackGroup>> getFeedbacks() => _api.get(
+    '/provider/feedbacks',
+    (data) => (data as List<dynamic>)
+        .map((g) => PatientFeedbackGroup.fromJson(g as Map<String, dynamic>))
+        .toList(),
+  );
+
   Future<void> createService({
     required String name,
     required int priceKobo,
@@ -97,22 +104,14 @@ class ProviderService {
     (data) => PatientDetail.fromJson(data as Map<String, dynamic>),
   );
 
-  Future<MedicalRecord> issueMedicalRecord(
+  Future<MedicalRecord> issueMedicalRecords(
     String patientId, {
-    required String visitType,
-    String? notes,
-    String? fileUrl,
-    String? fileName,
-    String? fileId,
+    required List<Map<String, dynamic>> records,
   }) => _api.post(
     '/provider/patients/$patientId/records',
     (data) => MedicalRecord.fromJson(data['record'] as Map<String, dynamic>),
     body: {
-      'visitType': visitType,
-      if (notes != null) 'notes': notes,
-      if (fileUrl != null) 'fileUrl': fileUrl,
-      if (fileName != null) 'fileName': fileName,
-      if (fileId != null) 'fileId': fileId,
+      'records': records,
     },
   );
 

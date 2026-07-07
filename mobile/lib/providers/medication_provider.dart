@@ -36,5 +36,27 @@ class MedicationProvider extends ChangeNotifier {
     String doseLogId, {
     required String mood,
     String? note,
-  }) => _service.submitMood(doseLogId, mood: mood, note: note);
+    String? partnerId,
+  }) => _service.submitMood(doseLogId, mood: mood, note: note, partnerId: partnerId);
+
+  Future<List<Map<String, dynamic>>> getProviders() async {
+    return _service.getProviders();
+  }
+
+  Future<void> createPersonalMedication({
+    required String name,
+    required String dosage,
+    required List<String> scheduleTimes,
+    String? startDate,
+    String? endDate,
+  }) async {
+    await _service.createPersonalMedication(
+      name: name,
+      dosage: dosage,
+      scheduleTimes: scheduleTimes,
+      startDate: startDate,
+      endDate: endDate,
+    );
+    await refresh();
+  }
 }

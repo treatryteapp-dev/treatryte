@@ -10,6 +10,8 @@ router.use(requireAuth);
 
 router.get('/', controller.list);
 router.get('/today', controller.today);
+router.get('/providers', controller.providers);
+router.post('/personal', validateBody(controller.personalSchema), controller.createPersonal);
 router.post('/doses/:doseLogId/log', controller.logDose);
 router.post('/doses/:doseLogId/mood', validateBody(controller.moodSchema), controller.submitMood);
 

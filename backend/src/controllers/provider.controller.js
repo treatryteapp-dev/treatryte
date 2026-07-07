@@ -13,6 +13,7 @@ const patientModel = require('../models/patient.model');
 const medicalRecordModel = require('../models/medicalRecord.model');
 const medicationModel = require('../models/medication.model');
 const connectionModel = require('../models/connection.model');
+const moodLogModel = require('../models/moodLog.model');
 const notificationService = require('../services/notification.service');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
@@ -370,6 +371,8 @@ const addPrescription = asyncHandler(async (req, res) => {
         planStatus: 'active',
         startDate: drug.startDate ? new Date(drug.startDate) : new Date(),
         endDate: drug.endDate ? new Date(drug.endDate) : null,
+        providerId: lab._id.toString(),
+        providerName: lab.facilityName,
       });
     }
   }
@@ -389,11 +392,18 @@ const addPrescription = asyncHandler(async (req, res) => {
 });
 
 const issueMedicalRecordSchema = z.object({
-  visitType: z.string().min(1),
+  visitType: z.string().optional(),
   notes: z.string().optional(),
   fileUrl: z.string().optional(),
   fileName: z.string().optional(),
   fileId: z.string().optional(),
+  records: z.array(z.object({
+    visitType: z.string().min(1),
+    notes: z.string().optional(),
+    fileUrl: z.string().optional(),
+    fileName: z.string().optional(),
+    fileId: z.string().optional(),
+  })).optional(),
 });
 
 const issueMedicalRecord = asyncHandler(async (req, res) => {
@@ -401,28 +411,39 @@ const issueMedicalRecord = asyncHandler(async (req, res) => {
   const patientId = parseObjectId(req.params.id);
   const patient = await getOwnedPatient(lab, patientId);
 
-  const record = await medicalRecordModel.create({
-    labId: lab._id,
-    patientId,
-    userId: patient.linkedUserId,
-    visitType: req.body.visitType,
-    notes: req.body.notes,
-    fileUrl: req.body.fileUrl || null,
-    fileName: req.body.fileName || null,
-    fileId: req.body.fileId || null,
-  });
+  const recordsList =
+    Array.isArray(req.body.records) && req.body.records.length > 0
+      ? req.body.records
+      : [req.body];
+
+  const createdRecords = [];
+
+  for (const recordData of recordsList) {
+    if (!recordData.visitType) continue;
+    const record = await medicalRecordModel.create({
+      labId: lab._id,
+      patientId,
+      userId: patient.linkedUserId,
+      visitType: recordData.visitType,
+      notes: recordData.notes,
+      fileUrl: recordData.fileUrl || null,
+      fileName: recordData.fileName || null,
+      fileId: recordData.fileId || null,
+    });
+    createdRecords.push(record);
+  }
 
   await patientModel.touchLastVisit(patientId);
 
-  if (patient.linkedUserId) {
+  if (patient.linkedUserId && createdRecords.length > 0) {
     await notificationService.notify(patient.linkedUserId, {
       type: 'medical_record',
-      title: 'New Medical Record',
-      body: `${lab.name} added a new record: ${req.body.visitType}.`,
+      title: 'New Medical Record(s)',
+      body: `${lab.name} added ${createdRecords.length} new medical record(s).`,
     });
   }
 
-  res.status(201).json({ record });
+  res.status(201).json({ records: createdRecords, record: createdRecords[0] });
 });
 
 const presignPatientFileUploadSchema = z.object({
@@ -499,6 +520,31 @@ const invitePatient = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+const getFeedbacks = asyncHandler(async (req, res) => {
+  const lab = await labModel.findByUserId(req.userId);
+  if (!lab) {
+    throw new ApiError(404, 'No partner profile found', 'NOT_FOUND');
+  }
+
+  const logs = await moodLogModel.findByPartnerId(lab._id.toString());
+  
+  // Group by userId
+  const grouped = {};
+  for (const log of logs) {
+    if (!grouped[log.userId]) {
+      const user = await userModel.findById(log.userId);
+      grouped[log.userId] = {
+        patientId: log.userId,
+        patientName: user ? `${user.firstName} ${user.lastName}`.trim() : 'Unknown Patient',
+        logs: [],
+      };
+    }
+    grouped[log.userId].logs.push(log);
+  }
+  
+  res.json(Object.values(grouped));
+});
+
 module.exports = {
   createServiceSchema,
   updateServiceSchema,
@@ -527,4 +573,5 @@ module.exports = {
   presignPatientFileUpload,
   confirmPatientFileUpload,
   invitePatient,
+  getFeedbacks,
 };

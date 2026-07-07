@@ -32,6 +32,10 @@ class PartnerProvider extends ChangeNotifier {
   bool isLoadingPatientDetail = false;
   String? patientDetailError;
 
+  List<PatientFeedbackGroup> feedbacks = [];
+  bool isLoadingFeedbacks = false;
+  String? feedbacksError;
+
   Future<void> loadProfile() async {
     isLoading = true;
     notifyListeners();
@@ -208,9 +212,23 @@ class PartnerProvider extends ChangeNotifier {
       selectedPatientDetail = await _service.getPatientDetail(patientId);
       patientDetailError = null;
     } on ApiException catch (e) {
-      patientDetailError = e.message;
+      patientDetailError = e.toString();
     } finally {
       isLoadingPatientDetail = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadFeedbacks() async {
+    isLoadingFeedbacks = true;
+    feedbacksError = null;
+    notifyListeners();
+    try {
+      feedbacks = await _service.getFeedbacks();
+    } catch (e) {
+      feedbacksError = e.toString();
+    } finally {
+      isLoadingFeedbacks = false;
       notifyListeners();
     }
   }
@@ -288,22 +306,14 @@ class PartnerProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> issueMedicalRecord(
+  Future<bool> issueMedicalRecords(
     String patientId, {
-    required String visitType,
-    String? notes,
-    String? fileUrl,
-    String? fileName,
-    String? fileId,
+    required List<Map<String, dynamic>> records,
   }) async {
     try {
-      await _service.issueMedicalRecord(
+      await _service.issueMedicalRecords(
         patientId,
-        visitType: visitType,
-        notes: notes,
-        fileUrl: fileUrl,
-        fileName: fileName,
-        fileId: fileId,
+        records: records,
       );
       await Future.wait([loadPatientDetail(patientId), loadPatients()]);
       return true;

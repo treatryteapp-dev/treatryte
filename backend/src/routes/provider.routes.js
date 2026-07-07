@@ -9,6 +9,7 @@ router.use(requireAuth);
 router.use(requireRole('provider'));
 
 router.get('/profile', controller.getProfile);
+router.get('/feedbacks', controller.getFeedbacks);
 router.post('/resubmit', controller.resubmitApplication);
 
 router.get('/services', controller.listServices);

@@ -33,9 +33,37 @@ class MedicationService {
     String doseLogId, {
     required String mood,
     String? note,
+    String? partnerId,
   }) => _api.post(
     '/medications/doses/$doseLogId/mood',
     (_) => null,
-    body: {'mood': mood, if (note != null) 'note': note},
+    body: {
+      'mood': mood,
+      if (note != null) 'note': note,
+      if (partnerId != null) 'partnerId': partnerId,
+    },
+  );
+
+  Future<List<Map<String, dynamic>>> getProviders() => _api.get(
+    '/medications/providers',
+    (data) => List<Map<String, dynamic>>.from(data),
+  );
+
+  Future<void> createPersonalMedication({
+    required String name,
+    required String dosage,
+    required List<String> scheduleTimes,
+    String? startDate,
+    String? endDate,
+  }) => _api.post(
+    '/medications/personal',
+    (_) => null,
+    body: {
+      'name': name,
+      'dosage': dosage,
+      'scheduleTimes': scheduleTimes,
+      if (startDate != null) 'startDate': startDate,
+      if (endDate != null) 'endDate': endDate,
+    },
   );
 }
