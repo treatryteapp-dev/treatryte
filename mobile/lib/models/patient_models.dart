@@ -60,6 +60,7 @@ class MedicalRecord {
     required this.createdAt,
     this.fileUrl,
     this.fileName,
+    this.files = const [],
   });
 
   factory MedicalRecord.fromJson(Map<String, dynamic> json) => MedicalRecord(
@@ -69,6 +70,11 @@ class MedicalRecord {
     createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
     fileUrl: json['fileUrl'] as String?,
     fileName: json['fileName'] as String?,
+    files: (json['files'] as List<dynamic>? ?? []).map((f) => {
+      'fileUrl': (f as Map<String, dynamic>)['fileUrl']?.toString() ?? '',
+      'fileName': f['fileName']?.toString() ?? '',
+      'fileId': f['fileId']?.toString() ?? '',
+    }).toList(),
   );
 
   final String id;
@@ -77,6 +83,7 @@ class MedicalRecord {
   final DateTime? createdAt;
   final String? fileUrl;
   final String? fileName;
+  final List<Map<String, String>> files;
 }
 
 class Prescription {

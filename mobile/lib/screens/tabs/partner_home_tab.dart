@@ -472,6 +472,18 @@ class _PartnerHomeTabState extends State<PartnerHomeTab> {
                 ),
               ],
             ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/partner-feedbacks'),
+                    icon: const Icon(Icons.forum_outlined, size: 18),
+                    label: const Text('Patient Feedbacks'),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: AppSpacing.lg),
 
             // Today's Overview Banner

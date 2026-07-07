@@ -9,7 +9,7 @@ function collection() {
 // A general visit/encounter note (the "Issue Medical Record" flow) - kept
 // separate from prescriptions (medications), since they're distinct
 // concepts already surfaced as two different actions in the app.
-async function create({ labId, patientId, userId, visitType, notes, fileUrl, fileName, fileId }) {
+async function create({ labId, patientId, userId, visitType, notes, fileUrl, fileName, fileId, files }) {
   const now = new Date();
   const doc = {
     labId,
@@ -20,6 +20,7 @@ async function create({ labId, patientId, userId, visitType, notes, fileUrl, fil
     fileUrl: fileUrl || null,
     fileName: fileName || null,
     fileId: fileId || null,
+    files: files || [],
     createdAt: now,
     updatedAt: now,
   };

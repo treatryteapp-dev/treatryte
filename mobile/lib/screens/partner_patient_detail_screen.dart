@@ -13,9 +13,7 @@ class _MedicalRecordForm {
   String selectedVisitType = 'General Consultation';
   final notesCtrl = TextEditingController();
   bool isUploading = false;
-  String? attachedFileName;
-  String? attachedFileUrl;
-  String? attachedFileId;
+  List<Map<String, String>> attachments = [];
 }
 
 class _PrescriptionDrugForm {
@@ -151,38 +149,47 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
                               decoration: const InputDecoration(labelText: 'Clinical Notes', alignLabelWithHint: true),
                             ),
                             const SizedBox(height: AppSpacing.sm),
+                            if (record.attachments.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              Wrap(
+                                spacing: AppSpacing.sm,
+                                children: record.attachments.map((file) => Chip(
+                                  label: Text(file['fileName']!),
+                                  onDeleted: () => setSheetState(() => record.attachments.remove(file)),
+                                )).toList(),
+                              ),
+                            ],
+                            const SizedBox(height: AppSpacing.sm),
                             OutlinedButton.icon(
                               icon: record.isUploading
                                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : Icon(
-                                      record.attachedFileName != null ? Icons.check_circle : Icons.upload_file,
-                                      size: 18,
-                                      color: record.attachedFileName != null ? AppColors.primary : null,
-                                    ),
-                              label: Text(
-                                record.attachedFileName != null ? 'Attached: ${record.attachedFileName}' : 'Attach Medical Record / Document',
-                              ),
+                                  : const Icon(Icons.upload_file, size: 18),
+                              label: const Text('Attach Medical Record(s) / Document(s)'),
                               onPressed: record.isUploading
                                   ? null
                                   : () async {
-                                      final result = await FilePicker.platform.pickFiles(withData: true);
-                                      final file = result?.files.single;
-                                      if (file?.bytes != null) {
+                                      final result = await FilePicker.platform.pickFiles(withData: true, allowMultiple: true);
+                                      if (result != null && result.files.isNotEmpty) {
                                         setSheetState(() => record.isUploading = true);
                                         try {
-                                          final res = await partner.uploadPatientFile(
-                                            patient.id,
-                                            fileName: file!.name,
-                                            mimeType: 'application/octet-stream',
-                                            bytes: file.bytes as Uint8List,
-                                            category: 'Medical Reports',
-                                          );
-                                          if (res != null) {
-                                            setSheetState(() {
-                                              record.attachedFileId = res['fileId'];
-                                              record.attachedFileName = res['fileName'];
-                                              record.attachedFileUrl = res['fileUrl'];
-                                            });
+                                          for (final file in result.files) {
+                                            if (file.bytes == null) continue;
+                                            final res = await partner.uploadPatientFile(
+                                              patient.id,
+                                              fileName: file.name,
+                                              mimeType: 'application/octet-stream',
+                                              bytes: file.bytes as Uint8List,
+                                              category: 'Medical Reports',
+                                            );
+                                            if (res != null) {
+                                              setSheetState(() {
+                                                record.attachments.add({
+                                                  'fileId': res['fileId']!,
+                                                  'fileName': res['fileName']!,
+                                                  'fileUrl': res['fileUrl']!,
+                                                });
+                                              });
+                                            }
                                           }
                                         } finally {
                                           setSheetState(() => record.isUploading = false);
@@ -222,9 +229,7 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
                                         records: records.map((r) => {
                                           'visitType': r.selectedVisitType,
                                           'notes': r.notesCtrl.text.trim().isEmpty ? null : r.notesCtrl.text.trim(),
-                                          'fileUrl': r.attachedFileUrl,
-                                          'fileName': r.attachedFileName,
-                                          'fileId': r.attachedFileId,
+                                          'files': r.attachments,
                                         }).toList(),
                                       );
                                       if (ctx.mounted) Navigator.of(ctx).pop(ok);
@@ -625,6 +630,15 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
                                               '${_ageFromDob(detail.dateOfBirth)} yrs • ${detail.gender ?? 'Unknown gender'}',
                                               style: textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
                                             ),
+                                          const SizedBox(height: AppSpacing.sm),
+                                          OutlinedButton.icon(
+                                            icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                                            label: const Text('View Feedbacks'),
+                                            onPressed: () => context.push('/partner-feedbacks/${detail.id}'),
+                                            style: OutlinedButton.styleFrom(
+                                              visualDensity: VisualDensity.compact,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -723,6 +737,17 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
                                         onPressed: () => launchUrl(Uri.parse(record.fileUrl!)),
                                       ),
                                     ],
+                                    if (record.files.isNotEmpty) ...[
+                                      const SizedBox(height: AppSpacing.sm),
+                                      Wrap(
+                                        spacing: AppSpacing.sm,
+                                        children: record.files.map((file) => OutlinedButton.icon(
+                                          icon: const Icon(Icons.description_outlined, size: 16),
+                                          label: Text(file['fileName']!.isNotEmpty ? file['fileName']! : 'View Attachment'),
+                                          onPressed: () => launchUrl(Uri.parse(file['fileUrl']!)),
+                                        )).toList(),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -807,8 +832,9 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
       ),
       floatingActionButton: detail == null || detail.id != widget.patientId ? null : Column(
         mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          FloatingActionButton(
+          FloatingActionButton.extended(
             heroTag: 'add_record',
             onPressed: () {
               final pat = partner.patients.firstWhere((p) => p.id == detail.id);
@@ -816,17 +842,19 @@ class _PartnerPatientDetailScreenState extends State<PartnerPatientDetailScreen>
             },
             tooltip: 'Add Medical Record',
             backgroundColor: AppColors.secondaryContainer,
-            child: const Icon(Icons.note_add_outlined),
+            icon: const Icon(Icons.note_add_outlined),
+            label: const Text('Add Medical Record'),
           ),
           const SizedBox(height: AppSpacing.md),
-          FloatingActionButton(
+          FloatingActionButton.extended(
             heroTag: 'add_rx',
             onPressed: () {
               final pat = partner.patients.firstWhere((p) => p.id == detail.id);
               _showAddPrescriptionSheet(pat);
             },
             tooltip: 'Add Prescription',
-            child: const Icon(Icons.medical_services_outlined),
+            icon: const Icon(Icons.medical_services_outlined),
+            label: const Text('Add Prescription'),
           ),
         ],
       ),

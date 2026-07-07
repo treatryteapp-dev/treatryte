@@ -403,6 +403,11 @@ const issueMedicalRecordSchema = z.object({
     fileUrl: z.string().optional(),
     fileName: z.string().optional(),
     fileId: z.string().optional(),
+    files: z.array(z.object({
+      fileUrl: z.string(),
+      fileName: z.string(),
+      fileId: z.string(),
+    })).optional(),
   })).optional(),
 });
 
@@ -429,6 +434,7 @@ const issueMedicalRecord = asyncHandler(async (req, res) => {
       fileUrl: recordData.fileUrl || null,
       fileName: recordData.fileName || null,
       fileId: recordData.fileId || null,
+      files: recordData.files || [],
     });
     createdRecords.push(record);
   }
