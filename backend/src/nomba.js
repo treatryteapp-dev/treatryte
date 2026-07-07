@@ -73,6 +73,9 @@ async function createCheckoutOrder({ amountKobo, customerEmail, customerId, orde
         customerEmail,
         amount: amountKobo / 100,
         currency: 'NGN',
+        // Without this, funds settle to the default/parent account instead
+        // of the intended sub-account - this was never being sent before.
+        ...(env.nomba.subAccountId ? { accountId: env.nomba.subAccountId } : {}),
       },
     },
   });
@@ -86,16 +89,28 @@ async function createCheckoutOrder({ amountKobo, customerEmail, customerId, orde
  * Looks up a checkout order's real status directly from Nomba, independent
  * of whether their webhook ever reached us - the safety net for a missed,
  * rejected (e.g. bad signature), or simply undelivered webhook.
- * Returns null if Nomba has no record of this order yet.
+ *
+ * Deliberately NOT /v1/transactions/accounts/single - verified against
+ * Nomba's sandbox that it does not actually filter by orderReference at all
+ * (it returned a real, unrelated transaction for a reference confirmed not
+ * to exist). /v1/checkout/transaction correctly returns "not found" for the
+ * same case, so that's the only endpoint used here.
+ *
+ * Returns null if Nomba has no record of this order (not yet paid, or
+ * doesn't exist).
  */
 async function verifyTransaction({ orderReference }) {
   const { json, ok } = await nombaFetch(
-    `/v1/transactions/accounts/single?orderReference=${encodeURIComponent(orderReference)}`
+    `/v1/checkout/transaction?idType=ORDER_REFERENCE&id=${encodeURIComponent(orderReference)}`
   );
-  if (!ok || json.code !== '00' || !json.data) {
+  if (!ok || json.code !== '00' || !json.data?.success) {
     return null;
   }
-  return json.data; // { id, status: 'SUCCESS' | 'FAILED' | ..., amount, ... }
+  return {
+    success: json.data.transactionDetails?.statusCode === 'PAYMENT SUCCESSFUL',
+    transactionId: json.data.transactionDetails?.paymentReference || json.data.order?.orderId,
+    raw: json.data,
+  };
 }
 
 async function transferToBank({ amountKobo, accountNumber, bankCode, accountName, senderName, merchantTxRef, narration }) {

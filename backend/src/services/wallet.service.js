@@ -254,15 +254,15 @@ async function reconcileFunding(userId, orderReference) {
   }
 
   const result = await nomba.verifyTransaction({ orderReference });
-  if (!result) return { status: 'pending' };
-
-  if (result.status === 'SUCCESS') {
-    await finalizeFundingSuccess(pending, result.id);
+  // No confirmed terminal-failure signal from this endpoint (only
+  // "found and paid" vs "not found/not paid yet") - never mark 'failed'
+  // from it, only ever move a pending order forward to 'success'. A
+  // genuinely failed/abandoned checkout just stays 'pending' indefinitely,
+  // which is the safe default (matches the payment_failed webhook path,
+  // which still handles explicit failures separately).
+  if (result?.success) {
+    await finalizeFundingSuccess(pending, result.transactionId);
     return { status: 'success' };
-  }
-  if (result.status === 'FAILED') {
-    await transactionModel.markFailed(pending._id);
-    return { status: 'failed' };
   }
   return { status: 'pending' };
 }
