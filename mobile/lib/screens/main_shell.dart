@@ -63,7 +63,11 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().currentUser;
+    final auth = context.watch<AuthProvider>();
+    if (auth.status == AuthStatus.unknown) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final user = auth.currentUser;
     final isProvider = user?.role == 'provider';
 
     if (isProvider) {

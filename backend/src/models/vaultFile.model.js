@@ -6,7 +6,7 @@ function collection() {
   return getDb().collection(COLLECTION);
 }
 
-async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId, folderId }) {
+async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId, folderId, source, hospitalName }) {
   const now = new Date();
   const doc = {
     userId,
@@ -17,6 +17,8 @@ async function create({ userId, category, fileName, mimeType, sizeBytes, s3Key, 
     sizeBytes,
     s3Key,
     labId: labId || null,
+    source: source || (labId ? null : 'Patient Uploaded'),
+    hospitalName: hospitalName || null,
     status: 'pending_upload',
     uploadedAt: null,
     createdAt: now,

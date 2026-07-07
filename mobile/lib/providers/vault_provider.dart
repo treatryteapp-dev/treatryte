@@ -70,6 +70,8 @@ class VaultProvider extends ChangeNotifier {
     required List<int> bytes,
     required String category,
     String? folderId,
+    String? source,
+    String? hospitalName,
   }) async {
     try {
       await _service.uploadFile(
@@ -78,6 +80,8 @@ class VaultProvider extends ChangeNotifier {
         bytes: bytes,
         category: category,
         folderId: folderId,
+        source: source,
+        hospitalName: hospitalName,
       );
       await refresh();
       if (folderId != null) await loadFolderFiles(folderId);

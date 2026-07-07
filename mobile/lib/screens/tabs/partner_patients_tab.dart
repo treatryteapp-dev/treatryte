@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/patient_models.dart';
 import '../../providers/partner_provider.dart';
@@ -1087,33 +1088,69 @@ class _PartnerPatientsTabState extends State<PartnerPatientsTab> {
                                     padding: const EdgeInsets.only(
                                       bottom: AppSpacing.sm,
                                     ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(
-                                        AppSpacing.sm,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.surfaceContainerLow,
-                                        borderRadius: BorderRadius.circular(
-                                          AppRadii.md,
+                                    child: InkWell(
+                                      onTap: () async {
+                                        if (report.url != null && report.url!.isNotEmpty) {
+                                          final uri = Uri.parse(report.url!);
+                                          if (await canLaunchUrl(uri)) {
+                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          } else {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open file.')));
+                                            }
+                                          }
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File preview not available.')));
+                                        }
+                                      },
+                                      borderRadius: BorderRadius.circular(AppRadii.md),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(
+                                          AppSpacing.sm,
                                         ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.picture_as_pdf,
-                                            color: AppColors.error,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surfaceContainerLow,
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadii.md,
                                           ),
-                                          const SizedBox(width: AppSpacing.sm),
-                                          Expanded(
-                                            child: Text(
-                                              report.fileName,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.picture_as_pdf,
+                                              color: AppColors.error,
+                                            ),
+                                            const SizedBox(width: AppSpacing.sm),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    report.fileName,
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    report.uploadedBy ?? 'Patient Uploaded',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: report.sourceType == 'partner' || (report.uploadedBy != null && report.uploadedBy != 'Patient Uploaded')
+                                                          ? AppColors.primary
+                                                          : AppColors.textSecondary,
+                                                      fontWeight: report.sourceType == 'partner' || (report.uploadedBy != null && report.uploadedBy != 'Patient Uploaded')
+                                                          ? FontWeight.w600
+                                                          : FontWeight.normal,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                          ),
-                                        ],
+                                            const Icon(Icons.open_in_new, size: 16, color: AppColors.textSecondary),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),

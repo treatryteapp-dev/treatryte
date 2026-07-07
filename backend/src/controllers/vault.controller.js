@@ -33,6 +33,8 @@ const presignSchema = z.object({
   sizeBytes: z.number().int().positive(),
   category: z.string().min(1),
   folderId: z.string().optional(),
+  source: z.string().optional(),
+  hospitalName: z.string().optional(),
 });
 
 const presign = asyncHandler(async (req, res) => {
@@ -49,7 +51,13 @@ const presign = asyncHandler(async (req, res) => {
   }
 
   const folderId = req.body.folderId ? parseObjectId(req.body.folderId) : undefined;
-  const result = await vaultService.presignUpload(req.userId, { ...req.body, labId, folderId });
+  const result = await vaultService.presignUpload(req.userId, {
+    ...req.body,
+    labId,
+    folderId,
+    source: req.body.source,
+    hospitalName: req.body.hospitalName,
+  });
   res.status(201).json(result);
 });
 

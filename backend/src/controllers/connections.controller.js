@@ -4,6 +4,8 @@ const { ObjectId } = require('mongodb');
 const connectionModel = require('../models/connection.model');
 const labModel = require('../models/lab.model');
 const vaultFolderModel = require('../models/vaultFolder.model');
+const vaultFileModel = require('../models/vaultFile.model');
+const vaultService = require('../services/vault.service');
 const patientModel = require('../models/patient.model');
 const userModel = require('../models/user.model');
 const medicalRecordModel = require('../models/medicalRecord.model');
@@ -104,13 +106,22 @@ const getConnectionDetail = asyncHandler(async (req, res) => {
   }
 
   // Find the patient record the lab created for this user
-  const patient = await patientModel.findByLabIdAndUserId(lab._id, req.userId);
+  const user = await userModel.findById(req.userId);
+  const patient = user ? await patientModel.findOrCreateForUser(lab._id, user) : await patientModel.findByLabIdAndUserId(lab._id, req.userId);
   let medicalRecords = [];
   let prescriptions = [];
 
   if (patient) {
-    medicalRecords = await medicalRecordModel.findByLabIdAndPatientId(lab._id, patient._id);
-    prescriptions = await prescriptionModel.findByLabIdAndPatientId(lab._id, patient._id);
+    medicalRecords = await medicalRecordModel.findByLabIdAndPatientId(lab._id, patient._id, req.userId);
+    prescriptions = await prescriptionModel.findByLabIdAndPatientId(lab._id, patient._id, req.userId);
+  }
+
+  let reports = [];
+  if (connection.status === 'accepted') {
+    const rawReports = connection.shareAll
+      ? await vaultFileModel.findByUserId(req.userId)
+      : await vaultFileModel.findByUserIdAndFolderIds(req.userId, connection.sharedFolderIds || []);
+    reports = await vaultService.enrichFiles(rawReports);
   }
 
   res.json({
@@ -124,6 +135,7 @@ const getConnectionDetail = asyncHandler(async (req, res) => {
     },
     medicalRecords,
     prescriptions,
+    reports,
   });
 });
 

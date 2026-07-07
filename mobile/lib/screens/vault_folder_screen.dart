@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/vault_models.dart';
 import '../providers/vault_provider.dart';
@@ -92,6 +93,37 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
     final file = result?.files.single;
     if (file?.bytes == null) return;
 
+    if (!mounted) return;
+    final hospitalController = TextEditingController();
+    final shouldUpload = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Document Source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Was this report collected or imported from another hospital or clinic?'),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: hospitalController,
+              decoration: const InputDecoration(
+                labelText: 'Hospital / Clinic Name (Optional)',
+                hintText: 'e.g. St. Mary Hospital (or leave blank)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Upload')),
+        ],
+      ),
+    );
+    if (shouldUpload != true || !mounted) return;
+    final hospitalName = hospitalController.text.trim();
+
     setState(() => _uploading = true);
     final success = await context.read<VaultProvider>().uploadFile(
       fileName: file!.name,
@@ -99,6 +131,8 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
       bytes: file.bytes as Uint8List,
       category: widget.folder.name,
       folderId: widget.folder.id,
+      source: hospitalName.isNotEmpty ? hospitalName : 'Patient Uploaded',
+      hospitalName: hospitalName.isNotEmpty ? hospitalName : null,
     );
     if (!mounted) return;
     setState(() => _uploading = false);
@@ -172,6 +206,20 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
                     final file = vault.currentFolderFiles[index];
                     return Card(
                       child: ListTile(
+                        onTap: () async {
+                          if (file.url != null && file.url!.isNotEmpty) {
+                            final uri = Uri.parse(file.url!);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open file.')));
+                              }
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File preview not available.')));
+                          }
+                        },
                         leading: Icon(
                           file.fileName.toLowerCase().endsWith('.pdf')
                               ? Icons.picture_as_pdf
@@ -182,6 +230,18 @@ class _VaultFolderScreenState extends State<VaultFolderScreen> {
                           file.fileName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          file.uploadedBy ?? 'Patient Uploaded',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: file.sourceType == 'partner' || (file.uploadedBy != null && file.uploadedBy != 'Patient Uploaded')
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                            fontWeight: file.sourceType == 'partner' || (file.uploadedBy != null && file.uploadedBy != 'Patient Uploaded')
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
                         ),
                       ),
                     );

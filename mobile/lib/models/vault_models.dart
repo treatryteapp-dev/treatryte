@@ -63,6 +63,9 @@ class VaultFile {
     required this.category,
     required this.status,
     this.url,
+    this.source,
+    this.uploadedBy,
+    this.sourceType,
   });
 
   factory VaultFile.fromJson(Map<String, dynamic> json) => VaultFile(
@@ -71,6 +74,9 @@ class VaultFile {
     category: json['category'] as String,
     status: json['status'] as String,
     url: json['url'] as String?,
+    source: json['source'] as String?,
+    uploadedBy: json['uploadedBy'] as String?,
+    sourceType: json['sourceType'] as String?,
   );
 
   final String id;
@@ -78,4 +84,7 @@ class VaultFile {
   final String category;
   final String status;
   final String? url;
+  final String? source;
+  final String? uploadedBy;
+  final String? sourceType;
 }

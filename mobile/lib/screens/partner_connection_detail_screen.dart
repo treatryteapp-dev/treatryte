@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/connection_models.dart';
 import '../providers/connection_provider.dart';
@@ -147,6 +148,8 @@ class _PartnerConnectionDetailScreenState
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   children: [
                     _buildAccessControlSection(textTheme, vault),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildSharedReportsSection(textTheme),
                     const SizedBox(height: AppSpacing.xxl),
                     _buildMedicalRecordsSection(textTheme),
                     const SizedBox(height: AppSpacing.xxl),
@@ -381,6 +384,63 @@ class _PartnerConnectionDetailScreenState
                     ),
                   ],
                 ),
+              ),
+            ),
+      ],
+    );
+  }
+
+  Widget _buildSharedReportsSection(TextTheme textTheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Shared Reports (${_detail!.reports.length})',
+          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (_detail!.reports.isEmpty)
+          Text(
+            'No reports shared in this connection.',
+            style: textTheme.bodyMedium?.copyWith(color: AppColors.outline),
+          )
+        else
+          for (final report in _detail!.reports)
+            Card(
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: ListTile(
+                onTap: () async {
+                  if (report.url != null && report.url!.isNotEmpty) {
+                    final uri = Uri.parse(report.url!);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open file.')));
+                      }
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File preview not available.')));
+                  }
+                },
+                leading: Icon(
+                  report.fileName.toLowerCase().endsWith('.pdf') ? Icons.picture_as_pdf : Icons.image,
+                  color: AppColors.primary,
+                ),
+                title: Text(report.fileName, maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: Text(
+                  report.uploadedBy ?? 'Patient Uploaded',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: report.sourceType == 'partner' || (report.uploadedBy != null && report.uploadedBy != 'Patient Uploaded')
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                    fontWeight: report.sourceType == 'partner' || (report.uploadedBy != null && report.uploadedBy != 'Patient Uploaded')
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                ),
+                trailing: const Icon(Icons.open_in_new, size: 16, color: AppColors.textSecondary),
               ),
             ),
       ],

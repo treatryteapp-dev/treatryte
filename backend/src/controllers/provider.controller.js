@@ -7,9 +7,11 @@ const appointmentModel = require('../models/appointment.model');
 const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
 const vaultFileModel = require('../models/vaultFile.model');
+const vaultService = require('../services/vault.service');
 const prescriptionModel = require('../models/prescription.model');
 const patientModel = require('../models/patient.model');
 const medicalRecordModel = require('../models/medicalRecord.model');
+const medicationModel = require('../models/medication.model');
 const connectionModel = require('../models/connection.model');
 const notificationService = require('../services/notification.service');
 const { asyncHandler } = require('../middleware/asyncHandler');
@@ -208,6 +210,16 @@ async function getOwnedPatient(lab, patientId) {
   if (!patient) {
     throw new ApiError(404, 'Patient not found', 'PATIENT_NOT_FOUND');
   }
+  if (!patient.linkedUserId && patient.email) {
+    const linkedUser = await userModel.findByEmail(patient.email);
+    if (linkedUser) {
+      await patientModel.collection().updateOne(
+        { _id: patient._id },
+        { $set: { linkedUserId: linkedUser._id, updatedAt: new Date() } }
+      );
+      patient.linkedUserId = linkedUser._id;
+    }
+  }
   return patient;
 }
 
@@ -259,15 +271,16 @@ const getPatientDetail = asyncHandler(async (req, res) => {
     const connection = await connectionModel.findByLabAndPatient(lab._id, patient.linkedUserId);
     connectionStatus = connection?.status;
     if (connection?.status === 'accepted') {
-      reports = connection.shareAll
+      const rawReports = connection.shareAll
         ? await vaultFileModel.findByUserId(patient.linkedUserId)
         : await vaultFileModel.findByUserIdAndFolderIds(patient.linkedUserId, connection.sharedFolderIds || []);
+      reports = await vaultService.enrichFiles(rawReports);
     }
   }
 
   const [prescriptions, medicalRecords] = await Promise.all([
-    prescriptionModel.findByLabIdAndPatientId(lab._id, patientId),
-    medicalRecordModel.findByLabIdAndPatientId(lab._id, patientId),
+    prescriptionModel.findByLabIdAndPatientId(lab._id, patientId, patient.linkedUserId),
+    medicalRecordModel.findByLabIdAndPatientId(lab._id, patientId, patient.linkedUserId),
   ]);
 
   res.json({
@@ -303,6 +316,7 @@ const addPrescription = asyncHandler(async (req, res) => {
   const prescription = await prescriptionModel.create({
     labId: lab._id,
     patientId,
+    userId: patient.linkedUserId,
     medicineName: req.body.medicineName,
     dosage: req.body.dosage,
     duration: req.body.duration,
@@ -310,6 +324,16 @@ const addPrescription = asyncHandler(async (req, res) => {
   });
 
   if (patient.linkedUserId) {
+    await medicationModel.create({
+      userId: patient.linkedUserId,
+      name: req.body.medicineName,
+      dosage: req.body.dosage,
+      scheduleTimes: ['8:00 AM', '2:00 PM', '8:00 PM'],
+      planStatus: 'active',
+      startDate: new Date(),
+      endDate: null,
+    });
+
     await notificationService.notify(patient.linkedUserId, {
       type: 'prescription',
       title: 'New Prescription',
@@ -333,6 +357,7 @@ const issueMedicalRecord = asyncHandler(async (req, res) => {
   const record = await medicalRecordModel.create({
     labId: lab._id,
     patientId,
+    userId: patient.linkedUserId,
     visitType: req.body.visitType,
     notes: req.body.notes,
   });

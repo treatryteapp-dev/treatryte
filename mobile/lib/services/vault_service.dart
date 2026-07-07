@@ -51,6 +51,8 @@ class VaultService {
     required List<int> bytes,
     required String category,
     String? folderId,
+    String? source,
+    String? hospitalName,
   }) async {
     final presign = await _api.post(
       '/vault/files/presign',
@@ -64,6 +66,9 @@ class VaultService {
         'sizeBytes': bytes.length,
         'category': category,
         if (folderId != null) 'folderId': folderId,
+        if (source != null && source.isNotEmpty) 'source': source,
+        if (hospitalName != null && hospitalName.isNotEmpty)
+          'hospitalName': hospitalName,
       },
     );
 

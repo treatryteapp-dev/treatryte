@@ -29,9 +29,13 @@ GoRouter createAppRouter(AuthProvider authProvider) {
     initialLocation: '/',
     refreshListenable: authProvider,
     redirect: (context, state) {
+      if (authProvider.status == AuthStatus.unknown) {
+        return null;
+      }
       final loggedIn = authProvider.isAuthenticated;
       final isPublicPath = _publicPaths.contains(state.matchedLocation);
       if (!loggedIn && !isPublicPath) return '/login';
+      if (loggedIn && isPublicPath) return '/dashboard';
       return null;
     },
     routes: [

@@ -1,4 +1,5 @@
 import 'patient_models.dart';
+import 'vault_models.dart';
 
 class PartnerConnection {
   const PartnerConnection({
@@ -35,6 +36,7 @@ class ConnectionDetail {
     required this.connection,
     required this.medicalRecords,
     required this.prescriptions,
+    required this.reports,
   });
 
   factory ConnectionDetail.fromJson(Map<String, dynamic> json) =>
@@ -48,9 +50,13 @@ class ConnectionDetail {
         prescriptions: (json['prescriptions'] as List<dynamic>? ?? [])
             .map((r) => Prescription.fromJson(r as Map<String, dynamic>))
             .toList(),
+        reports: (json['reports'] as List<dynamic>? ?? [])
+            .map((r) => VaultFile.fromJson(r as Map<String, dynamic>))
+            .toList(),
       );
 
   final PartnerConnection connection;
   final List<MedicalRecord> medicalRecords;
   final List<Prescription> prescriptions;
+  final List<VaultFile> reports;
 }

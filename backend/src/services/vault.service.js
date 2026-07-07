@@ -9,6 +9,8 @@ const vaultFileModel = require('../models/vaultFile.model');
 const vaultFolderModel = require('../models/vaultFolder.model');
 const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
+const labModel = require('../models/lab.model');
+const connectionModel = require('../models/connection.model');
 const activityService = require('./activity.service');
 const { ApiError } = require('../middleware/errorHandler');
 
@@ -25,6 +27,34 @@ async function getVaultLimits(userId) {
     maxVaultFolders: plan && 'maxVaultFolders' in plan ? plan.maxVaultFolders : DEFAULT_MAX_VAULT_FOLDERS,
     maxVaultFiles: plan && 'maxVaultFiles' in plan ? plan.maxVaultFiles : DEFAULT_MAX_VAULT_FILES,
   };
+}
+
+async function enrichFiles(files) {
+  if (!files || files.length === 0) return [];
+  const labIds = files.map((f) => f.labId).filter(Boolean);
+  let labsById = new Map();
+  if (labIds.length > 0) {
+    const labs = await labModel.collection().find({ _id: { $in: labIds } }).toArray();
+    labsById = new Map(labs.map((l) => [l._id.toString(), l]));
+  }
+  return files.map((file) => {
+    let sourceName = 'Patient Uploaded';
+    let sourceType = 'patient';
+    if (file.labId && labsById.has(file.labId.toString())) {
+      sourceName = labsById.get(file.labId.toString()).name;
+      sourceType = 'partner';
+    } else if (file.hospitalName || (file.source && file.source !== 'Patient Uploaded')) {
+      sourceName = file.hospitalName || file.source;
+      sourceType = 'imported_hospital';
+    }
+    return {
+      ...file,
+      url: signVaultUrl(file.s3Key),
+      source: sourceName,
+      uploadedBy: sourceName,
+      sourceType,
+    };
+  });
 }
 
 async function createFolder(userId, name) {
@@ -55,7 +85,7 @@ async function listFolders(userId) {
 // resubmission docs), which isn't part of a patient's own folder system and
 // isn't subject to vault plan limits - those only gate a patient's personal
 // records.
-async function presignUpload(userId, { fileName, mimeType, sizeBytes, category, labId, folderId }) {
+async function presignUpload(userId, { fileName, mimeType, sizeBytes, category, labId, folderId, source, hospitalName }) {
   if (!labId) {
     if (!folderId) {
       throw new ApiError(400, 'A folder is required to upload a document', 'FOLDER_REQUIRED');
@@ -80,7 +110,7 @@ async function presignUpload(userId, { fileName, mimeType, sizeBytes, category, 
 
   const s3Key = `vault/${userId.toString()}/${crypto.randomUUID()}-${fileName}`;
 
-  const file = await vaultFileModel.create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId, folderId });
+  const file = await vaultFileModel.create({ userId, category, fileName, mimeType, sizeBytes, s3Key, labId, folderId, source, hospitalName });
 
   const uploadUrl = await getS3SignedUrl(
     getS3Client(),
@@ -118,15 +148,32 @@ async function confirmUpload(userId, fileId) {
 }
 
 async function getFile(userId, fileId) {
-  const file = await vaultFileModel.findById(userId, fileId);
+  let file = await vaultFileModel.findById(userId, fileId);
+  if (!file) {
+    const lab = await labModel.findByUserId(userId);
+    if (lab) {
+      file = await vaultFileModel.collection().findOne({ _id: fileId, status: 'uploaded' });
+      if (file) {
+        const connection = await connectionModel.findByLabAndPatient(lab._id, file.userId);
+        if (
+          connection?.status !== 'accepted' ||
+          (!connection.shareAll && !connection.sharedFolderIds?.some((id) => id.toString() === file.folderId?.toString()))
+        ) {
+          file = null;
+        }
+      }
+    }
+  }
   if (!file || file.status !== 'uploaded') {
     throw new ApiError(404, 'File not found', 'FILE_NOT_FOUND');
   }
-  return { ...file, url: signVaultUrl(file.s3Key) };
+  const [enriched] = await enrichFiles([file]);
+  return enriched;
 }
 
 async function listFiles(userId, category, folderId) {
-  return vaultFileModel.list(userId, category, folderId);
+  const files = await vaultFileModel.list(userId, category, folderId);
+  return enrichFiles(files);
 }
 
 async function getCategories(userId) {
@@ -158,4 +205,5 @@ module.exports = {
   listFiles,
   getCategories,
   getStats,
+  enrichFiles,
 };

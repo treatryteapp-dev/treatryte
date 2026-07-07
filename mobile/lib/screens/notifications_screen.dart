@@ -29,6 +29,7 @@ import '../theme/app_theme.dart';
         iconColor: AppColors.primary,
         iconBackground: AppColors.primaryContainer,
       );
+    case 'prescription':
     case 'medication_reminder':
       return (
         icon: Icons.medication_outlined,
@@ -150,6 +151,7 @@ class _NotificationTile extends StatelessWidget {
         onTap: () {
           context.read<NotificationProvider>().markAllRead();
           if (notification.type == 'invite') context.push('/invitations');
+          if (notification.type == 'prescription' || notification.type == 'medication_reminder') context.go('/dashboard');
         },
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
