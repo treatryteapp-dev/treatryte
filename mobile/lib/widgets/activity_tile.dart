@@ -1,16 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../models/activity_item.dart';
 import '../providers/main_tab_provider.dart';
+import '../providers/vault_provider.dart';
 import '../theme/app_theme.dart';
 
-/// Routes to wherever an activity of this [type] is best followed up on.
-/// Several activity types (wallet transactions, appointments) don't have a
+/// Routes to wherever an activity is best followed up on. When it links back
+/// to a specific vault file (refCollection/refId), that exact document is
+/// opened directly rather than just landing on the Vault tab. Several other
+/// activity types (wallet transactions, appointments) don't have a
 /// dedicated detail screen yet, so they fall back to the tab that shows
 /// their summary rather than doing nothing.
-void handleActivityTap(BuildContext context, String type) {
-  switch (type) {
+Future<void> handleActivityTap(BuildContext context, ActivityItem item) async {
+  if (item.type == 'lab_upload' &&
+      item.refCollection == 'vault_files' &&
+      item.refId != null) {
+    final file = await context.read<VaultProvider>().getFile(item.refId!);
+    if (!context.mounted) return;
+    if (file?.url != null && file!.url!.isNotEmpty) {
+      final opened = await launchUrl(
+        Uri.parse(file.url!),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!context.mounted || opened) return;
+    }
+    // File was deleted, no longer accessible, or couldn't be opened - fall
+    // through to the Vault tab rather than leaving the tap looking dead.
+    context.read<MainTabProvider>().setIndex(1);
+    return;
+  }
+
+  switch (item.type) {
     case 'lab_upload':
       context.read<MainTabProvider>().setIndex(1); // Vault
       break;

@@ -59,7 +59,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                       iconBackground: AppColors.secondaryContainer,
                       title: item.title,
                       subtitle: item.subtitle,
-                      onTap: () => handleActivityTap(context, item.type),
+                      onTap: () => handleActivityTap(context, item),
                     );
                   },
                 ),

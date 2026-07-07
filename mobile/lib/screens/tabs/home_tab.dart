@@ -117,7 +117,7 @@ class _HomeTabState extends State<HomeTab> {
                     iconBackground: AppColors.secondaryContainer,
                     title: item.title,
                     subtitle: item.subtitle,
-                    onTap: () => handleActivityTap(context, item.type),
+                    onTap: () => handleActivityTap(context, item),
                   ),
               const SizedBox(height: AppSpacing.lg),
               const _InsuranceBanner(),

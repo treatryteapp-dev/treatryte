@@ -64,6 +64,16 @@ class VaultProvider extends ChangeNotifier {
     }
   }
 
+  Future<VaultFile?> getFile(String fileId) async {
+    try {
+      return await _service.getFile(fileId);
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<bool> uploadFile({
     required String fileName,
     required String mimeType,

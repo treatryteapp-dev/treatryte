@@ -29,6 +29,11 @@ class VaultService {
     body: {'name': name},
   );
 
+  Future<VaultFile> getFile(String fileId) => _api.get(
+    '/vault/files/$fileId',
+    (data) => VaultFile.fromJson(data['file'] as Map<String, dynamic>),
+  );
+
   Future<List<VaultFile>> getFiles({String? category, String? folderId}) =>
       _api.get(
         '/vault/files',
