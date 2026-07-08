@@ -179,7 +179,18 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     if (checkoutLink == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to start checkout for this plan.'),
+          content: Text('Failed to upgrade subscription.'),
+        ),
+      );
+      return;
+    }
+
+    if (checkoutLink == 'SUCCESS') {
+      await context.read<AuthProvider>().checkSession();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Subscription upgraded successfully via wallet.'),
         ),
       );
       return;

@@ -151,19 +151,13 @@ function parseWebhookData(data) {
     // Only present for checkout-order payments (removed).
     // The merchantTxRef we generate and send when initiating a payout -
     // used to match a payout_* webhook back to the original transfer.
-    transferReference: data.transaction?.merchantTxRef,
+    transferReference: data.transaction?.merchantTxRef?.toString(),
     amountKobo:
       data.transaction?.transactionAmount != null
-        ? Math.round(data.transaction.transactionAmount * 100)
+        ? Math.round(Number(data.transaction.transactionAmount) * 100)
         : null,
-    // Identifies which dedicated virtual account received a vact_transfer.
-    // aliasAccountReference in Nomba's sample payloads looks like an
-    // internal session id ("122320250916PM"), not the accountRef we send
-    // when creating the account - aliasAccountNumber (the literal bank
-    // account number) is the unambiguous one, since that's exactly what we
-    // already store as wallet.virtualAccountNumber.
-    aliasAccountReference: data.transaction?.aliasAccountReference,
-    aliasAccountNumber: data.transaction?.aliasAccountNumber,
+    aliasAccountReference: data.transaction?.aliasAccountReference?.toString(),
+    aliasAccountNumber: data.transaction?.aliasAccountNumber?.toString(),
   };
 }
 

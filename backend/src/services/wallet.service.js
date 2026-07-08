@@ -76,9 +76,12 @@ async function getOrCreateVirtualAccount(userId) {
   }
 
   const user = await userModel.findById(userId);
+  let safeName = user.fullName || 'User';
+  if (safeName.length < 8) safeName = safeName.padEnd(8, ' ');
+
   const account = await nomba.createVirtualAccount({
     accountRef: userId.toString(),
-    accountName: user.fullName,
+    accountName: safeName,
   });
 
   await walletModel.setVirtualAccount(userId, {

@@ -27,13 +27,13 @@ class SubscriptionProvider extends ChangeNotifier {
     }
   }
 
-  /// Returns the Nomba checkout link to open for paid plans, or null if the
-  /// upgrade was a free-plan switch applied immediately (no payment needed).
+  /// Returns the Nomba checkout link to open for paid plans, or 'SUCCESS' if the
+  /// upgrade was a free-plan switch or paid via wallet (no payment needed).
   Future<String?> upgrade(String planId) async {
     try {
       final result = await _service.upgrade(planId);
       errorMessage = null;
-      return result.checkoutLink;
+      return result.checkoutLink ?? 'SUCCESS';
     } on ApiException catch (e) {
       errorMessage = e.message;
       notifyListeners();
