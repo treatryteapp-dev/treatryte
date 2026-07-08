@@ -85,4 +85,20 @@ function otpEmail({ code }) {
   };
 }
 
-module.exports = { sendEmail, partnerRejectionEmail, otpEmail };
+function payoutAccountOtpEmail({ code }) {
+  return {
+    subject: 'Confirm your TreatRyte payout account change',
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #0b1c30; max-width: 480px;">
+        <h2 style="color: #004E47;">Confirm payout account change</h2>
+        <p>Someone is setting the bank account TreatRyte platform revenue withdraws to. Use the code below to confirm it's you. It expires in 10 minutes.</p>
+        <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 24px 0;">${code}</p>
+        <p style="color: #545f73; font-size: 13px;">If you didn't request this, secure your admin account immediately - do not share this code.</p>
+        <p style="margin-top: 24px; color: #545f73; font-size: 13px;">- The TreatRyte Team</p>
+      </div>
+    `,
+    text: `Your TreatRyte payout account confirmation code is ${code}. It expires in 10 minutes.\n\nIf you didn't request this, secure your admin account immediately - do not share this code.\n\n- The TreatRyte Team`,
+  };
+}
+
+module.exports = { sendEmail, partnerRejectionEmail, otpEmail, payoutAccountOtpEmail };

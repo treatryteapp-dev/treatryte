@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { PartnerVetting } from './pages/PartnerVetting';
 import { Subscriptions } from './pages/Subscriptions';
 import { Settlements } from './pages/Settlements';
+import { Treasury } from './pages/Treasury';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { api } from './services/api';
@@ -63,6 +64,17 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Settlements />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/treasury"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Treasury />
               </Layout>
             </ProtectedRoute>
           }

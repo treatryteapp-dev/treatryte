@@ -12,6 +12,11 @@ async function getSettings() {
   return {
     partnerStatusWebhookUrl: doc?.partnerStatusWebhookUrl || '',
     serviceFeeKobo: doc?.serviceFeeKobo ?? 100_000,
+    // Locked bank account platform revenue withdraws to - null until an
+    // admin sets one (OTP-gated, see admin.controller.js). Deliberately not
+    // client-suppliable at withdrawal time so a compromised admin session
+    // can't redirect a payout to an arbitrary account on the spot.
+    payoutAccount: doc?.payoutAccount || null,
   };
 }
 

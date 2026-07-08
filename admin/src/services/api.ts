@@ -56,6 +56,14 @@ export interface PlatformSettings {
   serviceFeeKobo: number;
 }
 
+export interface PayoutAccount {
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  lockedAt: string;
+}
+
 export interface AdminUser {
   id: string;
   fullName: string;
@@ -339,6 +347,67 @@ export const api = {
     if (!res.ok) throw new Error('Failed to update platform settings');
     const data = await res.json();
     return data.settings;
+  },
+
+  async fetchTreasuryWallet(): Promise<{ balanceKobo: number; currency: string }> {
+    const res = await authFetch(`${API_BASE}/api/admin/treasury/wallet`);
+    if (!res.ok) throw new Error('Failed to fetch treasury wallet');
+    return res.json();
+  },
+
+  async fetchPayoutAccount(): Promise<PayoutAccount | null> {
+    const res = await authFetch(`${API_BASE}/api/admin/payout-account`);
+    if (!res.ok) throw new Error('Failed to fetch payout account');
+    const data = await res.json();
+    return data.payoutAccount;
+  },
+
+  // Preview step - resolves the account holder name without saving
+  // anything, so the admin can confirm it before requesting an OTP.
+  async lookupPayoutAccount(bankCode: string, accountNumber: string): Promise<{ accountName: string; bankName: string }> {
+    const res = await authFetch(`${API_BASE}/api/admin/payout-account/lookup`, {
+      method: 'POST',
+      body: JSON.stringify({ bankCode, accountNumber }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to verify bank details');
+    }
+    return res.json();
+  },
+
+  async requestPayoutAccountOtp(): Promise<boolean> {
+    const res = await authFetch(`${API_BASE}/api/admin/payout-account/request-otp`, { method: 'POST' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to send confirmation code');
+    }
+    return true;
+  },
+
+  async setPayoutAccount(bankCode: string, accountNumber: string, otpCode: string): Promise<PayoutAccount> {
+    const res = await authFetch(`${API_BASE}/api/admin/payout-account`, {
+      method: 'POST',
+      body: JSON.stringify({ bankCode, accountNumber, otpCode }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to lock in payout account');
+    }
+    const data = await res.json();
+    return data.payoutAccount;
+  },
+
+  async withdrawPlatformRevenue(amountKobo: number): Promise<boolean> {
+    const res = await authFetch(`${API_BASE}/api/admin/treasury/withdraw`, {
+      method: 'POST',
+      body: JSON.stringify({ amountKobo }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Withdrawal failed');
+    }
+    return true;
   },
 
   setTokens(accessToken: string, refreshToken: string) {

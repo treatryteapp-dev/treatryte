@@ -14,6 +14,8 @@ const { signVaultUrl } = require('../cloudfrontSign');
 const { getS3Client } = require('../aws');
 const env = require('../config/env');
 const emailService = require('../services/email.service');
+const otpService = require('../services/otp.service');
+const walletService = require('../services/wallet.service');
 const nomba = require('../nomba');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
@@ -411,6 +413,104 @@ const updateLabBankDetails = asyncHandler(async (req, res) => {
   res.json({ success: true, accountName });
 });
 
+// --- Platform revenue treasury ---------------------------------------
+// The admin's own wallet accumulates real platform revenue (platform_fee
+// / subscription_revenue credits - see appointment.service.js and
+// subscription.service.js). Withdrawing it out to a real bank account
+// reuses the same withdrawToBank machinery patients/partners already go
+// through (proven, has the reconciliation safety net), but the
+// destination is never client-suppliable at withdrawal time - only a
+// single locked account, set once via this OTP-gated flow, can receive
+// platform revenue. A compromised admin session alone can't redirect it.
+
+const lookupAccountSchema = z.object({
+  bankCode: z.string().min(1),
+  accountNumber: z.string().min(1),
+});
+
+// Preview step before requesting an OTP - lets the admin visually confirm
+// the resolved account holder name before committing to anything.
+const lookupPayoutAccount = asyncHandler(async (req, res) => {
+  const { bankCode, accountNumber } = req.body;
+  const { accountName } = await nomba.lookupBankAccount({ accountNumber, bankCode });
+  const banks = await nomba.listBanks();
+  const bank = banks.find((b) => (b.code || b.bankCode) === bankCode);
+  const bankName = bank ? bank.name || bank.bankName : '';
+  res.json({ accountName, bankName });
+});
+
+const getPayoutAccount = asyncHandler(async (req, res) => {
+  const { payoutAccount } = await platformSettingsModel.getSettings();
+  res.json({ payoutAccount });
+});
+
+// Sends to the admin's OWN registered email, looked up server-side from
+// their session - never a client-supplied address, or anyone with the
+// admin's access token could redirect the code to themselves.
+const requestPayoutAccountOtp = asyncHandler(async (req, res) => {
+  const admin = await userModel.findById(req.userId);
+  await otpService.sendOtp(admin.email, 'admin_payout_account');
+  res.json({ success: true });
+});
+
+const setPayoutAccountSchema = z.object({
+  bankCode: z.string().min(1),
+  accountNumber: z.string().min(1),
+  otpCode: z.string().min(1),
+});
+
+const setPayoutAccount = asyncHandler(async (req, res) => {
+  const { bankCode, accountNumber, otpCode } = req.body;
+  const admin = await userModel.findById(req.userId);
+
+  // Throws if invalid/expired/wrong - never proceeds without a genuine
+  // confirmation from the admin's own inbox.
+  await otpService.verifyOtp(admin.email, otpCode, 'admin_payout_account');
+
+  // Re-resolve server-side rather than trusting any accountName the client
+  // might have echoed back from the earlier preview lookup.
+  const { accountName } = await nomba.lookupBankAccount({ accountNumber, bankCode });
+  const banks = await nomba.listBanks();
+  const bank = banks.find((b) => (b.code || b.bankCode) === bankCode);
+  const bankName = bank ? bank.name || bank.bankName : '';
+
+  const { payoutAccount } = await platformSettingsModel.updateSettings({
+    payoutAccount: { bankCode, bankName, accountNumber, accountName, lockedAt: new Date() },
+  });
+  res.json({ payoutAccount });
+});
+
+const getTreasuryWallet = asyncHandler(async (req, res) => {
+  const adminUser = await userModel.collection().findOne({ role: 'admin' });
+  if (!adminUser) throw new ApiError(404, 'Admin account not found', 'NOT_FOUND');
+  const wallet = await walletService.getWallet(adminUser._id);
+  res.json({ balanceKobo: wallet.balance, currency: wallet.currency });
+});
+
+const withdrawPlatformRevenueSchema = z.object({
+  amountKobo: z.number().int().positive(),
+});
+
+const withdrawPlatformRevenue = asyncHandler(async (req, res) => {
+  const { amountKobo } = req.body;
+  const { payoutAccount } = await platformSettingsModel.getSettings();
+  if (!payoutAccount) {
+    throw new ApiError(400, 'Set a payout account before withdrawing', 'NO_PAYOUT_ACCOUNT');
+  }
+
+  const adminUser = await userModel.collection().findOne({ role: 'admin' });
+  if (!adminUser) throw new ApiError(404, 'Admin account not found', 'NOT_FOUND');
+
+  const transaction = await walletService.withdrawToBank(adminUser._id, {
+    amountKobo,
+    accountNumber: payoutAccount.accountNumber,
+    bankCode: payoutAccount.bankCode,
+    accountName: payoutAccount.accountName,
+    narration: 'TreatRyte platform revenue withdrawal',
+  });
+  res.status(201).json({ transaction });
+});
+
 const updateProfileSchema = z.object({
   fullName: z.string().min(1),
   email: z.string().email(),
@@ -501,4 +601,13 @@ module.exports = {
   listPlatformSettings,
   updatePlatformSettings,
   configHealth,
+  lookupAccountSchema,
+  lookupPayoutAccount,
+  getPayoutAccount,
+  requestPayoutAccountOtp,
+  setPayoutAccountSchema,
+  setPayoutAccount,
+  getTreasuryWallet,
+  withdrawPlatformRevenueSchema,
+  withdrawPlatformRevenue,
 };

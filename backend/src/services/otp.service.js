@@ -32,7 +32,11 @@ async function sendOtp(email, purpose) {
     expiresAt: new Date(Date.now() + CODE_TTL_MS),
   });
 
-  await emailService.sendEmail({ to: email, ...emailService.otpEmail({ code }) });
+  const template =
+    purpose === 'admin_payout_account'
+      ? emailService.payoutAccountOtpEmail({ code })
+      : emailService.otpEmail({ code });
+  await emailService.sendEmail({ to: email, ...template });
 }
 
 async function verifyOtp(email, code, purpose) {

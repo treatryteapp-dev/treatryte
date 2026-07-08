@@ -27,4 +27,28 @@ router.get('/settings', controller.listPlatformSettings);
 router.patch('/settings', controller.updatePlatformSettings);
 router.get('/config-health', requireRole('admin'), controller.configHealth);
 
+// Treasury (platform revenue withdrawal) - real money movement, always
+// admin-role-gated regardless of what the rest of this router allows.
+router.post(
+  '/payout-account/lookup',
+  requireRole('admin'),
+  validateBody(controller.lookupAccountSchema),
+  controller.lookupPayoutAccount,
+);
+router.get('/payout-account', requireRole('admin'), controller.getPayoutAccount);
+router.post('/payout-account/request-otp', requireRole('admin'), controller.requestPayoutAccountOtp);
+router.post(
+  '/payout-account',
+  requireRole('admin'),
+  validateBody(controller.setPayoutAccountSchema),
+  controller.setPayoutAccount,
+);
+router.get('/treasury/wallet', requireRole('admin'), controller.getTreasuryWallet);
+router.post(
+  '/treasury/withdraw',
+  requireRole('admin'),
+  validateBody(controller.withdrawPlatformRevenueSchema),
+  controller.withdrawPlatformRevenue,
+);
+
 module.exports = router;
