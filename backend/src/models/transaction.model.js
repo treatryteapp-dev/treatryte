@@ -80,6 +80,27 @@ function findStalePendingFundings({ olderThanMs, newerThanMs }) {
 }
 
 /**
+ * Withdrawals (shared by patient, partner, and admin wallets - all go
+ * through the same withdrawToBank path) still sitting in an unconfirmed
+ * Nomba state outside the normal webhook-delivery window - candidates for
+ * reconciling directly against Nomba's ledger instead of waiting on a
+ * payout_success/payout_failed/payout_refund webhook that may never arrive.
+ * The money-safety risk is asymmetric: a missed payout_refund leaves a user
+ * debited for a transfer Nomba never actually sent.
+ */
+function findStaleSubmittedPayouts({ olderThanMs, newerThanMs }) {
+  const now = Date.now();
+  return collection()
+    .find({
+      category: 'withdrawal',
+      'metadata.nombaStatus': { $in: ['submitted', 'pending'] },
+      nombaTransferRef: { $exists: true },
+      createdAt: { $lt: new Date(now - olderThanMs), $gt: new Date(now - newerThanMs) },
+    })
+    .toArray();
+}
+
+/**
  * Inserts a transaction row without touching the wallet balance.
  * Used for funding orders that only become real money once Nomba confirms
  * payment via webhook.
@@ -208,6 +229,7 @@ module.exports = {
   findByNombaTransactionId,
   findWalletFundingNear,
   findStalePendingFundings,
+  findStaleSubmittedPayouts,
   recordPending,
   applyImmediate,
   finalizePendingCredit,

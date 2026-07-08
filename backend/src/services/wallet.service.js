@@ -168,7 +168,11 @@ async function withdrawToBank(userId, { amountKobo, accountNumber, bankCode, acc
   } catch (error) {
     // Nomba rejected the transfer outright (not a webhook-delivered
     // failure) - refund immediately rather than leaving the user's money
-    // stuck in limbo.
+    // stuck in limbo. Also flip the original debit's own status so it
+    // doesn't display as permanently 'submitted' even though it was
+    // already resolved (found this happening for real: two rejected
+    // transfers correctly auto-refunded here, but still showed 'submitted'
+    // forever since only the async webhook path used to update this).
     await creditImmediate(userId, {
       amountKobo,
       category: 'refund',
@@ -176,6 +180,10 @@ async function withdrawToBank(userId, { amountKobo, accountNumber, bankCode, acc
       metadata: { originalTransactionId: debit._id.toString() },
       refs: {},
     });
+    await transactionModel.collection().updateOne(
+      { _id: debit._id },
+      { $set: { 'metadata.nombaStatus': 'refunded', updatedAt: new Date() } },
+    );
     throw new ApiError(502, `Withdrawal failed: ${error.message}`, 'WITHDRAWAL_FAILED');
   }
 }
@@ -262,28 +270,85 @@ async function handleNombaWebhook(eventType, rawData) {
     case 'payout_failed':
     case 'payout_refund': {
       const existing = await transactionModel.findByNombaTransferRef(data.transferReference);
-      if (!existing || existing.metadata?.nombaStatus === 'refunded') return; // already refunded
-
-      await creditImmediate(existing.userId, {
-        amountKobo: existing.amount,
-        category: 'refund',
-        description: 'Withdrawal failed - refund',
-        metadata: { originalTransactionId: existing._id.toString() },
-        refs: {},
-      });
-      await transactionModel.collection().updateOne(
-        { _id: existing._id },
-        { $set: { 'metadata.nombaStatus': 'refunded', updatedAt: new Date() } },
-      );
-      await notificationService.notify(existing.userId, {
-        type: 'wallet',
-        title: 'Withdrawal Failed',
-        body: `Your withdrawal of ₦${(existing.amount / 100).toLocaleString()} failed and has been refunded.`,
-      });
-      return;
+      if (!existing) return;
+      return refundFailedPayoutIfNew(existing);
     }
     default:
       return;
+  }
+}
+
+/**
+ * Shared by the payout_failed/payout_refund webhook case and the ledger-
+ * reconciliation path below - a failed/reversed outbound transfer (patient
+ * withdrawal or partner/admin earnings withdrawal, all share this same
+ * withdrawToBank path) must be refunded back to the wallet it was debited
+ * from. Guards against double-refunding the same withdrawal twice.
+ */
+async function refundFailedPayoutIfNew(transaction) {
+  if (transaction.metadata?.nombaStatus === 'refunded') return; // already refunded
+
+  await creditImmediate(transaction.userId, {
+    amountKobo: transaction.amount,
+    category: 'refund',
+    description: 'Withdrawal failed - refund',
+    metadata: { originalTransactionId: transaction._id.toString() },
+    refs: {},
+  });
+  await transactionModel.collection().updateOne(
+    { _id: transaction._id },
+    { $set: { 'metadata.nombaStatus': 'refunded', updatedAt: new Date() } },
+  );
+  await notificationService.notify(transaction.userId, {
+    type: 'wallet',
+    title: 'Withdrawal Failed',
+    body: `Your withdrawal of ₦${(transaction.amount / 100).toLocaleString()} failed and has been refunded.`,
+  });
+}
+
+/**
+ * Safety net for outbound bank transfers (withdrawals - shared by patient,
+ * partner, and admin wallets): if a payout_success/payout_failed/
+ * payout_refund webhook never arrives, a transaction can sit indefinitely
+ * with metadata.nombaStatus stuck at 'submitted'/'pending', and worse - if
+ * the transfer actually failed/reversed at Nomba but the refund webhook was
+ * missed, the user stays debited for money that was never actually sent.
+ * Scans Nomba's ledger directly by merchantTxRef and reconciles either way.
+ */
+async function reconcilePendingPayouts() {
+  const stale = await transactionModel.findStaleSubmittedPayouts({
+    olderThanMs: 5 * 60 * 1000, // give the webhook 5 minutes before we check
+    newerThanMs: 3 * 24 * 60 * 60 * 1000, // beyond 3 days, Nomba's own record is unlikely to help either
+  });
+  if (!stale.length) return;
+
+  const now = new Date();
+  const dateFrom = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19);
+  const dateTo = now.toISOString().slice(0, 19);
+  const entries = await nomba.listAccountTransactions({ dateFrom, dateTo });
+  const byMerchantTxRef = new Map(entries.map((t) => [t.merchantTxRef, t]));
+
+  for (const transaction of stale) {
+    try {
+      const entry = byMerchantTxRef.get(transaction.nombaTransferRef);
+      if (!entry) continue; // Nomba has no record of it yet - still genuinely in flight
+
+      if (entry.status === 'SUCCESS') {
+        await transactionModel.collection().updateOne(
+          { _id: transaction._id },
+          { $set: { 'metadata.nombaStatus': 'success', updatedAt: new Date() } },
+        );
+      } else if (entry.status === 'REFUND') {
+        // Nomba's own docs: a failed transfer auto-refunds on their side and
+        // is reported back with this status - mirrors the payout_refund
+        // webhook case exactly.
+        await refundFailedPayoutIfNew(transaction);
+      }
+      // Any other status (NEW, PENDING_BILLING, ...) - still in flight,
+      // leave it for the next sweep rather than guessing.
+    } catch (error) {
+      console.error(`Payout reconciliation failed for ${transaction.nombaTransferRef}:`, error.message);
+    }
   }
 }
 
@@ -341,4 +406,5 @@ module.exports = {
   lookupAccount,
   handleNombaWebhook,
   reconcileVirtualAccountTransfers,
+  reconcilePendingPayouts,
 };

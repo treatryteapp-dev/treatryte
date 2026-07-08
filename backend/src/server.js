@@ -21,6 +21,15 @@ setInterval(() => {
   });
 }, RECONCILE_INTERVAL_MS);
 
+// Safety net for outbound bank transfers (withdrawals - shared by patient,
+// partner, and admin wallets) whose payout webhook never arrives. See
+// walletService.reconcilePendingPayouts.
+setInterval(() => {
+  walletService.reconcilePendingPayouts().catch((error) => {
+    console.error('Payout reconciliation sweep failed:', error.message);
+  });
+}, RECONCILE_INTERVAL_MS);
+
 // Start daily cron jobs
 const { startDailyMedicationEmails } = require('./jobs/dailyMedicationEmail');
 startDailyMedicationEmails();
