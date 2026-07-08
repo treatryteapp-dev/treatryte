@@ -174,6 +174,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   // the settlements collection, both of which predate instant wallet
   // credits and undercount (or in the settlements case, are now dead - see
   // outstandingSettlementsKobo below).
+  // 'correction' is included and sign-aware (credit adds, debit subtracts)
+  // so a reversed erroneous platform_fee/subscription_revenue credit (see
+  // e.g. fa40170's duplicate-settlement fix) actually nets out of the
+  // total instead of the correction's offsetting debit being silently
+  // ignored while the credit it cancels still counts.
   const adminUser = await userModel.collection().findOne({ role: 'admin' });
   const revenueTransactions = adminUser
     ? await getDb()
@@ -181,11 +186,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         .find({
           userId: adminUser._id,
           status: 'success',
-          category: { $in: ['platform_fee', 'subscription_revenue'] },
+          category: { $in: ['platform_fee', 'subscription_revenue', 'correction'] },
         })
         .toArray()
     : [];
-  const totalRevenue = revenueTransactions.reduce((sum, t) => sum + t.amount, 0) / 100;
+  const totalRevenue =
+    revenueTransactions.reduce((sum, t) => sum + (t.type === 'credit' ? t.amount : -t.amount), 0) / 100;
 
   const outstandingSettlementsKobo = 0; // Legacy settlement system deprecated in favor of instant wallet credits
 
