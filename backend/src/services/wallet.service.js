@@ -166,7 +166,8 @@ async function lookupAccount({ accountNumber, bankCode }) {
 async function handleNombaWebhook(eventType, rawData) {
   const data = nomba.parseWebhookData(rawData);
   switch (eventType) {
-    case 'payment_success': {      if (data.type === 'vact_transfer' && (data.aliasAccountNumber || data.aliasAccountReference)) {
+    case 'payment_success': {
+      if (data.aliasAccountNumber || data.aliasAccountReference) {
         if (data.transactionId) {
           const existing = await transactionModel.findByNombaTransactionId(data.transactionId);
           if (existing) return; // already credited - webhook retry

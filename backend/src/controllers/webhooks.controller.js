@@ -64,12 +64,6 @@ const handleNombaWebhook = asyncHandler(async (req, res) => {
   if (eventType === 'payout_success' || eventType === 'payout_failed' || eventType === 'payout_refund') {
     await settlementService.handleSettlementWebhook(eventType, data);
   }
-  // A payment_* orderReference belongs to either a wallet-funding order
-  // (handled above) or a subscription upgrade - no-ops if the ref isn't theirs.
-  if (eventType === 'payment_success' || eventType === 'payment_failed' || eventType === 'payment_reversal') {
-    await subscriptionService.handleSubscriptionWebhook(eventType, data);
-  }
-
   // Always 200 quickly - Nomba retries on non-200/timeout.
   res.status(200).json({ received: true });
 });
