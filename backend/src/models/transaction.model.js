@@ -38,6 +38,29 @@ function findByNombaTransactionId(nombaTransactionId) {
 }
 
 /**
+ * Secondary dedup guard for ledger-based reconciliation (see
+ * wallet.service.js reconcileVirtualAccountTransfers): a webhook-sourced
+ * credit for the same transfer may already exist under a different id than
+ * the one the ledger export uses, so an exact nombaTransactionId match isn't
+ * enough on its own - this catches "already credited, just under another
+ * reference" by wallet + amount + a tight time window instead. Restricted to
+ * 'success' rows only - a pending/abandoned row of the same amount is not
+ * evidence of an existing credit.
+ */
+function findWalletFundingNear(walletId, amountKobo, aroundTime, windowMs) {
+  return collection().findOne({
+    walletId,
+    category: 'wallet_funding',
+    status: 'success',
+    amount: amountKobo,
+    createdAt: {
+      $gte: new Date(aroundTime.getTime() - windowMs),
+      $lte: new Date(aroundTime.getTime() + windowMs),
+    },
+  });
+}
+
+/**
  * Wallet-funding rows still 'pending' outside the normal webhook-delivery
  * window - candidates for reconciling directly against Nomba's API instead
  * of waiting on a webhook that may have been missed or rejected. Bounded on
@@ -183,6 +206,7 @@ module.exports = {
   findByNombaOrderReference,
   findByNombaTransferRef,
   findByNombaTransactionId,
+  findWalletFundingNear,
   findStalePendingFundings,
   recordPending,
   applyImmediate,

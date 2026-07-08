@@ -189,6 +189,41 @@ async function lookupAccount({ accountNumber, bankCode }) {
 }
 
 /**
+ * Shared by the webhook path and the ledger-reconciliation path below - both
+ * end with the same credit + activity + notification once a dedicated
+ * virtual account transfer is confirmed. Dedupes on nombaTransactionId when
+ * one is available; the reconciliation path additionally guards against
+ * crediting something the webhook already handled under a different id (see
+ * reconcileVirtualAccountTransfers).
+ */
+async function creditVactTransferIfNew(wallet, { amountKobo, nombaTransactionId }) {
+  if (nombaTransactionId) {
+    const existing = await transactionModel.findByNombaTransactionId(nombaTransactionId);
+    if (existing) return; // already credited - webhook retry or reconciliation re-run
+  }
+
+  const credit = await creditImmediate(wallet.userId, {
+    amountKobo,
+    category: 'wallet_funding',
+    description: 'Wallet funding via bank transfer',
+    metadata: {},
+    refs: nombaTransactionId ? { nombaTransactionId } : {},
+  });
+  await activityService.record(wallet.userId, {
+    type: 'wallet_funding',
+    title: 'Wallet Funded',
+    subtitle: `₦${(amountKobo / 100).toLocaleString()} credited`,
+    iconKey: 'account_balance_wallet',
+  });
+  await notificationService.notify(wallet.userId, {
+    type: 'wallet',
+    title: 'Wallet Funded',
+    body: `₦${(amountKobo / 100).toLocaleString()} has been credited to your wallet.`,
+  });
+  return credit;
+}
+
+/**
  * Central handler for all 6 Nomba webhook event types. Idempotent: relies
  * on transactionModel's pending-row lookups only mutating state once.
  */
@@ -197,10 +232,6 @@ async function handleNombaWebhook(eventType, rawData) {
   switch (eventType) {
     case 'payment_success': {
       if (data.aliasAccountNumber || data.aliasAccountReference) {
-        if (data.transactionId) {
-          const existing = await transactionModel.findByNombaTransactionId(data.transactionId);
-          if (existing) return; // already credited - webhook retry
-        }
         // Match by account number first (unambiguous - it's literally what
         // we store as virtualAccountNumber); accountRef as a fallback in
         // case Nomba ever omits the number on some payload variant.
@@ -211,25 +242,10 @@ async function handleNombaWebhook(eventType, rawData) {
             (await walletModel.findByVirtualAccountRef(data.aliasAccountReference)));
         if (!wallet || !data.amountKobo) return; // unknown virtual account, or unparseable amount
 
-        const credit = await creditImmediate(wallet.userId, {
+        return creditVactTransferIfNew(wallet, {
           amountKobo: data.amountKobo,
-          category: 'wallet_funding',
-          description: 'Wallet funding via bank transfer',
-          metadata: {},
-          refs: data.transactionId ? { nombaTransactionId: data.transactionId } : {},
+          nombaTransactionId: data.transactionId,
         });
-        await activityService.record(wallet.userId, {
-          type: 'wallet_funding',
-          title: 'Wallet Funded',
-          subtitle: `₦${(data.amountKobo / 100).toLocaleString()} credited`,
-          iconKey: 'account_balance_wallet',
-        });
-        await notificationService.notify(wallet.userId, {
-          type: 'wallet',
-          title: 'Wallet Funded',
-          body: `₦${(data.amountKobo / 100).toLocaleString()} has been credited to your wallet.`,
-        });
-        return credit;
       }
       return;
     }
@@ -271,6 +287,49 @@ async function handleNombaWebhook(eventType, rawData) {
   }
 }
 
+/**
+ * Safety net for dedicated-virtual-account transfers: unlike checkout
+ * orders (removed), a vact_transfer has no pending row on our side to check
+ * up on, so a webhook that's missing entirely (not just late) is otherwise
+ * invisible - confirmed happening for real, where transfers landed on
+ * Nomba's side but never reached our webhook handler. Scans Nomba's own
+ * account ledger instead and credits anything that landed on one of our
+ * virtual accounts but never made it into our transactions collection.
+ */
+async function reconcileVirtualAccountTransfers() {
+  const now = new Date();
+  const dateFrom = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19);
+  const dateTo = now.toISOString().slice(0, 19);
+
+  const entries = await nomba.listAccountTransactions({ dateFrom, dateTo });
+  const credits = entries.filter((t) => t.type === 'vact_transfer' && t.entryType === 'CREDIT');
+
+  for (const entry of credits) {
+    try {
+      const wallet = await walletModel.findByVirtualAccountNumber(entry.recipientAccountNumber);
+      if (!wallet) continue; // not one of our accounts (this Nomba merchant is shared with others)
+
+      const amountKobo = Math.round(parseFloat(entry.amount) * 100);
+      const ledgerTransactionId = entry.paymentVendorReference || entry.id;
+
+      const alreadyByRef = await transactionModel.findByNombaTransactionId(ledgerTransactionId);
+      if (alreadyByRef) continue;
+
+      const alreadyByWindow = await transactionModel.findWalletFundingNear(
+        wallet._id,
+        amountKobo,
+        new Date(entry.timeCreated),
+        10 * 60 * 1000,
+      );
+      if (alreadyByWindow) continue;
+
+      await creditVactTransferIfNew(wallet, { amountKobo, nombaTransactionId: ledgerTransactionId });
+    } catch (error) {
+      console.error(`Virtual account transfer reconciliation failed for ${entry.id}:`, error.message);
+    }
+  }
+}
+
 module.exports = {
   getWallet,
   listTransactions,
@@ -281,4 +340,5 @@ module.exports = {
   listBanks,
   lookupAccount,
   handleNombaWebhook,
+  reconcileVirtualAccountTransfers,
 };

@@ -12,6 +12,15 @@ app.listen(env.port, () => {
 // because it only processes 'unsettled' appointments and marks them 'settled'.
 require('./scripts/migrateSettlements');
 
+// Safety net for dedicated virtual account transfers whose webhook never
+// arrives - these have no pending row to sweep, so this scans Nomba's own
+// ledger directly instead. See walletService.reconcileVirtualAccountTransfers.
+setInterval(() => {
+  walletService.reconcileVirtualAccountTransfers().catch((error) => {
+    console.error('Virtual account transfer reconciliation sweep failed:', error.message);
+  });
+}, RECONCILE_INTERVAL_MS);
+
 // Start daily cron jobs
 const { startDailyMedicationEmails } = require('./jobs/dailyMedicationEmail');
 startDailyMedicationEmails();

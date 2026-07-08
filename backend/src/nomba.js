@@ -80,6 +80,24 @@ async function createVirtualAccount({ accountRef, accountName }) {
   return json.data; // { bankAccountNumber, bankAccountName, bankName, accountRef }
 }
 
+/**
+ * Lists this merchant account's raw transaction ledger directly from Nomba -
+ * the safety net for vact_transfer (dedicated virtual account) credits,
+ * which are push-only via webhook with no pending row on our side to check
+ * up on, so a missed webhook is otherwise invisible. Confirmed via a live
+ * round-trip that this endpoint actually surfaces vact_transfer entries
+ * (unlike /v1/transactions/accounts/single, which doesn't filter reliably).
+ */
+async function listAccountTransactions({ dateFrom, dateTo }) {
+  const { json, ok } = await nombaFetch(
+    `/v1/transactions/accounts?startDate=${dateFrom}&endDate=${dateTo}&limit=100`
+  );
+  if (!ok || json.code !== '00') {
+    throw new Error(`Nomba account transactions fetch failed: ${json.description || 'unknown error'}`);
+  }
+  return json.data?.results || [];
+}
+
 async function transferToBank({ amountKobo, accountNumber, bankCode, accountName, senderName, merchantTxRef, narration }) {
   const { json, status } = await nombaFetch('/v2/transfers/bank', {
     method: 'POST',
@@ -199,6 +217,7 @@ function verifyWebhookSignature({ eventType, requestId, data, headers }) {
 module.exports = {
   getAccessToken,
   createVirtualAccount,
+  listAccountTransactions,
   transferToBank,
   listBanks,
   lookupBankAccount,
