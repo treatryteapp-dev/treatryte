@@ -154,6 +154,14 @@ async function createAppointment(userId, { labId, testIds, scheduledDate, schedu
     });
   }
 
+  // Mark settled immediately - this appointment was just paid out instantly
+  // above, not via the old batch settlement flow. Without this,
+  // settlementId stays null forever and the legacy migrateSettlements
+  // script (still run on every server boot) treats it as never-settled and
+  // credits the partner and admin a second time on the next restart -
+  // confirmed happening for real, not just a theoretical risk.
+  await appointmentModel.markSettled([appointment._id], appointment._id);
+
   if (lab) {
     await notificationService.notify(lab.userId, {
       type: 'appointment',
