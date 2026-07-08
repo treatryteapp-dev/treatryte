@@ -62,29 +62,6 @@ async function nombaFetch(path, { method = 'GET', body, forceRefresh = false } =
   return { status: res.status, ok: res.ok, json };
 }
 
-async function createCheckoutOrder({ amountKobo, customerEmail, customerId, orderReference, callbackUrl }) {
-  const { json, ok } = await nombaFetch('/v1/checkout/order', {
-    method: 'POST',
-    body: {
-      order: {
-        orderReference,
-        customerId,
-        callbackUrl,
-        customerEmail,
-        amount: amountKobo / 100,
-        currency: 'NGN',
-        // Without this, funds settle to the default/parent account instead
-        // of the intended sub-account - this was never being sent before.
-        ...(env.nomba.subAccountId ? { accountId: env.nomba.subAccountId } : {}),
-      },
-    },
-  });
-  if (!ok || json.code !== '00') {
-    throw new Error(`Nomba checkout order failed: ${json.description || 'unknown error'}`);
-  }
-  return json.data; // { checkoutLink, orderReference }
-}
-
 /**
  * Creates a permanent dedicated virtual account for a customer (a real
  * bank account number that always routes to us) - the reliable alternative
@@ -101,34 +78,6 @@ async function createVirtualAccount({ accountRef, accountName }) {
     throw new Error(`Nomba virtual account creation failed: ${json.description || 'unknown error'}`);
   }
   return json.data; // { bankAccountNumber, bankAccountName, bankName, accountRef }
-}
-
-/**
- * Looks up a checkout order's real status directly from Nomba, independent
- * of whether their webhook ever reached us - the safety net for a missed,
- * rejected (e.g. bad signature), or simply undelivered webhook.
- *
- * Deliberately NOT /v1/transactions/accounts/single - verified against
- * Nomba's sandbox that it does not actually filter by orderReference at all
- * (it returned a real, unrelated transaction for a reference confirmed not
- * to exist). /v1/checkout/transaction correctly returns "not found" for the
- * same case, so that's the only endpoint used here.
- *
- * Returns null if Nomba has no record of this order (not yet paid, or
- * doesn't exist).
- */
-async function verifyTransaction({ orderReference }) {
-  const { json, ok } = await nombaFetch(
-    `/v1/checkout/transaction?idType=ORDER_REFERENCE&id=${encodeURIComponent(orderReference)}`
-  );
-  if (!ok || json.code !== '00' || !json.data?.success) {
-    return null;
-  }
-  return {
-    success: json.data.transactionDetails?.statusCode === 'PAYMENT SUCCESSFUL',
-    transactionId: json.data.transactionDetails?.paymentReference || json.data.order?.orderId,
-    raw: json.data,
-  };
 }
 
 async function transferToBank({ amountKobo, accountNumber, bankCode, accountName, senderName, merchantTxRef, narration }) {
@@ -199,10 +148,7 @@ function parseWebhookData(data) {
     // can only ever be fixed in one place.
     responseCode:
       data.transaction?.responseCode === 'null' ? '' : data.transaction?.responseCode,
-    // Only present for checkout-order payments (card, or pay-by-transfer
-    // through the checkout page) - absent for dedicated-virtual-account
-    // transfers (data.transaction.type === 'vact_transfer').
-    orderReference: data.order?.orderReference,
+    // Only present for checkout-order payments (removed).
     // The merchantTxRef we generate and send when initiating a payout -
     // used to match a payout_* webhook back to the original transfer.
     transferReference: data.transaction?.merchantTxRef,
@@ -258,9 +204,7 @@ function verifyWebhookSignature({ eventType, requestId, data, headers }) {
 
 module.exports = {
   getAccessToken,
-  createCheckoutOrder,
   createVirtualAccount,
-  verifyTransaction,
   transferToBank,
   listBanks,
   lookupBankAccount,

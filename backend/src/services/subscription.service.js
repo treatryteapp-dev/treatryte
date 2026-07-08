@@ -37,6 +37,17 @@ async function initiateUpgrade(userId, planId) {
   }
 
   const amountKobo = Math.round(plan.price * 100);
+
+  const walletService = require('./wallet.service');
+  // Debit first. If it fails due to insufficient funds, the error is thrown.
+  const transaction = await walletService.debitImmediate(userId, {
+    amountKobo,
+    category: 'subscription_payment',
+    description: `Subscription to ${plan.name} plan`,
+    metadata: {},
+    refs: {},
+  });
+
   const subscription = await subscriptionModel.create({
     userId,
     planId: plan._id,
@@ -44,23 +55,36 @@ async function initiateUpgrade(userId, planId) {
     interval: plan.interval,
   });
 
-  const order = await nomba.createCheckoutOrder({
-    amountKobo,
-    customerEmail: user.email,
-    customerId: userId.toString(),
-    orderReference: subscription._id.toString(),
-  });
+  await subscriptionModel.activate(subscription._id);
+  await userModel.update(userId, { planId: plan._id });
 
-  await subscriptionModel.collection().updateOne(
-    { _id: subscription._id },
-    { $set: { nombaOrderReference: order.orderReference, updatedAt: new Date() } },
-  );
+  const adminUser = await userModel.collection().findOne({ role: 'admin' });
+  if (adminUser) {
+    await walletService.creditImmediate(adminUser._id, {
+      amountKobo,
+      category: 'subscription_revenue',
+      description: `Subscription revenue for ${plan.name} from ${user.fullName}`,
+      metadata: { subscriptionId: subscription._id.toString() },
+      refs: { subscriptionId: subscription._id.toString() },
+    });
+  }
+
+  await activityService.record(userId, {
+    type: 'subscription_upgrade',
+    title: 'Plan Upgraded',
+    subtitle: `Now on ${plan.name}`,
+    iconKey: 'workspace_premium',
+  });
+  await notificationService.notify(userId, {
+    type: 'subscription',
+    title: 'Plan Upgraded',
+    body: `Your subscription to ${plan.name} is now active.`,
+  });
 
   return {
     requiresPayment: true,
-    checkoutLink: order.checkoutLink,
-    orderReference: order.orderReference,
     subscriptionId: subscription._id,
+    user: await userModel.toPublicWithAvatar(await userModel.findById(userId))
   };
 }
 
@@ -77,48 +101,7 @@ async function cancelSubscription(userId) {
   return subscriptionModel.collection().findOne({ _id: subscription._id });
 }
 
-/**
- * Matched by orderReference against the subscriptions collection - no-ops
- * if the reference belongs to a wallet-funding transaction instead (handled
- * separately by walletService).
- */
-async function handleSubscriptionWebhook(eventType, rawData) {
-  const data = nomba.parseWebhookData(rawData);
-  const subscription = await subscriptionModel.findByNombaOrderReference(data.orderReference);
-  if (!subscription) return;
 
-  switch (eventType) {
-    case 'payment_success': {
-      if (subscription.status !== 'pending_payment') return; // already handled
-      const activated = await subscriptionModel.activate(subscription._id);
-      await userModel.update(subscription.userId, { planId: subscription.planId });
-
-      const plan = await planModel.collection().findOne({ _id: subscription.planId });
-      await activityService.record(subscription.userId, {
-        type: 'subscription_upgrade',
-        title: 'Plan Upgraded',
-        subtitle: plan ? `Now on ${plan.name}` : 'Plan upgraded',
-        iconKey: 'workspace_premium',
-      });
-      await notificationService.notify(subscription.userId, {
-        type: 'subscription',
-        title: 'Plan Upgraded',
-        body: plan
-          ? `Your subscription to ${plan.name} is now active.`
-          : 'Your plan upgrade is now active.',
-      });
-      return activated;
-    }
-    case 'payment_failed':
-    case 'payment_reversal': {
-      if (subscription.status !== 'pending_payment') return;
-      await subscriptionModel.markPastDue(subscription._id);
-      return;
-    }
-    default:
-      return;
-  }
-}
 
 const RENEWAL_REMINDER_DAYS = 3;
 const FREE_PLAN_TYPE_MATCH = { price: 0 };
@@ -161,17 +144,10 @@ async function notifyDueForRenewal(now = new Date()) {
     const user = await userModel.findById(subscription.userId);
     if (!user) continue;
 
-    const order = await nomba.createCheckoutOrder({
-      amountKobo: subscription.amountKobo,
-      customerEmail: user.email,
-      customerId: subscription.userId.toString(),
-      orderReference: subscription._id.toString(),
-    });
-
     await notificationService.notify(subscription.userId, {
       type: 'subscription',
       title: 'Renew Your Plan',
-      body: `Your plan renews in ${daysRemaining} day(s). Tap to complete payment: ${order.checkoutLink}`,
+      body: `Your plan renews in ${daysRemaining} day(s). Please ensure your wallet has sufficient funds.`,
     });
   }
 }
@@ -180,6 +156,5 @@ module.exports = {
   initiateUpgrade,
   getCurrent,
   cancelSubscription,
-  handleSubscriptionWebhook,
   notifyDueForRenewal,
 };

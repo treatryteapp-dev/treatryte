@@ -9,7 +9,6 @@ const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
 const appointmentModel = require('../models/appointment.model');
 const settlementModel = require('../models/settlement.model');
-const settlementService = require('../services/settlement.service');
 const platformSettingsModel = require('../models/platformSettings.model');
 const vaultFileModel = require('../models/vaultFile.model');
 const { signVaultUrl } = require('../cloudfrontSign');
@@ -176,8 +175,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const settlementFeeRevenueKobo = settlements.reduce((sum, s) => sum + s.platformFeeKobo, 0);
   const totalRevenue = (serviceFeeRevenueKobo + settlementFeeRevenueKobo) / 100;
 
-  const outstanding = await settlementService.computeOutstanding();
-  const outstandingSettlementsKobo = outstanding.reduce((sum, o) => sum + o.netAmountKobo, 0);
+  const outstandingSettlementsKobo = 0; // Legacy settlement system deprecated in favor of instant wallet credits
 
   let systemHealth = 100.00;
   try {
@@ -365,16 +363,6 @@ const updatePlan = asyncHandler(async (req, res) => {
   res.json({ plan: updated });
 });
 
-const listSettlements = asyncHandler(async (req, res) => {
-  const outstanding = await settlementService.computeOutstanding();
-  const history = await settlementModel.listHistory();
-  res.json({ outstanding, history });
-});
-
-const triggerSettlements = asyncHandler(async (req, res) => {
-  const summary = await settlementService.triggerBatch();
-  res.json({ summary });
-});
 
 const listBanks = asyncHandler(async (req, res) => {
   const banks = await nomba.listBanks();
@@ -488,8 +476,6 @@ module.exports = {
   createPlan,
   deletePlan,
   updatePlan,
-  listSettlements,
-  triggerSettlements,
   listBanks,
   updateLabBankDetails,
   updateProfileSchema,

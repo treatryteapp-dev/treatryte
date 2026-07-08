@@ -8,15 +8,9 @@ app.listen(env.port, () => {
   console.log(`TreatRyte API listening on port ${env.port} (${env.nodeEnv})`);
 });
 
-// Safety net for wallet-funding webhooks that never arrive or get rejected
-// (e.g. a misconfigured NOMBA_WEBHOOK_SECRET) - periodically settles any
-// order still 'pending' well past the normal delivery window by checking
-// Nomba directly. See walletService.reconcileStalePendingFundings.
-setInterval(() => {
-  walletService.reconcileStalePendingFundings().catch((error) => {
-    console.error('Stale funding reconciliation sweep failed:', error.message);
-  });
-}, RECONCILE_INTERVAL_MS);
+// Auto-migrate legacy settlements on startup. This script is idempotent
+// because it only processes 'unsettled' appointments and marks them 'settled'.
+require('./scripts/migrateSettlements');
 
 // Start daily cron jobs
 const { startDailyMedicationEmails } = require('./jobs/dailyMedicationEmail');

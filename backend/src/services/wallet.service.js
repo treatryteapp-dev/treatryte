@@ -9,9 +9,9 @@ const notificationService = require('./notification.service');
 const { ApiError } = require('../middleware/errorHandler');
 
 async function getWallet(userId) {
-  const wallet = await walletModel.findByUserId(userId);
+  let wallet = await walletModel.findByUserId(userId);
   if (!wallet) {
-    throw new ApiError(404, 'Wallet not found', 'WALLET_NOT_FOUND');
+    wallet = await walletModel.createForUser(userId);
   }
   return wallet;
 }
@@ -58,40 +58,6 @@ async function debitImmediate(userId, { amountKobo, category, description, metad
     metadata,
     refs,
   });
-}
-
-async function fundWallet(userId, { amountKobo, callbackUrl }) {
-  const [wallet, user] = await Promise.all([getWallet(userId), userModel.findById(userId)]);
-
-  // Create our own pending row first so we have an _id to finalize against
-  // once Nomba's webhook arrives, then swap in Nomba's own orderReference
-  // (Nomba ignores/replaces any reference we send, so theirs is the one
-  // that will actually show up in the webhook payload).
-  const pending = await transactionModel.recordPending({
-    userId,
-    walletId: wallet._id,
-    type: 'credit',
-    category: 'wallet_funding',
-    amount: amountKobo,
-    description: 'Wallet funding via Nomba',
-    metadata: {},
-    refs: {},
-  });
-
-  const order = await nomba.createCheckoutOrder({
-    amountKobo,
-    customerEmail: user.email,
-    customerId: userId.toString(),
-    orderReference: pending._id.toString(),
-    callbackUrl,
-  });
-
-  await transactionModel.collection().updateOne(
-    { _id: pending._id },
-    { $set: { nombaOrderReference: order.orderReference, updatedAt: new Date() } },
-  );
-
-  return { checkoutLink: order.checkoutLink, orderReference: order.orderReference };
 }
 
 /**
@@ -191,46 +157,13 @@ async function lookupAccount({ accountNumber, bankCode }) {
 }
 
 /**
- * Shared by the webhook path and the direct-reconciliation path below - both
- * end with the same credit + activity + notification once Nomba confirms a
- * funding order actually succeeded.
- */
-async function finalizeFundingSuccess(pending, nombaTransactionId) {
-  await transactionModel.finalizePendingCredit(pending._id, nombaTransactionId);
-  await activityService.record(pending.userId, {
-    type: 'wallet_funding',
-    title: 'Wallet Funded',
-    subtitle: `₦${(pending.amount / 100).toLocaleString()} credited`,
-    iconKey: 'account_balance_wallet',
-  });
-  await notificationService.notify(pending.userId, {
-    type: 'wallet',
-    title: 'Wallet Funded',
-    body: `₦${(pending.amount / 100).toLocaleString()} has been credited to your wallet.`,
-  });
-}
-
-/**
  * Central handler for all 6 Nomba webhook event types. Idempotent: relies
  * on transactionModel's pending-row lookups only mutating state once.
  */
 async function handleNombaWebhook(eventType, rawData) {
   const data = nomba.parseWebhookData(rawData);
   switch (eventType) {
-    case 'payment_success': {
-      // Checkout-order payments (card, or pay-by-transfer through the
-      // checkout page) carry data.order.orderReference; dedicated-virtual-
-      // account transfers don't - they're identified by aliasAccountNumber
-      // instead and have no pre-existing pending row to finalize.
-      if (data.orderReference) {
-        const pending = await transactionModel.findByNombaOrderReference(data.orderReference);
-        if (!pending || pending.status !== 'pending') return; // unknown or already handled
-
-        await finalizeFundingSuccess(pending, data.transactionId);
-        return;
-      }
-
-      if (data.type === 'vact_transfer' && (data.aliasAccountNumber || data.aliasAccountReference)) {
+    case 'payment_success': {      if (data.type === 'vact_transfer' && (data.aliasAccountNumber || data.aliasAccountReference)) {
         if (data.transactionId) {
           const existing = await transactionModel.findByNombaTransactionId(data.transactionId);
           if (existing) return; // already credited - webhook retry
@@ -267,13 +200,7 @@ async function handleNombaWebhook(eventType, rawData) {
       }
       return;
     }
-    case 'payment_failed':
-    case 'payment_reversal': {
-      const pending = await transactionModel.findByNombaOrderReference(data.orderReference);
-      if (!pending || pending.status !== 'pending') return;
-      await transactionModel.markFailed(pending._id);
-      return;
-    }
+
     case 'payout_success': {
       const existing = await transactionModel.findByNombaTransferRef(data.transferReference);
       if (!existing) return;
@@ -311,69 +238,14 @@ async function handleNombaWebhook(eventType, rawData) {
   }
 }
 
-/**
- * Looks up a specific pending funding order directly against Nomba and
- * settles it - the on-demand counterpart to handleNombaWebhook, for the
- * moment right after checkout when we don't want to just sit and hope the
- * webhook shows up. Scoped to userId so a caller can't probe/settle another
- * user's order by guessing an orderReference.
- */
-async function reconcileFunding(userId, orderReference) {
-  const pending = await transactionModel.findByNombaOrderReference(orderReference);
-  if (!pending || pending.userId.toString() !== userId.toString()) {
-    throw new ApiError(404, 'Funding order not found', 'ORDER_NOT_FOUND');
-  }
-  if (pending.status !== 'pending') {
-    return { status: pending.status };
-  }
-
-  const result = await nomba.verifyTransaction({ orderReference });
-  // No confirmed terminal-failure signal from this endpoint (only
-  // "found and paid" vs "not found/not paid yet") - never mark 'failed'
-  // from it, only ever move a pending order forward to 'success'. A
-  // genuinely failed/abandoned checkout just stays 'pending' indefinitely,
-  // which is the safe default (matches the payment_failed webhook path,
-  // which still handles explicit failures separately).
-  if (result?.success) {
-    await finalizeFundingSuccess(pending, result.transactionId);
-    return { status: 'success' };
-  }
-  return { status: 'pending' };
-}
-
-/**
- * Sweeps funding orders stuck 'pending' well past the normal webhook-delivery
- * window and settles them directly against Nomba - the background safety net
- * for a webhook that was missed, rejected, or never delivered. Meant to be
- * run on an interval (see server.js); failures for one order never block the
- * rest of the sweep.
- */
-async function reconcileStalePendingFundings() {
-  const stale = await transactionModel.findStalePendingFundings({
-    olderThanMs: 5 * 60 * 1000, // give the webhook 5 minutes before we check
-    newerThanMs: 3 * 24 * 60 * 60 * 1000, // beyond 3 days, Nomba's own record is unlikely to help either
-  });
-
-  for (const pending of stale) {
-    try {
-      await reconcileFunding(pending.userId, pending.nombaOrderReference);
-    } catch (error) {
-      console.error(`Stale funding reconciliation failed for ${pending.nombaOrderReference}:`, error.message);
-    }
-  }
-}
-
 module.exports = {
   getWallet,
   listTransactions,
   creditImmediate,
   debitImmediate,
-  fundWallet,
   getOrCreateVirtualAccount,
   withdrawToBank,
   listBanks,
   lookupAccount,
   handleNombaWebhook,
-  reconcileFunding,
-  reconcileStalePendingFundings,
 };

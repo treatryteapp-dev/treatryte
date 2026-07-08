@@ -4,6 +4,7 @@ const labModel = require('../models/lab.model');
 const userModel = require('../models/user.model');
 const patientModel = require('../models/patient.model');
 const subscriptionModel = require('../models/subscription.model');
+const planModel = require('../models/plan.model');
 const platformSettingsModel = require('../models/platformSettings.model');
 const walletService = require('./wallet.service');
 const activityService = require('./activity.service');
@@ -120,6 +121,39 @@ async function createAppointment(userId, { labId, testIds, scheduledDate, schedu
   });
 
   const lab = await labModel.findById(labId);
+  const partnerUser = lab ? await userModel.findById(lab.userId) : null;
+  
+  let platformFeeKobo = 0;
+  if (partnerUser && partnerUser.planId) {
+    const plan = await planModel.collection().findOne({ _id: partnerUser.planId });
+    const splitPercent = plan ? (plan.transactionSplit || 0) : 0;
+    platformFeeKobo = Math.round(subtotal * (splitPercent / 100));
+  }
+  
+  const partnerEarnings = subtotal - platformFeeKobo;
+  const adminEarnings = serviceFee + platformFeeKobo;
+
+  if (partnerUser && partnerEarnings > 0) {
+    await walletService.creditImmediate(partnerUser._id, {
+      amountKobo: partnerEarnings,
+      category: 'appointment_earning',
+      description: `Earnings from appointment`,
+      metadata: { appointmentId: appointment._id.toString(), subtotal, platformFeeKobo },
+      refs: { appointmentId: appointment._id.toString() },
+    });
+  }
+
+  const adminUser = await userModel.collection().findOne({ role: 'admin' });
+  if (adminUser && adminEarnings > 0) {
+    await walletService.creditImmediate(adminUser._id, {
+      amountKobo: adminEarnings,
+      category: 'platform_fee',
+      description: `Platform fee and service charge from appointment`,
+      metadata: { appointmentId: appointment._id.toString(), serviceFee, platformFeeKobo },
+      refs: { appointmentId: appointment._id.toString() },
+    });
+  }
+
   if (lab) {
     await notificationService.notify(lab.userId, {
       type: 'appointment',
