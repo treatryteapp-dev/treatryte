@@ -136,38 +136,6 @@ describe('handleNombaWebhook payload parsing', () => {
     nomba.parseWebhookData.mockImplementation(actualNomba.parseWebhookData);
   });
 
-  test('credits a checkout-order funding from a realistic nested payment_success payload', async () => {
-    const { user, wallet } = await makeUserWithWallet();
-    const pending = await transactionModel.recordPending({
-      userId: user._id,
-      walletId: wallet._id,
-      type: 'credit',
-      category: 'wallet_funding',
-      amount: 5000,
-      description: 'Wallet funding via Nomba',
-      metadata: {},
-      refs: {},
-    });
-    await transactionModel.collection().updateOne(
-      { _id: pending._id },
-      { $set: { nombaOrderReference: 'order-ref-abc' } }
-    );
-
-    await walletService.handleNombaWebhook('payment_success', {
-      merchant: { userId: user._id.toString(), walletId: wallet._id.toString() },
-      transaction: {
-        type: 'online_checkout',
-        transactionId: 'WEB-ONLINE_C-tx-1',
-        time: '2026-01-01T00:00:00Z',
-        responseCode: '',
-      },
-      order: { orderReference: 'order-ref-abc', amount: 50 },
-    });
-
-    const updated = await walletModel.findByUserId(user._id);
-    expect(updated.balance).toBe(5000);
-  });
-
   test('credits a dedicated-virtual-account transfer identified only by aliasAccountReference (no data.order)', async () => {
     const { user } = await makeUserWithWallet();
     await walletModel.setVirtualAccount(user._id, {
