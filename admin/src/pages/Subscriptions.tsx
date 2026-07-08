@@ -98,7 +98,10 @@ export const Subscriptions: React.FC = () => {
         interval: planInterval,
         features: planFeatures.split(',').map(f => f.trim()).filter(Boolean),
         excludedFeatures: planExcludedFeatures.split(',').map(f => f.trim()).filter(Boolean),
-        transactionSplit: transactionSplit ? Number(transactionSplit) : undefined,
+        // Only meaningful for Partner plans - the backend only ever reads
+        // transactionSplit off the lab's own plan, never the patient's, so
+        // sending it for an Individual plan would be a stale no-op value.
+        transactionSplit: planType === 'Partner' && transactionSplit ? Number(transactionSplit) : 0,
         maxVaultFolders: maxVaultFolders ? Number(maxVaultFolders) : null,
         maxVaultFiles: maxVaultFiles ? Number(maxVaultFiles) : null,
       };
@@ -859,19 +862,21 @@ export const Subscriptions: React.FC = () => {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Nomba Split Platform Fee (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    placeholder="e.g. 1.5"
-                    value={transactionSplit}
-                    onChange={(e) => setTransactionSplit(e.target.value)}
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px' }}
-                  />
+              {planType === 'Partner' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#545f73', marginBottom: '8px', textTransform: 'uppercase' }}>Nomba Split Platform Fee (%)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="e.g. 1.5"
+                      value={transactionSplit}
+                      onChange={(e) => setTransactionSplit(e.target.value)}
+                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px' }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {planType === 'Individual' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
