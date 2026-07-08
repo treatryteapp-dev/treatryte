@@ -8,7 +8,6 @@ const labModel = require('../models/lab.model');
 const userModel = require('../models/user.model');
 const planModel = require('../models/plan.model');
 const appointmentModel = require('../models/appointment.model');
-const settlementModel = require('../models/settlement.model');
 const platformSettingsModel = require('../models/platformSettings.model');
 const vaultFileModel = require('../models/vaultFile.model');
 const { signVaultUrl } = require('../cloudfrontSign');
@@ -165,15 +164,28 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const pendingApprovals = await labModel.collection().countDocuments({ status: 'pending' });
   const totalAppointments = await appointmentModel.collection().countDocuments();
 
-  // Real platform earnings: the flat service fee on every confirmed
-  // appointment plus the platform's cut from partner settlements. This is
-  // deliberately NOT a sum of all `transactions` - that collection also
-  // holds wallet top-ups and withdrawals, which are not platform revenue.
-  const confirmedAppointments = await appointmentModel.collection().find({ status: 'confirmed' }).toArray();
-  const serviceFeeRevenueKobo = confirmedAppointments.reduce((sum, a) => sum + a.serviceFee, 0);
-  const settlements = await settlementModel.collection().find({ status: { $in: ['pending', 'completed'] } }).toArray();
-  const settlementFeeRevenueKobo = settlements.reduce((sum, s) => sum + s.platformFeeKobo, 0);
-  const totalRevenue = (serviceFeeRevenueKobo + settlementFeeRevenueKobo) / 100;
+  // Real platform earnings: every credit actually paid into the admin
+  // wallet. appointment.service.js bundles the flat service fee and the
+  // partner's transactionSplit cut into one 'platform_fee' credit per
+  // appointment; subscription.service.js credits 'subscription_revenue'
+  // separately. Deliberately NOT a sum of all `transactions` - that
+  // collection also holds wallet top-ups and withdrawals, which aren't
+  // platform revenue - and NOT the old per-appointment serviceFee field or
+  // the settlements collection, both of which predate instant wallet
+  // credits and undercount (or in the settlements case, are now dead - see
+  // outstandingSettlementsKobo below).
+  const adminUser = await userModel.collection().findOne({ role: 'admin' });
+  const revenueTransactions = adminUser
+    ? await getDb()
+        .collection('transactions')
+        .find({
+          userId: adminUser._id,
+          status: 'success',
+          category: { $in: ['platform_fee', 'subscription_revenue'] },
+        })
+        .toArray()
+    : [];
+  const totalRevenue = revenueTransactions.reduce((sum, t) => sum + t.amount, 0) / 100;
 
   const outstandingSettlementsKobo = 0; // Legacy settlement system deprecated in favor of instant wallet credits
 
