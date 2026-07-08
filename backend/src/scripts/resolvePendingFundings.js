@@ -36,14 +36,18 @@ async function nombaFetch(path, options = {}) {
 
 async function verifyTransaction(orderReference) {
   const { json, ok } = await nombaFetch(
-    `/v1/checkout/transaction?idType=ORDER_REFERENCE&id=${encodeURIComponent(orderReference)}`
+    `/v1/checkout/confirm-transaction-receipt`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ orderReference }),
+    }
   );
-  if (!ok || json.code !== '00' || !json.data?.success) {
+  if (!ok || json.code !== '00' || !json.data) {
     return null;
   }
   return {
-    success: json.data.transactionDetails?.statusCode === 'PAYMENT SUCCESSFUL',
-    transactionId: json.data.transactionDetails?.paymentReference || json.data.order?.orderId,
+    success: json.data.status === true,
+    transactionId: json.data.order?.orderId || orderReference,
   };
 }
 
