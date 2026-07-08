@@ -97,6 +97,35 @@ async function withdrawToBank(userId, { amountKobo, accountNumber, bankCode, acc
   const merchantTxRef = `wd_${userId.toString()}_${crypto.randomUUID()}`;
   const user = await userModel.findById(userId);
 
+  const targetWallet = await walletModel.findByVirtualAccountNumber(accountNumber);
+  if (targetWallet) {
+    // Intercept internal platform transfers
+    const debit = await debitImmediate(userId, {
+      amountKobo,
+      category: 'transfer',
+      description: `Internal transfer to ${accountName}`,
+      metadata: { isInternal: true, recipientWalletId: targetWallet._id.toString() },
+      refs: {},
+    });
+
+    await creditImmediate(targetWallet.userId, {
+      amountKobo,
+      category: 'transfer',
+      description: `Internal transfer from ${user.fullName}`,
+      metadata: { isInternal: true, senderWalletId: debit.walletId.toString() },
+      refs: {},
+    });
+    
+    // Notify recipient
+    await notificationService.notify(targetWallet.userId, {
+      type: 'wallet',
+      title: 'Transfer Received',
+      body: `₦${(amountKobo / 100).toLocaleString()} received from ${user.fullName}.`,
+    });
+    
+    return { ...debit, nombaStatus: 'success' };
+  }
+
   // Reserve the funds immediately so the balance can't be double-spent while
   // the payout is in flight; refunded automatically if Nomba reports failure.
   const debit = await debitImmediate(userId, {
