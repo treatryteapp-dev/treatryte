@@ -128,9 +128,35 @@ class _LabDetailScreenState extends State<LabDetailScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              ElevatedButton(
-                onPressed: _selectedIds.isEmpty ? null : _continue,
-                child: const Text('Continue'),
+              Material(
+                // Flutter web quirk on this build: ElevatedButton silently
+                // fails to render anywhere inside Scaffold.bottomNavigationBar
+                // (confirmed via isolated debug routes), regardless of
+                // enabled state or ancestor Material wrapping - this hand-
+                // built equivalent renders correctly in the same position.
+                color: _selectedIds.isEmpty
+                    ? AppColors.surfaceContainerHigh
+                    : AppColors.primary,
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                  onTap: _selectedIds.isEmpty ? null : _continue,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: 14,
+                    ),
+                    child: Text(
+                      'Continue',
+                      style: textTheme.labelLarge?.copyWith(
+                        color: _selectedIds.isEmpty
+                            ? AppColors.onSurfaceVariant
+                            : AppColors.onPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
