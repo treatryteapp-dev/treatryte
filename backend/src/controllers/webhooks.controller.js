@@ -26,6 +26,21 @@ const handleNombaWebhook = asyncHandler(async (req, res) => {
     transactionId: parsed.transactionId,
   });
 
+  // Temporarily log webhooks to DB so we can inspect them
+  try {
+    const { getDb } = require('../db');
+    await getDb().collection('webhook_logs').insertOne({
+      eventType,
+      requestId,
+      data,
+      headers: req.headers,
+      parsed,
+      createdAt: new Date()
+    });
+  } catch (err) {
+    console.error('Failed to log webhook', err);
+  }
+
   const isValid = nomba.verifyWebhookSignature({
     eventType,
     requestId,
