@@ -380,11 +380,20 @@ async function reconcileVirtualAccountTransfers() {
       const alreadyByRef = await transactionModel.findByNombaTransactionId(ledgerTransactionId);
       if (alreadyByRef) continue;
 
+      // Wide window is deliberate: a manual/untraceable credit (e.g. an
+      // admin-run recovery script with no Nomba reference to exact-match
+      // against) can legitimately lag the real transfer by tens of minutes,
+      // not seconds. Confirmed happening for real - a 37-minute-late manual
+      // credit fell outside an earlier 10-minute window and this sweep
+      // double-credited the same real transfer on top of it. Double-
+      // crediting real money is a far worse failure mode than occasionally
+      // skipping a same-amount transfer from the same account within a day
+      // of another one, so this errs hard toward the former.
       const alreadyByWindow = await transactionModel.findWalletFundingNear(
         wallet._id,
         amountKobo,
         new Date(entry.timeCreated),
-        10 * 60 * 1000,
+        24 * 60 * 60 * 1000,
       );
       if (alreadyByWindow) continue;
 
