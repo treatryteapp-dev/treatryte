@@ -7,6 +7,7 @@ import '../models/plan_models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/plan_provider.dart';
 import '../providers/subscription_provider.dart';
+import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
@@ -188,6 +189,10 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     if (checkoutLink == 'SUCCESS') {
       await context.read<AuthProvider>().checkSession();
       if (!mounted) return;
+      // A wallet-paid upgrade just debited the wallet server-side - without
+      // this, the balance shown elsewhere in the app stays stale until the
+      // next full app restart.
+      context.read<WalletProvider>().refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Subscription upgraded successfully via wallet.'),

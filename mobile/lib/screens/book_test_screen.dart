@@ -81,6 +81,10 @@ class _BookTestScreenState extends State<BookTestScreen> {
     setState(() => _paying = false);
 
     if (success) {
+      // The booking just debited the wallet server-side - without this, the
+      // balance shown elsewhere in the app (e.g. Home) stays stale until the
+      // next full app restart, since a popped-back-to tab isn't rebuilt.
+      context.read<WalletProvider>().refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Appointment booked and paid successfully.'),
