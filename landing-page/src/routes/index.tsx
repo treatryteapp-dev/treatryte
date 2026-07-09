@@ -699,13 +699,17 @@ function CTA() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a
-              href="#"
+              href="https://treatryte-web.up.railway.app"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
             >
               Download for iOS
             </a>
             <a
-              href="#"
+              href="https://treatryte-backend.up.railway.app/api/downloads/app-latest.apk"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
             >
               Download for Android
